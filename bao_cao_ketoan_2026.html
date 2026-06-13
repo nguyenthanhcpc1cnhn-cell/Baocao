@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo Cáo Công Việc — Phòng Kế Toán</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #171b26;
+    --bg3: #1e2332;
+    --card: #1a1f2e;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --muted: #7b8199;
+    --muted2: #9aa0b8;
+    --accent: #4f9cf9;
+    --accent2: #7c5cfc;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --inprogress: #3b82f6;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(79,156,249,0.5); }
+  .header-title { font-size: 15px; font-weight: 600; letter-spacing: 0.2px; }
+  .header-sub { font-size: 12px; color: var(--muted); }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+
+  /* NAV TABS */
+  .nav-tabs { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 28px; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .tab-btn { padding: 10px 18px; font-size: 13px; font-weight: 500; color: var(--muted); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .2s, border-color .2s; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MAIN */
+  .main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .stat-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat-card.s-blue .stat-value { color: var(--accent); }
+  .stat-card.s-green .stat-value { color: var(--success); }
+  .stat-card.s-yellow .stat-value { color: var(--warning); }
+  .stat-card.s-red .stat-value { color: var(--danger); }
+  .stat-card.s-purple .stat-value { color: #a78bfa; }
+
+  /* CHARTS ROW */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 860px) { .charts-row { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--muted2); margin-bottom: 14px; }
+
+  /* EMPLOYEE TABLE */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .table-header { padding: 16px 20px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: gap; gap: 10px; }
+  .table-title { font-size: 14px; font-weight: 600; }
+  .search-box { background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 12px; color: var(--text); font-size: 13px; width: 220px; outline: none; }
+  .search-box::placeholder { color: var(--muted); }
+  .search-box:focus { border-color: var(--accent); }
+  .filter-select { background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 10px; color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
+  .filter-select option { background: var(--bg2); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { padding: 10px 16px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid var(--border); background: var(--bg2); cursor: pointer; user-select: none; white-space: nowrap; }
+  thead th:hover { color: var(--text); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg3); }
+  td { padding: 11px 16px; font-size: 13px; vertical-align: middle; }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
+  .badge.done { background: rgba(34,197,94,0.12); color: #4ade80; }
+  .badge.prog { background: rgba(59,130,246,0.12); color: #60a5fa; }
+  .badge.pending { background: rgba(239,68,68,0.12); color: #f87171; }
+  .badge.none { background: rgba(123,129,153,0.12); color: var(--muted); }
+
+  /* PROGRESS BAR */
+  .prog-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .prog-bar { height: 6px; border-radius: 3px; background: var(--bg3); flex: 1; min-width: 80px; overflow: hidden; }
+  .prog-bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+  .prog-pct { font-size: 12px; font-weight: 600; min-width: 34px; text-align: right; }
+
+  /* DETAIL PANEL */
+  .detail-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; }
+  .detail-panel { position: fixed; right: 0; top: 0; bottom: 0; width: 520px; background: var(--bg2); border-left: 1px solid var(--border); overflow-y: auto; z-index: 201; transform: translateX(100%); transition: transform .3s ease; }
+  .detail-panel.open { transform: translateX(0); }
+  .detail-overlay.show { display: block; }
+  .dp-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
+  .dp-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; padding: 0; line-height: 1; }
+  .dp-close:hover { color: var(--text); }
+  .dp-name { font-size: 18px; font-weight: 700; }
+  .dp-role { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .dp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 16px 24px; border-bottom: 1px solid var(--border); }
+  .dp-stat { text-align: center; }
+  .dp-stat .val { font-size: 22px; font-weight: 700; }
+  .dp-stat .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .dp-jobs { padding: 16px 24px; }
+  .dp-jobs-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+  .job-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+  .job-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .job-item-name { font-size: 13px; font-weight: 500; line-height: 1.4; }
+  .job-item-group { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .job-meta { display: flex; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--muted2); }
+  .job-result { font-size: 12px; color: var(--muted2); margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px; }
+
+  /* FORM PANEL */
+  .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; max-width: 700px; margin: 0 auto 24px; }
+  .form-title { font-size: 15px; font-weight: 700; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+  input, select, textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px; font-family: var(--font); outline: none; transition: border-color .2s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--bg2); }
+  textarea { resize: vertical; min-height: 70px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: opacity .2s, transform .1s; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-secondary { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); }
+  .btn-secondary:hover { background: var(--bg2); }
+  .btn-success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: var(--success); }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #22c55e; color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 500; opacity: 0; transform: translateY(10px); transition: opacity .3s, transform .3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* AVATAR */
+  .avatar { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+
+  /* WEEK FILTER BAR */
+  .filter-bar { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .filter-bar label { margin: 0; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .filter-bar .fgroup { display: flex; align-items: center; gap: 6px; }
+  .filter-bar input, .filter-bar select { width: auto; padding: 6px 10px; }
+
+  /* COLORS FOR GROUPS */
+  .grp-tag { font-size: 11px; padding: 2px 7px; border-radius: 5px; font-weight: 500; }
+  .grp-0 { background: rgba(79,156,249,0.14); color: #60a5fa; }
+  .grp-1 { background: rgba(124,92,252,0.14); color: #a78bfa; }
+  .grp-2 { background: rgba(34,197,94,0.14); color: #4ade80; }
+  .grp-3 { background: rgba(245,158,11,0.14); color: #fbbf24; }
+  .grp-4 { background: rgba(239,68,68,0.14); color: #f87171; }
+  .grp-5 { background: rgba(236,72,153,0.14); color: #f472b6; }
+  .grp-6 { background: rgba(20,184,166,0.14); color: #2dd4bf; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+
+  /* RANK BADGE */
+  .rank { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; font-weight: 700; }
+  .rank-1 { background: rgba(245,158,11,0.2); color: #fbbf24; }
+  .rank-2 { background: rgba(148,163,184,0.2); color: #94a3b8; }
+  .rank-3 { background: rgba(180,100,60,0.2); color: #c97c50; }
+  .rank-n { background: var(--bg3); color: var(--muted); }
+
+  .section-tab { display: none; }
+  .section-tab.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-dot"></div>
+    <div>
+      <div class="header-title">Phòng Kế Toán — Hội Sở</div>
+      <div class="header-sub">Hệ thống báo cáo công việc tuần</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="clock" style="font-size:12px;color:var(--muted);"></span>
+  </div>
+</div>
+
+<div id="loadingBar" style="display:none;height:3px;background:linear-gradient(90deg,#4f9cf9,#7c5cfc);animation:pulse 1s infinite;position:sticky;top:57px;z-index:99;"></div>
+<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
+<div class="nav-tabs" role="tablist">
+  <button class="tab-btn active" onclick="switchTab('overview')" role="tab">📊 Tổng quan</button>
+  <button class="tab-btn" onclick="switchTab('form')" role="tab">✏️ Nhập báo cáo</button>
+  <button class="tab-btn" onclick="switchTab('detail')" role="tab">📋 Danh sách chi tiết</button>
+  <button class="tab-btn" onclick="switchTab('manager')" role="tab">👔 Góc quản lý</button>
+</div>
+
+<!-- OVERVIEW TAB -->
+<div id="tab-overview" class="section-tab active">
+<div class="main">
+
+  <div class="filter-bar">
+    <div class="fgroup"><label>Tuần:</label><input type="number" id="fWeek" min="1" max="53" placeholder="Tất cả" style="width:70px;" oninput="applyFilter()"></div>
+    <div class="fgroup"><label>Tháng:</label><input type="number" id="fMonth" min="1" max="12" placeholder="Tất cả" style="width:70px;" oninput="applyFilter()"></div>
+    <div class="fgroup"><label>Nhân viên:</label>
+      <select id="fEmployee" onchange="applyFilter()">
+        <option value="">Tất cả</option>
+      </select>
+    </div>
+    <div class="fgroup"><label>Trạng thái:</label>
+      <select id="fStatus" onchange="applyFilter()">
+        <option value="">Tất cả</option>
+        <option value="Hoàn thành">✅ Hoàn thành</option>
+        <option value="Đang thực hiện">🔄 Đang thực hiện</option>
+        <option value="Chưa hoàn thành">❌ Chưa hoàn thành</option>
+      </select>
+    </div>
+    <button class="btn btn-secondary" onclick="clearFilter()">Xóa lọc</button>
+  </div>
+
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Hiệu suất hoàn thành theo nhân viên (%)</div>
+      <div style="position:relative;height:260px;"><canvas id="chartEff" aria-label="Biểu đồ hiệu suất hoàn thành theo nhân viên">Dữ liệu hiệu suất nhân viên</canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Phân bổ công việc theo nhóm</div>
+      <div style="position:relative;height:260px;"><canvas id="chartGroup" aria-label="Biểu đồ phân bổ công việc theo nhóm">Dữ liệu nhóm công việc</canvas></div>
+      <div id="groupLegend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px;"></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">Bảng xếp hạng nhân viên</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nhân viên</th>
+          <th>Vị trí</th>
+          <th>Tổng CV</th>
+          <th>Hoàn thành</th>
+          <th>Đang TH</th>
+          <th>Tổng ngày</th>
+          <th>Hiệu suất</th>
+        </tr>
+      </thead>
+      <tbody id="rankTable"></tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+
+<!-- FORM TAB -->
+<div id="tab-form" class="section-tab">
+<div class="main">
+  <div class="form-card">
+    <div class="form-title">📝 Nhập báo cáo công việc tuần</div>
+    <div class="form-row">
+      <div>
+        <label>Nhân viên *</label>
+        <select id="fi_employee" onchange="onEmployeeChange()">
+          <option value="">-- Chọn nhân viên --</option>
+        </select>
+      </div>
+      <div>
+        <label>Mã NV</label>
+        <input type="text" id="fi_maNV" readonly placeholder="Tự điền">
+      </div>
+    </div>
+    <div class="form-row three">
+      <div>
+        <label>Tuần *</label>
+        <input type="number" id="fi_week" min="1" max="53" placeholder="1-53">
+      </div>
+      <div>
+        <label>Tháng *</label>
+        <input type="number" id="fi_month" min="1" max="12" placeholder="1-12">
+      </div>
+      <div>
+        <label>Năm *</label>
+        <input type="number" id="fi_year" value="2026">
+      </div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:6px 0 16px;">
+    <div style="font-size:13px;font-weight:600;color:var(--muted2);margin-bottom:12px;">Thông tin công việc</div>
+    <div class="form-row">
+      <div>
+        <label>Nhóm công việc *</label>
+        <select id="fi_group">
+          <option value="">-- Chọn nhóm --</option>
+          <option>Chứng từ & Thanh toán</option>
+          <option>Hóa đơn & Công nợ</option>
+          <option>Thuế</option>
+          <option>Kế toán tổng hợp & Giá thành</option>
+          <option>Lãi vay Ngân hàng</option>
+          <option>Báo cáo tài chính</option>
+          <option>Công việc khác</option>
+        </select>
+      </div>
+      <div>
+        <label>Nội dung công việc *</label>
+        <select id="fi_job">
+          <option value="">-- Chọn công việc --</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row three">
+      <div>
+        <label>Trạng thái *</label>
+        <select id="fi_status">
+          <option value="Hoàn thành">✅ Hoàn thành</option>
+          <option value="Đang thực hiện">🔄 Đang thực hiện</option>
+          <option value="Chưa hoàn thành">❌ Chưa hoàn thành</option>
+        </select>
+      </div>
+      <div>
+        <label>Khối lượng TH</label>
+        <input type="number" id="fi_volume" placeholder="Số lượng">
+      </div>
+      <div>
+        <label>Giá trị (VNĐ)</label>
+        <input type="text" id="fi_value" placeholder="VD: 1,000,000">
+      </div>
+    </div>
+    <div class="form-row three">
+      <div>
+        <label>Ngày bắt đầu</label>
+        <input type="date" id="fi_start">
+      </div>
+      <div>
+        <label>Ngày hoàn thành</label>
+        <input type="date" id="fi_end">
+      </div>
+      <div>
+        <label>Số ngày TH</label>
+        <input type="number" id="fi_days" placeholder="Tự tính">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div>
+        <label>Kết quả đạt được</label>
+        <textarea id="fi_result" placeholder="Mô tả kết quả thực hiện..."></textarea>
+      </div>
+    </div>
+    <div class="form-row full">
+      <div>
+        <label>Đề xuất / Hướng xử lý</label>
+        <textarea id="fi_suggest" placeholder="Đề xuất hoặc hướng xử lý tiếp theo..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="resetForm()">Xóa form</button>
+      <button class="btn btn-primary" onclick="submitReport()">💾 Lưu báo cáo</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- DETAIL TAB -->
+<div id="tab-detail" class="section-tab">
+<div class="main">
+  <div class="filter-bar">
+    <div class="fgroup"><label>Tìm kiếm:</label><input type="text" id="dSearch" placeholder="Tìm tên, nội dung..." style="width:200px;" oninput="renderDetail()"></div>
+    <div class="fgroup"><label>Nhân viên:</label>
+      <select id="dEmployee" onchange="renderDetail()">
+        <option value="">Tất cả</option>
+      </select>
+    </div>
+    <div class="fgroup"><label>Nhóm:</label>
+      <select id="dGroup" onchange="renderDetail()">
+        <option value="">Tất cả nhóm</option>
+      </select>
+    </div>
+    <div class="fgroup"><label>Trạng thái:</label>
+      <select id="dStatus" onchange="renderDetail()">
+        <option value="">Tất cả</option>
+        <option value="Hoàn thành">✅ Hoàn thành</option>
+        <option value="Đang thực hiện">🔄 Đang thực hiện</option>
+        <option value="Chưa hoàn thành">❌ Chưa hoàn thành</option>
+      </select>
+    </div>
+    <button class="btn btn-secondary" onclick="exportCSV()">📥 Xuất CSV</button>
+  </div>
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">Chi tiết công việc</div>
+      <div id="detailCount" style="font-size:12px;color:var(--muted);"></div>
+    </div>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortDetail('nv')">Nhân viên ↕</th>
+          <th onclick="sortDetail('group')">Nhóm CV ↕</th>
+          <th>Nội dung</th>
+          <th onclick="sortDetail('status')">Trạng thái ↕</th>
+          <th>KL</th>
+          <th>Ngày TH</th>
+          <th>Tuần</th>
+          <th>Kết quả</th>
+        </tr>
+      </thead>
+      <tbody id="detailTable"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MANAGER TAB -->
+<div id="tab-manager" class="section-tab">
+<div class="main">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+    <div class="chart-card">
+      <div class="chart-title">Tổng công việc — Tất cả nhân viên (tuần gần nhất)</div>
+      <div style="position:relative;height:300px;"><canvas id="chartMgr1" aria-label="Tổng công việc theo nhân viên">Dữ liệu công việc</canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Hiệu suất hoàn thành — So sánh nhân viên</div>
+      <div style="position:relative;height:300px;"><canvas id="chartMgr2" aria-label="Hiệu suất so sánh">Dữ liệu hiệu suất</canvas></div>
+    </div>
+  </div>
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">⚠️ Công việc cần chú ý (đang thực hiện / chưa hoàn thành)</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Nhân viên</th>
+          <th>Công việc</th>
+          <th>Nhóm</th>
+          <th>Trạng thái</th>
+          <th>Bắt đầu</th>
+          <th>Ghi chú</th>
+        </tr>
+      </thead>
+      <tbody id="alertTable"></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- DETAIL SIDE PANEL -->
+<div class="detail-overlay" id="overlay" onclick="closePanel()"></div>
+<div class="detail-panel" id="sidePanel">
+  <div class="dp-header">
+    <div>
+      <div class="dp-name" id="dp_name"></div>
+      <div class="dp-role" id="dp_role"></div>
+    </div>
+    <button class="dp-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="dp-stats">
+    <div class="dp-stat"><div class="val" id="dp_total" style="color:var(--accent)"></div><div class="lbl">Tổng CV</div></div>
+    <div class="dp-stat"><div class="val" id="dp_done" style="color:var(--success)"></div><div class="lbl">Hoàn thành</div></div>
+    <div class="dp-stat"><div class="val" id="dp_prog" style="color:var(--inprogress)"></div><div class="lbl">Đang TH</div></div>
+    <div class="dp-stat"><div class="val" id="dp_pct" style="color:var(--warning)"></div><div class="lbl">Hiệu suất</div></div>
+  </div>
+  <div class="dp-jobs">
+    <div class="dp-jobs-title">Danh sách công việc</div>
+    <div id="dp_jobs"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const EMPLOYEES = [
+  {name:"Nguyễn Thị Hoài", ma:"010023", vi_tri:"Kế toán viên"},
+  {name:"Dương Thị Ngọc Quỳnh", ma:"013900", vi_tri:"Kế toán viên"},
+  {name:"Hoàng Diệu Linh", ma:"010753", vi_tri:"Kế toán thanh toán"},
+  {name:"Nguyễn Thị Bảo Ngọc", ma:"013157", vi_tri:"Kế toán TSCĐ, DA"},
+  {name:"Nguyễn Thị Khánh Ly", ma:"017489", vi_tri:"Kế toán bán hàng"},
+  {name:"Nguyễn Thục Huyền", ma:"011031", vi_tri:"Kế toán bán hàng"},
+  {name:"Trần Thị Kiều Chinh", ma:"014284", vi_tri:"Kế toán bán hàng"},
+  {name:"Dương Thị Thảo", ma:"010866", vi_tri:"Kế toán bán hàng"},
+  {name:"Nguyễn Văn Thành", ma:"011474", vi_tri:"Kế toán giá thành"},
+  {name:"Hà Thị Mai", ma:"011891", vi_tri:"Kế toán tổng hợp"},
+  {name:"Nguyễn Thị Xuân Hoàn", ma:"010058", vi_tri:"Kế toán tổng hợp"},
+  {name:"Dương Thị Thanh Xuân", ma:"010581", vi_tri:"Phó TP Kế toán"},
+  {name:"Nguyễn Mai Phương", ma:"010777", vi_tri:"Kế toán viên"},
+  {name:"Phạm Thị Hà Thanh", ma:"019633", vi_tri:"Kế toán viên"},
+  {name:"Nguyễn Đức Mạnh", ma:"019838", vi_tri:"Kế toán dự án"}
+];
+
+const JOB_CATALOG = {
+  "Chứng từ & Thanh toán": ["Xử lý chứng từ chi","Xử lý chứng từ thu","Đối chiếu tài khoản ngân hàng","Kiểm kê quỹ tiền mặt","Báo cáo giải ngân trong tuần/tháng","Hạch toán hoá đơn phí dịch vụ","Check, Thanh toán lương, thưởng","Làm đề nghị các khoản cần chi","Sắp xếp hồ sơ, chứng từ thanh toán","Hồ sơ thanh toán ngoại tệ","Tạo lệnh thanh toán OL qua ngân hàng","Làm hồ sơ giải ngân","Hạch toán phiếu báo nợ","Hạch toán phiếu báo có","Thủ quỹ","Hồ sơ thanh toán","Làm hồ sơ mua bán ngoại tệ"],
+  "Hóa đơn & Công nợ": ["Lập hoá đơn GTGT","Lập hoá đơn hàng trả lại","Lập hoá đơn hàng điều nội bộ","Đối soát công nợ phải thu (TK 131)","Đối soát công nợ phải trả (TK 331)","Đối soát tiền tạm ứng","Thanh quyết toán hợp đồng","Báo cáo công nợ nội bộ CN ĐN","Áp thanh toán khách hàng","BC tình trạng công nợ phải thu","Báo cáo tình trạng công nợ phải trả (TK 331)","Hạch toán hoá đơn","Hạch toán kết chuyển công nợ","Xuất đơn xuất khẩu","Hạch toán chi phí logistic xuất khẩu","Hạch toán hoá đơn TSCĐ, CCDC","Báo cáo tiền về xuất khẩu","Hạch toán báo nợ, báo có","Xuất vật tư tiêu hao, VPP"],
+  "Thuế": ["Kê khai thuế GTGT","Kê khai thuế TNCN","Kê khai thuế TNDN","Kê khai thuế nhà thầu","Báo cáo thuế GTGT","Báo cáo thuế TNCN","Nộp thuế nhập khẩu","Nộp thuế GTGT Chi nhánh","Nộp thuế TNDN hàng tuần","Quyết toán thuế TNCN","phát hành chứng từ khấu trừ thuế","Thuế GTGT đầu ra"],
+  "Kế toán tổng hợp & Giá thành": ["Hạch toán các bút toán cuối kỳ","Tính giá thành","Kiểm kê hàng tồn kho","Báo cáo TSCĐ","Báo cáo hiệu suất sản xuất","Check Giá thành","Check lỗi và xử lý dữ liệu fast","Lập bảng thành phẩm dở dang","Lập bảng phân bổ giờ công","Báo cáo doanh thu xuất khẩu","Báo cáo lợi nhuận xuất khẩu","Check, tính khấu hao TSCĐ","Báo cáo tồn kho thứ 2 hàng tuần","Xuất tồn kho","Đối chiếu công nợ nội bộ NM-HN","Bút toán, hạch toán kết chuyển cuối kỳ"],
+  "Lãi vay Ngân hàng": ["Báo cáo lãi vay ngân hàng - VNĐ","Báo cáo lãi vay ngân hàng - USD","Tính lãi vay và đối chiếu ngân hàng"],
+  "Báo cáo tài chính": ["Lập báo cáo tài chính tháng","Lập báo cáo tài chính quý","Lập báo cáo tài chính bán niên","Lập báo cáo tài chính năm"],
+  "Công việc khác": ["Kiểm kê kho thành phẩm","Hạch toán ngân hàng","Báo cáo thu tiền hàng ngày","Kiểm soát phê duyệt hồ sơ thanh toán","Check hồ sơ dự án","Công việc phát sinh","Báo cáo ký quỹ ký cược","Sắp xếp chứng từ thu chi, đóng file","Kiểm kê kho phụ liệu","XL CV EMJ","kiểm tra, hạch toán CP lương thưởng","Hướng dẫn giá thành","Lập bảng thưởng xuất khẩu"]
+};
+
+const GRP_COLORS = ["#4f9cf9","#a78bfa","#4ade80","#fbbf24","#f87171","#f472b6","#2dd4bf"];
+const GRP_BG = ["rgba(79,156,249,0.14)","rgba(124,92,252,0.14)","rgba(34,197,94,0.14)","rgba(245,158,11,0.14)","rgba(239,68,68,0.14)","rgba(236,72,153,0.14)","rgba(20,184,166,0.14)"];
+const GROUPS = Object.keys(JOB_CATALOG);
+
+function xlDateToStr(xl) {
+  if (!xl || xl < 40000) return '';
+  const d = new Date(Math.round((xl - 25569) * 86400 * 1000));
+  return d.toLocaleDateString('vi-VN');
+}
+
+let allData = [];
+let filteredData = [];
+let detailSort = {col:'', dir:1};
+let chartEff = null, chartGroup = null, chartMgr1 = null, chartMgr2 = null;
+
+const rawData = [
+  {nv:"Phạm Thị Hà Thanh",group:"Chứng từ & Thanh toán",job:"Làm hồ sơ giải ngân",status:"Hoàn thành",volume:1,value:4182076800,start:46176,end:46177,days:1,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Phạm Thị Hà Thanh",group:"Chứng từ & Thanh toán",job:"Hồ sơ thanh toán ngoại tệ",status:"Hoàn thành",volume:18,value:10517797598,start:46174,end:46178,days:4,result:"Đã thực hiện thanh toán cho NCC trong đó có 2 bộ EUR cần mua ngoại tệ",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Phạm Thị Hà Thanh",group:"Chứng từ & Thanh toán",job:"Tạo lệnh thanh toán OL qua ngân hàng",status:"Đang thực hiện",volume:8,value:5627569809,start:46174,end:46178,days:4,result:"Còn một số bộ sang tuần cân tiền rồi thanh toán",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Phạm Thị Hà Thanh",group:"Chứng từ & Thanh toán",job:"Làm hồ sơ mua bán ngoại tệ",status:"Hoàn thành",volume:2,value:1070430663,start:46174,end:46177,days:3,result:"Đã thanh toán cho NCC",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Phạm Thị Hà Thanh",group:"Công việc khác",job:"Báo cáo thu tiền hàng ngày",status:"Hoàn thành",volume:2,value:0,start:0,end:0,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Hoài",group:"Hóa đơn & Công nợ",job:"Đối soát công nợ phải trả (TK 331)",status:"Hoàn thành",volume:0,value:0,start:0,end:0,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Hoài",group:"Thuế",job:"Nộp thuế nhập khẩu",status:"Hoàn thành",volume:0,value:326722979,start:46179,end:46179,days:0,result:"Khớp quỹ, KK cùng Khánh Ly",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Hoài",group:"Chứng từ & Thanh toán",job:"Xử lý chứng từ chi",status:"Hoàn thành",volume:18,value:0,start:46174,end:46179,days:5,result:"Thu chi 18 phiếu",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Hoài",group:"Công việc khác",job:"Check hồ sơ dự án",status:"Hoàn thành",volume:79,value:0,start:46174,end:46179,days:5,result:"Phát hiện 79 chênh lệch sai sót cần sửa",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Hoài",group:"Hóa đơn & Công nợ",job:"Hạch toán kết chuyển công nợ",status:"Hoàn thành",volume:3,value:665533666,start:46177,end:46178,days:1,result:"Đã đẩy mail KH - 3 bảng tính tháng 5",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Hoài",group:"Công việc khác",job:"Công việc phát sinh",status:"Hoàn thành",volume:0,value:254501128,start:46176,end:46178,days:2,result:"2 bảng tính thưởng RD - Đẩy báo cáo viber",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Hoài",group:"Chứng từ & Thanh toán",job:"Kiểm kê quỹ tiền mặt",status:"Hoàn thành",volume:0,value:326722979,start:46179,end:46179,days:0,result:"Khớp quỹ, KK cùng Khánh Ly",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Hóa đơn & Công nợ",job:"Báo cáo tạm ứng 141",status:"Hoàn thành",volume:204,value:75484696518,start:46174,end:46176,days:2,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:50,value:8560400,start:46174,end:46178,days:4,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Công việc khác",job:"XL CV EMJ",status:"Hoàn thành",volume:0,value:0,start:46174,end:46178,days:4,result:"Hạch toán ngân hàng, thu chi TM, Thanh toán BH, Lên bảng lương T5.26",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Hóa đơn & Công nợ",job:"Hạch toán báo nợ, báo có",status:"Hoàn thành",volume:22,value:921151879,start:46174,end:46178,days:4,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Hóa đơn & Công nợ",job:"Hạch toán báo nợ, báo có",status:"Hoàn thành",volume:24,value:1242422485,start:46174,end:46178,days:4,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Chứng từ & Thanh toán",job:"Xử lý chứng từ chi",status:"Hoàn thành",volume:19,value:1213654021,start:46174,end:46178,days:4,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Chứng từ & Thanh toán",job:"Xử lý chứng từ thu",status:"Hoàn thành",volume:9,value:1263380550,start:46174,end:46178,days:4,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Chứng từ & Thanh toán",job:"Kiểm kê quỹ tiền mặt",status:"Hoàn thành",volume:1,value:750812131,start:46178,end:46178,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Thuế",job:"Kê khai thuế GTGT",status:"Đang thực hiện",volume:0,value:0,start:0,end:46181,days:0,result:"",suggest:"",week:24,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Ngọc Quỳnh",group:"Thuế",job:"Kê khai thuế TNCN",status:"Đang thực hiện",volume:0,value:0,start:0,end:46181,days:0,result:"",suggest:"",week:24,month:6,quy:2,year:2026},
+  {nv:"Hoàng Diệu Linh",group:"Chứng từ & Thanh toán",job:"Đối chiếu tài khoản ngân hàng",status:"Hoàn thành",volume:10,value:0,start:46174,end:46178,days:4,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hoàng Diệu Linh",group:"Công việc khác",job:"Làm hồ sơ giải ngân",status:"Hoàn thành",volume:7,value:2319198152,start:46174,end:46176,days:2,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hoàng Diệu Linh",group:"Công việc khác",job:"Báo cáo thu tiền hàng ngày",status:"Hoàn thành",volume:6,value:25535506440,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hoàng Diệu Linh",group:"Lãi vay Ngân hàng",job:"Tính lãi vay và đối chiếu ngân hàng",status:"Hoàn thành",volume:0,value:0,start:46174,end:46178,days:4,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Bảo Ngọc",group:"Hóa đơn & Công nợ",job:"Xuất đơn xuất khẩu",status:"Hoàn thành",volume:7,value:6996521813,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Bảo Ngọc",group:"Hóa đơn & Công nợ",job:"Hạch toán chi phí logistic xuất khẩu",status:"Hoàn thành",volume:15,value:0,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Bảo Ngọc",group:"Hóa đơn & Công nợ",job:"Hạch toán hoá đơn TSCĐ, CCDC",status:"Hoàn thành",volume:32,value:0,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Bảo Ngọc",group:"Kế toán tổng hợp & Giá thành",job:"Báo cáo doanh thu xuất khẩu",status:"Hoàn thành",volume:1,value:0,start:46178,end:46178,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Bảo Ngọc",group:"Hóa đơn & Công nợ",job:"Báo cáo tiền về xuất khẩu",status:"Hoàn thành",volume:6,value:7806373098,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Bảo Ngọc",group:"Công việc khác",job:"Công việc phát sinh",status:"Hoàn thành",volume:1,value:723963048,start:46178,end:46178,days:0,result:"BC hàng huỷ T5.26",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Bảo Ngọc",group:"Hóa đơn & Công nợ",job:"Hạch toán báo nợ, báo có",status:"Hoàn thành",volume:11,value:0,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Khánh Ly",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:45,value:3090659865,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Khánh Ly",group:"Chứng từ & Thanh toán",job:"Xử lý chứng từ chi",status:"Hoàn thành",volume:16,value:38166762,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Khánh Ly",group:"Chứng từ & Thanh toán",job:"Xử lý chứng từ thu",status:"Hoàn thành",volume:2,value:9806045,start:46174,end:46176,days:2,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Khánh Ly",group:"Hóa đơn & Công nợ",job:"Hạch toán hoá đơn",status:"Hoàn thành",volume:4,value:26071800,start:46174,end:46176,days:2,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Khánh Ly",group:"Hóa đơn & Công nợ",job:"Báo cáo tình trạng công nợ phải trả (TK 331)",status:"Hoàn thành",volume:1,value:0,start:46174,end:46178,days:4,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Khánh Ly",group:"Chứng từ & Thanh toán",job:"Hồ sơ thanh toán",status:"Hoàn thành",volume:13,value:1495650013,start:46174,end:46178,days:4,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Khánh Ly",group:"Hóa đơn & Công nợ",job:"Xuất vật tư tiêu hao, VPP",status:"Hoàn thành",volume:2,value:0,start:46174,end:46174,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Khánh Ly",group:"Hóa đơn & Công nợ",job:"Đối soát công nợ phải trả (TK 331)",status:"Hoàn thành",volume:10,value:6947557318,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Khánh Ly",group:"Chứng từ & Thanh toán",job:"Kiểm kê quỹ tiền mặt",status:"Hoàn thành",volume:1,value:326722979,start:46179,end:46179,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thục Huyền",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn hàng điều nội bộ",status:"Đang thực hiện",volume:132,value:0,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thục Huyền",group:"Công việc khác",job:"XL CV EMJ",status:"Đang thực hiện",volume:5,value:410993970,start:46174,end:46179,days:5,result:"đã xuất 410.993.970đ",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Trần Thị Kiều Chinh",group:"Công việc khác",job:"Kiểm soát phê duyệt hồ sơ thanh toán",status:"Hoàn thành",volume:0,value:0,start:46174,end:46179,days:5,result:"Hạch toán ngân hàng, thu chi TM, Lên bảng điện nước T5.26",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Trần Thị Kiều Chinh",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:140,value:88928000,start:46174,end:46179,days:5,result:"Đơn lẻ VQ",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Trần Thị Kiều Chinh",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:51,value:3308785016,start:46174,end:46179,days:5,result:"Đơn hàng dòng",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Trần Thị Kiều Chinh",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:1440,value:297369300,start:46174,end:46179,days:5,result:"Đơn sàn DTP",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Trần Thị Kiều Chinh",group:"Công việc khác",job:"Kiểm soát phê duyệt hồ sơ thanh toán",status:"Hoàn thành",volume:0,value:0,start:46181,end:46186,days:5,result:"Hạch toán ngân hàng, thu chi TM",suggest:"",week:24,month:6,quy:2,year:2026},
+  {nv:"Trần Thị Kiều Chinh",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:0,value:0,start:46181,end:46186,days:5,result:"Đơn lẻ VQ",suggest:"",week:24,month:6,quy:2,year:2026},
+  {nv:"Trần Thị Kiều Chinh",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:0,value:0,start:46181,end:46186,days:5,result:"Đơn hàng dòng",suggest:"",week:24,month:6,quy:2,year:2026},
+  {nv:"Trần Thị Kiều Chinh",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:0,value:0,start:46181,end:46186,days:5,result:"Đơn sàn DTP",suggest:"",week:24,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thảo",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:40,value:5492313027,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thảo",group:"Hóa đơn & Công nợ",job:"BC tình trạng công nợ phải thu",status:"Hoàn thành",volume:1,value:0,start:46178,end:46178,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thảo",group:"Chứng từ & Thanh toán",job:"Xử lý chứng từ chi",status:"Hoàn thành",volume:77,value:6704391066,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thảo",group:"Hóa đơn & Công nợ",job:"Áp thanh toán khách hàng",status:"Hoàn thành",volume:58,value:0,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thảo",group:"Chứng từ & Thanh toán",job:"Xử lý chứng từ thu",status:"Hoàn thành",volume:17,value:0,start:46174,end:46179,days:5,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thảo",group:"Hóa đơn & Công nợ",job:"Hạch toán kết chuyển công nợ",status:"Hoàn thành",volume:9,value:560416720,start:46174,end:46177,days:3,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thảo",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Hoàn thành",volume:38,value:2498420377,start:46181,end:46186,days:0,result:"",suggest:"",week:24,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Văn Thành",group:"Kế toán tổng hợp & Giá thành",job:"Báo cáo hiệu suất sản xuất",status:"Hoàn thành",volume:1,value:1,start:46178,end:46178,days:0,result:"đã gửi báo cáo hiệu suất nhập thành phẩm tháng 5/2025",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Văn Thành",group:"Kế toán tổng hợp & Giá thành",job:"Kiểm kê hàng tồn kho",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"Kiểm tra kho BTP và chờ giải trình của xưởng",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Văn Thành",group:"Kế toán tổng hợp & Giá thành",job:"Check lỗi và xử lý dữ liệu fast",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"đang hoàn thiện tool check giá thành",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Văn Thành",group:"Kế toán tổng hợp & Giá thành",job:"Lập bảng thành phẩm dở dang",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"đang đối chiếu lỗi sai và chờ xưởng gửi báo cáo",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Văn Thành",group:"Lãi vay Ngân hàng",job:"Báo cáo lãi vay ngân hàng - USD",status:"Hoàn thành",volume:1,value:1,start:46178,end:46178,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Văn Thành",group:"Kế toán tổng hợp & Giá thành",job:"Check Giá thành",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"đang hoàn thiện bản tool AI",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Văn Thành",group:"Công việc khác",job:"Công việc phát sinh",status:"Hoàn thành",volume:1,value:269072820,start:46174,end:46179,days:5,result:"Hoàn thiện hồ sơ thanh toán cho Panel kho thuê HBP",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Công việc khác",job:"Kiểm kê kho thành phẩm",status:"Hoàn thành",volume:200,value:200,start:46174,end:46178,days:4,result:"Chốt biên bản tổng kiểm kê quý 1 kho phụ liệu (200 mã hàng)",suggest:"Điều chỉnh tồn kho theo biên bản",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Kế toán tổng hợp & Giá thành",job:"Báo cáo tồn kho thứ 2 hàng tuần",status:"Hoàn thành",volume:1,value:0,start:46174,end:46175,days:1,result:"Báo cáo tồn kho trong tháng 5",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Kế toán tổng hợp & Giá thành",job:"Check lỗi và xử lý dữ liệu fast",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"Check lại dữ liệu quý 1",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Kế toán tổng hợp & Giá thành",job:"Xuất tồn kho",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"Xuất tồn kho đạt 3 tỷ/ tuần",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Công việc khác",job:"Hướng dẫn giá thành",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"Hướng dẫn và check lại các lỗi giá thành tháng 4 + 5",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Công việc khác",job:"Công việc phát sinh",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"Phối hợp với IT xử lý luồng công việc liên bộ phận về sản xuất trên web",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Công việc khác",job:"Công việc phát sinh",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"Hỗ trợ dự án Thái Nguyên",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Công việc khác",job:"Công việc phát sinh",status:"Đang thực hiện",volume:1,value:1,start:46174,end:0,days:0,result:"Hỗ trợ dự án Tân Phú Trung (tìm nhà thầu thiết kế HVAC)",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Công việc khác",job:"Check hồ sơ dự án",status:"Hoàn thành",volume:5,value:1,start:46176,end:46176,days:0,result:"Check biên bản huỷ bán thành phẩm trong xưởng (5 hàng)",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Công việc khác",job:"Hướng dẫn giá thành",status:"Hoàn thành",volume:1,value:1,start:46177,end:46178,days:1,result:"Hướng dẫn hoàn thành báo cáo hiệu suất T5",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Hà Thị Mai",group:"Công việc khác",job:"Công việc phát sinh",status:"Hoàn thành",volume:1,value:1,start:46177,end:46177,days:0,result:"Hỗ trợ cung cấp hồ sơ cho phòng thầu",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Xuân Hoàn",group:"Hóa đơn & Công nợ",job:"Báo cáo tình trạng công nợ phải trả (TK 331)",status:"Hoàn thành",volume:0,value:0,start:46174,end:0,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Xuân Hoàn",group:"Công việc khác",job:"Công việc phát sinh",status:"Đang thực hiện",volume:0,value:0,start:46174,end:0,days:0,result:"Chek dữ liệu HS,CN và báo sửa lỗi, mở acc",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Xuân Hoàn",group:"Hóa đơn & Công nợ",job:"Lập hoá đơn GTGT",status:"Đang thực hiện",volume:0,value:0,start:46174,end:0,days:0,result:"Xuất XL kho A sd BP bếp 3 CN Q2",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Xuân Hoàn",group:"Công việc khác",job:"Công việc phát sinh",status:"Hoàn thành",volume:0,value:0,start:46174,end:0,days:0,result:"Chốt biên bản tổng kiểm kê quý 1 kho phụ liệu (192 mã hàng)",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Xuân Hoàn",group:"Báo cáo tài chính",job:"Lập báo cáo tài chính tháng",status:"Đang thực hiện",volume:0,value:0,start:46174,end:0,days:0,result:"Báo cáo doanh thu hàng ngày",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Xuân Hoàn",group:"Thuế",job:"Kê khai thuế TNDN",status:"Đang thực hiện",volume:0,value:0,start:46174,end:0,days:0,result:"Chia nhỏ, Nộp thuế TNDN hàng tuần dưới 500tr/1 lần",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Thị Xuân Hoàn",group:"Kế toán tổng hợp & Giá thành",job:"Bút toán, hạch toán kết chuyển cuối kỳ",status:"Đang thực hiện",volume:0,value:0,start:46174,end:0,days:0,result:"CHek lại để chốt cứng lại BCTC quý 1 sau khi mọi người sửa",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thanh Xuân",group:"Công việc khác",job:"Check hồ sơ dự án",status:"Hoàn thành",volume:0,value:0,start:0,end:0,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thanh Xuân",group:"Chứng từ & Thanh toán",job:"Xử lý chứng từ chi",status:"Hoàn thành",volume:0,value:0,start:0,end:0,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thanh Xuân",group:"Công việc khác",job:"Kiểm soát phê duyệt hồ sơ thanh toán",status:"Hoàn thành",volume:0,value:0,start:0,end:0,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thanh Xuân",group:"Công việc khác",job:"Công việc phát sinh",status:"Hoàn thành",volume:0,value:0,start:0,end:0,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Dương Thị Thanh Xuân",group:"Thuế",job:"Quyết toán thuế TNCN",status:"Đang thực hiện",volume:0,value:0,start:0,end:0,days:0,result:"",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Mai Phương",group:"Hóa đơn & Công nợ",job:"Đối soát tiền tạm ứng",status:"Đang thực hiện",volume:3,value:0,start:46174,end:46203,days:29,result:"tạm ứng của SO1, SO3, SO5",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Mai Phương",group:"Công việc khác",job:"kiểm tra, hạch toán CP lương thưởng",status:"Hoàn thành",volume:1,value:0,start:46174,end:46179,days:5,result:"hạch toán chi phí thuê ngoài",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Mai Phương",group:"Công việc khác",job:"XL CV EMJ",status:"Hoàn thành",volume:2,value:0,start:46174,end:46179,days:5,result:"xử lý công văn huỷ TK, tạo lệnh thanh toán và in hồ sơ",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Mai Phương",group:"Công việc khác",job:"Hạch toán ngân hàng",status:"Hoàn thành",volume:263,value:30429702668,start:46174,end:46179,days:5,result:"hạch toán thu tiền",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Mai Phương",group:"Thuế",job:"phát hành chứng từ khấu trừ thuế",status:"Hoàn thành",volume:5,value:0,start:46174,end:46179,days:5,result:"phát hành các chứng từ năm 24+25",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Mai Phương",group:"Công việc khác",job:"Công việc phát sinh",status:"Hoàn thành",volume:1,value:0,start:46174,end:46179,days:5,result:"đi thu tiền của khách hàng",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Đức Mạnh",group:"Công việc khác",job:"Check hồ sơ dự án",status:"Hoàn thành",volume:4,value:0,start:46174,end:46179,days:5,result:"Check hồ sơ dự án xây dựng ở Hà Nam",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Đức Mạnh",group:"Công việc khác",job:"Check hồ sơ dự án",status:"Hoàn thành",volume:1,value:0,start:46174,end:46179,days:5,result:"Check hồ sơ thanh toán đợt 1 nhà kho thông minh Hà Bình Phương",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Đức Mạnh",group:"Công việc khác",job:"Check hồ sơ dự án",status:"Hoàn thành",volume:1,value:0,start:46174,end:46179,days:5,result:"Check báo cáo đánh giá báo giá đơn vị đấu thầu PCCC",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Đức Mạnh",group:"Công việc khác",job:"Check hồ sơ dự án",status:"Hoàn thành",volume:1,value:0,start:46174,end:46179,days:5,result:"Đọc hồ sơ nhà thầu thẩm định thiết kế công trình IBST",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Đức Mạnh",group:"Chứng từ & Thanh toán",job:"Xử lý chứng từ chi",status:"Hoàn thành",volume:300,value:0,start:46174,end:46179,days:5,result:"Kiểm tra thêm hồ sơ, chứng từ nhập khẩu NPL năm 2025",suggest:"",week:23,month:6,quy:2,year:2026},
+  {nv:"Nguyễn Đức Mạnh",group:"Công việc khác",job:"Công việc phát sinh",status:"Hoàn thành",volume:2,value:0,start:46174,end:46179,days:5,result:"so sánh báo giá hợp đồng tư vấn thiết kế PCCC",suggest:"",week:23,month:6,quy:2,year:2026}
+];
+
+// ── KẾT NỐI GOOGLE SHEETS ──────────────────────────────────
+const API_URL = "https://script.google.com/macros/s/AKfycbwV7ykKc6Sxp4CVj16FMp2lX-A5R57N_CQr6YXcnt77xvAMQ4hWYS5-HrDoC4rKch6_Yg/exec";
+const SECRET  = "ketoan2026";
+
+let sheetData = []; // dữ liệu từ Google Sheet
+allData = [...rawData];
+filteredData = [...allData];
+
+// Chuyển dòng Sheet → object giống rawData
+function sheetRowToObj(r) {
+  return {
+    id:     r["ID"]            || "",
+    nv:     r["Nhân viên"]     || "",
+    group:  r["Nhóm CV"]       || "",
+    job:    r["Nội dung CV"]   || "",
+    status: r["Trạng thái"]    || "",
+    volume: parseFloat(r["Khối lượng TH"]) || 0,
+    value:  parseFloat(r["Giá trị (VNĐ)"]) || 0,
+    start:  0, end: 0,
+    days:   parseFloat(r["Số ngày TH"]) || 0,
+    result: r["Kết quả đạt được"]      || "",
+    suggest:r["Đề xuất/Hướng xử lý"]  || "",
+    week:   parseInt(r["Tuần"])  || 0,
+    month:  parseInt(r["Tháng"]) || 0,
+    quy:    parseInt(r["Quý"])   || 0,
+    year:   parseInt(r["Năm"])   || 2026,
+    fromSheet: true
+  };
+}
+
+// Tải dữ liệu từ Sheet về
+async function loadFromSheet() {
+  showLoading(true);
+  try {
+    const res = await fetch(`${API_URL}?secret=${SECRET}`);
+    const json = await res.json();
+    if (json.ok) {
+      sheetData = (json.data || []).map(sheetRowToObj).filter(r=>r.nv);
+      allData = [...rawData, ...sheetData];
+      filteredData = [...allData];
+      renderOverview();
+      renderDetail();
+      showToast(`✅ Đã tải ${sheetData.length} bản ghi từ Google Sheet`);
+    } else {
+      showToast('⚠️ Lỗi tải dữ liệu: ' + json.error, '#f59e0b');
+    }
+  } catch(e) {
+    showToast('⚠️ Không kết nối được Google Sheet', '#f59e0b');
+  }
+  showLoading(false);
+}
+
+function showLoading(on) {
+  const el = document.getElementById('loadingBar');
+  if(el) el.style.display = on ? 'block' : 'none';
+}
+
+function getInitials(name) {
+  const parts = name.trim().split(' ');
+  return (parts[parts.length-2]||parts[0]).charAt(0).toUpperCase() + (parts[parts.length-1]||'').charAt(0).toUpperCase();
+}
+function avatarColor(name) {
+  const colors = [['rgba(79,156,249,0.2)','#4f9cf9'],['rgba(124,92,252,0.2)','#a78bfa'],['rgba(34,197,94,0.2)','#4ade80'],['rgba(245,158,11,0.2)','#fbbf24'],['rgba(236,72,153,0.2)','#f472b6'],['rgba(20,184,166,0.2)','#2dd4bf']];
+  const idx = Math.abs(name.split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % colors.length;
+  return colors[idx];
+}
+function statusBadge(s) {
+  if(s==='Hoàn thành') return '<span class="badge done">✅ HT</span>';
+  if(s==='Đang thực hiện') return '<span class="badge prog">🔄 Đang TH</span>';
+  if(s==='Chưa hoàn thành') return '<span class="badge pending">❌ Chưa HT</span>';
+  return '<span class="badge none">—</span>';
+}
+function fmtVal(v) {
+  if (!v || v<1000) return '—';
+  if (v>=1e9) return (v/1e9).toFixed(1)+'B';
+  if (v>=1e6) return (v/1e6).toFixed(1)+'M';
+  return (v/1e3).toFixed(0)+'K';
+}
+
+function calcEmployeeStats(data) {
+  const map = {};
+  for (const r of data) {
+    if (!map[r.nv]) {
+      const emp = EMPLOYEES.find(e=>e.name===r.nv)||{ma:'',vi_tri:''};
+      map[r.nv] = {name:r.nv, ma:emp.ma, vi_tri:emp.vi_tri, total:0, done:0, prog:0, notdone:0, days:0, jobs:[]};
+    }
+    map[r.nv].total++;
+    if(r.status==='Hoàn thành') map[r.nv].done++;
+    else if(r.status==='Đang thực hiện') map[r.nv].prog++;
+    else if(r.status==='Chưa hoàn thành') map[r.nv].notdone++;
+    map[r.nv].days += (r.days||0);
+    map[r.nv].jobs.push(r);
+  }
+  return Object.values(map).sort((a,b)=>(b.done/b.total||0)-(a.done/a.total||0));
+}
+
+function applyFilter() {
+  const w = parseInt(document.getElementById('fWeek').value)||null;
+  const m = parseInt(document.getElementById('fMonth').value)||null;
+  const emp = document.getElementById('fEmployee').value;
+  const st = document.getElementById('fStatus').value;
+  filteredData = allData.filter(r => {
+    if(w && r.week!==w) return false;
+    if(m && r.month!==m) return false;
+    if(emp && r.nv!==emp) return false;
+    if(st && r.status!==st) return false;
+    return true;
+  });
+  renderOverview();
+}
+function clearFilter() {
+  document.getElementById('fWeek').value='';
+  document.getElementById('fMonth').value='';
+  document.getElementById('fEmployee').value='';
+  document.getElementById('fStatus').value='';
+  filteredData=[...allData];
+  renderOverview();
+}
+
+function renderOverview() {
+  const stats = calcEmployeeStats(filteredData);
+  const total = filteredData.length;
+  const done = filteredData.filter(r=>r.status==='Hoàn thành').length;
+  const prog = filteredData.filter(r=>r.status==='Đang thực hiện').length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  const totalDays = filteredData.reduce((a,r)=>a+(r.days||0),0);
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card s-blue"><div class="stat-label">Tổng công việc</div><div class="stat-value">${total}</div><div class="stat-sub">${stats.length} nhân viên</div></div>
+    <div class="stat-card s-green"><div class="stat-label">Hoàn thành</div><div class="stat-value">${done}</div><div class="stat-sub">${pct}% tỷ lệ</div></div>
+    <div class="stat-card s-yellow"><div class="stat-label">Đang thực hiện</div><div class="stat-value">${prog}</div><div class="stat-sub">${total?Math.round(prog/total*100):0}% tổng</div></div>
+    <div class="stat-card s-red"><div class="stat-label">Chưa hoàn thành</div><div class="stat-value">${total-done-prog}</div></div>
+    <div class="stat-card s-purple"><div class="stat-label">Tổng ngày thực hiện</div><div class="stat-value">${totalDays}</div><div class="stat-sub">ngày công</div></div>
+  `;
+
+  // Chart 1 — efficiency by employee
+  const names = stats.map(s=>s.name.split(' ').slice(-2).join(' '));
+  const pcts = stats.map(s=>s.total?Math.round(s.done/s.total*100):0);
+  const bgs = pcts.map(p=>p>=80?'rgba(34,197,94,0.7)':p>=50?'rgba(79,156,249,0.7)':'rgba(239,68,68,0.7)');
+  if(chartEff) chartEff.destroy();
+  chartEff = new Chart(document.getElementById('chartEff'), {
+    type:'bar',
+    data:{labels:names,datasets:[{label:'Hiệu suất %',data:pcts,backgroundColor:bgs,borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}%`}}},scales:{x:{ticks:{color:'#7b8199',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#7b8199',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'},min:0,max:100}}}
+  });
+
+  // Chart 2 — by group
+  const groupMap = {};
+  for(const r of filteredData) { groupMap[r.group]=(groupMap[r.group]||0)+1; }
+  const gLabels=Object.keys(groupMap), gVals=Object.values(groupMap);
+  if(chartGroup) chartGroup.destroy();
+  chartGroup = new Chart(document.getElementById('chartGroup'), {
+    type:'doughnut',
+    data:{labels:gLabels,datasets:[{data:gVals,backgroundColor:GRP_COLORS.slice(0,gLabels.length),borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+  });
+  document.getElementById('groupLegend').innerHTML = gLabels.map((g,i)=>`<span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:${GRP_COLORS[i]};"></span><span style="color:var(--muted);font-size:11px;">${g.replace(' & ',' & ').substring(0,22)}</span></span>`).join('');
+
+  // Rank table
+  let rt = '';
+  stats.forEach((s,i) => {
+    const pct2 = s.total ? Math.round(s.done/s.total*100) : 0;
+    const [bg,fg] = avatarColor(s.name);
+    const rankClass = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+    const barColor = pct2>=80?'#22c55e':pct2>=50?'#4f9cf9':'#ef4444';
+    rt += `<tr style="cursor:pointer;" onclick="openPanel('${s.name}')">
+      <td><span class="rank ${rankClass}">${i+1}</span></td>
+      <td><div style="display:flex;align-items:center;gap:10px;">
+        <div class="avatar" style="background:${bg};color:${fg};">${getInitials(s.name)}</div>
+        <div><div style="font-weight:500;">${s.name}</div><div style="font-size:11px;color:var(--muted);">${s.ma}</div></div>
+      </div></td>
+      <td style="color:var(--muted);font-size:12px;">${s.vi_tri}</td>
+      <td style="font-weight:600;">${s.total}</td>
+      <td style="color:var(--success);">${s.done}</td>
+      <td style="color:var(--inprogress);">${s.prog}</td>
+      <td style="color:var(--muted);">${s.days}</td>
+      <td><div class="prog-bar-wrap"><div class="prog-bar"><div class="prog-bar-fill" style="width:${pct2}%;background:${barColor};"></div></div><span class="prog-pct" style="color:${barColor};">${pct2}%</span></div></td>
+    </tr>`;
+  });
+  document.getElementById('rankTable').innerHTML = rt || '<tr><td colspan="8" class="empty">Không có dữ liệu</td></tr>';
+}
+
+function openPanel(name) {
+  const stats = calcEmployeeStats(filteredData);
+  const s = stats.find(x=>x.name===name);
+  if(!s) return;
+  const pct = s.total?Math.round(s.done/s.total*100):0;
+  document.getElementById('dp_name').textContent=name;
+  document.getElementById('dp_role').textContent=s.vi_tri+(s.ma?` — ${s.ma}`:'');
+  document.getElementById('dp_total').textContent=s.total;
+  document.getElementById('dp_done').textContent=s.done;
+  document.getElementById('dp_prog').textContent=s.prog;
+  document.getElementById('dp_pct').textContent=pct+'%';
+  let jh='';
+  for(const j of s.jobs) {
+    jh+=`<div class="job-item"><div class="job-item-top"><div><div class="job-item-name">${j.job}</div><div class="job-item-group">${j.group}</div></div>${statusBadge(j.status)}</div>
+    <div class="job-meta">${j.volume>0?`<span>KL: ${j.volume}</span>`:''}${j.value>0?`<span>GT: ${fmtVal(j.value)}</span>`:''}${j.days>0?`<span>⏱ ${j.days} ngày</span>`:''}<span>Tuần ${j.week}</span></div>
+    ${j.result?`<div class="job-result">📌 ${j.result}</div>`:''}</div>`;
+  }
+  document.getElementById('dp_jobs').innerHTML=jh||'<div class="empty">Không có dữ liệu</div>';
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+}
+function closePanel() {
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function renderDetail() {
+  const q = document.getElementById('dSearch').value.toLowerCase();
+  const emp = document.getElementById('dEmployee').value;
+  const grp = document.getElementById('dGroup').value;
+  const st = document.getElementById('dStatus').value;
+  let data = allData.filter(r=>{
+    if(emp && r.nv!==emp) return false;
+    if(grp && r.group!==grp) return false;
+    if(st && r.status!==st) return false;
+    if(q && !r.nv.toLowerCase().includes(q) && !r.job.toLowerCase().includes(q) && !r.group.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if(detailSort.col) {
+    data.sort((a,b)=>{
+      let av=a[detailSort.col]||'', bv=b[detailSort.col]||'';
+      return (av>bv?1:av<bv?-1:0)*detailSort.dir;
+    });
+  }
+  document.getElementById('detailCount').textContent=`${data.length} bản ghi`;
+  let rows='';
+  for(const r of data) {
+    const gi = GROUPS.indexOf(r.group);
+    const cls = gi>=0?`grp-${gi}`:'';
+    rows+=`<tr>
+      <td style="font-weight:500;white-space:nowrap;">${r.nv.split(' ').slice(-2).join(' ')}</td>
+      <td><span class="grp-tag ${cls}">${r.group}</span></td>
+      <td style="max-width:220px;font-size:12px;">${r.job}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td style="text-align:center;">${r.volume||'—'}</td>
+      <td style="text-align:center;">${r.days||'—'}</td>
+      <td style="text-align:center;">${r.week}</td>
+      <td style="max-width:180px;font-size:11px;color:var(--muted2);">${r.result||'—'}</td>
+    </tr>`;
+  }
+  document.getElementById('detailTable').innerHTML = rows||'<tr><td colspan="8" class="empty">Không tìm thấy dữ liệu</td></tr>';
+}
+function sortDetail(col) {
+  if(detailSort.col===col) detailSort.dir*=-1;
+  else { detailSort.col=col; detailSort.dir=1; }
+  renderDetail();
+}
+function exportCSV() {
+  const q=document.getElementById('dSearch').value.toLowerCase();
+  const emp=document.getElementById('dEmployee').value;
+  const grp=document.getElementById('dGroup').value;
+  const st=document.getElementById('dStatus').value;
+  const data=allData.filter(r=>{
+    if(emp&&r.nv!==emp)return false;
+    if(grp&&r.group!==grp)return false;
+    if(st&&r.status!==st)return false;
+    if(q&&!r.nv.toLowerCase().includes(q)&&!r.job.toLowerCase().includes(q))return false;
+    return true;
+  });
+  const h='Nhân viên,Nhóm CV,Nội dung,Trạng thái,Khối lượng,Ngày TH,Tuần,Tháng,Kết quả';
+  const rows=data.map(r=>[r.nv,r.group,r.job,r.status,r.volume||'',r.days||'',r.week,r.month,(r.result||'').replace(/,/g,';')].join(','));
+  const blob=new Blob(['\uFEFF'+h+'\n'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='baocao_ketoan.csv';a.click();
+}
+
+function renderManager() {
+  const stats = calcEmployeeStats(allData);
+  const names = stats.map(s=>s.name.split(' ').slice(-2).join(' '));
+  const totals = stats.map(s=>s.total);
+  const dones = stats.map(s=>s.done);
+  const progs = stats.map(s=>s.prog);
+  const pcts = stats.map(s=>s.total?Math.round(s.done/s.total*100):0);
+
+  if(chartMgr1) chartMgr1.destroy();
+  chartMgr1 = new Chart(document.getElementById('chartMgr1'),{
+    type:'bar',
+    data:{labels:names,datasets:[
+      {label:'Hoàn thành',data:dones,backgroundColor:'rgba(34,197,94,0.7)',borderRadius:4},
+      {label:'Đang TH',data:progs,backgroundColor:'rgba(79,156,249,0.5)',borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7b8199',boxWidth:10,font:{size:11}}}},scales:{x:{stacked:true,ticks:{color:'#7b8199',font:{size:9}},grid:{display:false}},y:{stacked:true,ticks:{color:'#7b8199'},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+
+  if(chartMgr2) chartMgr2.destroy();
+  const barClr=pcts.map(p=>p>=80?'rgba(34,197,94,0.7)':p>=50?'rgba(79,156,249,0.7)':'rgba(239,68,68,0.7)');
+  chartMgr2 = new Chart(document.getElementById('chartMgr2'),{
+    type:'bar',
+    data:{labels:names,datasets:[{label:'Hiệu suất %',data:pcts,backgroundColor:barClr,borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7b8199',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#7b8199',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'},min:0,max:100}}}
+  });
+
+  const alerts=allData.filter(r=>r.status==='Đang thực hiện'||r.status==='Chưa hoàn thành');
+  let at='';
+  for(const r of alerts) {
+    at+=`<tr><td style="font-weight:500;">${r.nv.split(' ').slice(-2).join(' ')}</td>
+    <td style="font-size:12px;">${r.job}</td>
+    <td><span class="grp-tag grp-${GROUPS.indexOf(r.group)}">${r.group}</span></td>
+    <td>${statusBadge(r.status)}</td>
+    <td style="font-size:12px;color:var(--muted);">${xlDateToStr(r.start)||'—'}</td>
+    <td style="font-size:11px;color:var(--muted2);max-width:160px;">${r.result||'—'}</td></tr>`;
+  }
+  document.getElementById('alertTable').innerHTML=at||'<tr><td colspan="6" class="empty">✅ Không có công việc nào cần chú ý</td></tr>';
+}
+
+function populateDropdowns() {
+  const empSels = ['fEmployee','dEmployee','fi_employee'];
+  empSels.forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel)return;
+    const all=id==='fi_employee'?[]:[''];
+    const names=[...new Set(allData.map(r=>r.nv))].sort();
+    if(id==='fi_employee') {
+      EMPLOYEES.forEach(e=>{
+        sel.innerHTML+=`<option value="${e.name}">${e.name} — ${e.vi_tri}</option>`;
+      });
+    } else {
+      names.forEach(n=>sel.innerHTML+=`<option value="${n}">${n}</option>`);
+    }
+  });
+  const dg=document.getElementById('dGroup');
+  if(dg) GROUPS.forEach(g=>dg.innerHTML+=`<option value="${g}">${g}</option>`);
+}
+
+function onEmployeeChange() {
+  const name=document.getElementById('fi_employee').value;
+  const emp=EMPLOYEES.find(e=>e.name===name);
+  document.getElementById('fi_maNV').value=emp?emp.ma:'';
+  updateJobList();
+}
+function updateJobList() {
+  const g=document.getElementById('fi_group').value;
+  const jsel=document.getElementById('fi_job');
+  jsel.innerHTML='<option value="">-- Chọn công việc --</option>';
+  if(JOB_CATALOG[g]) JOB_CATALOG[g].forEach(j=>jsel.innerHTML+=`<option>${j}</option>`);
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('fi_group').addEventListener('change', updateJobList);
+});
+
+function calcDays() {
+  const s=document.getElementById('fi_start').value, e=document.getElementById('fi_end').value;
+  if(s&&e) {
+    const d=Math.max(0,Math.round((new Date(e)-new Date(s))/86400000));
+    document.getElementById('fi_days').value=d;
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('fi_start').addEventListener('change',calcDays);
+  document.getElementById('fi_end').addEventListener('change',calcDays);
+});
+
+function getWeekNumber(d) {
+  d=new Date(d);
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+4-(d.getDay()||7));
+  const y=new Date(d.getFullYear(),0,1);
+  return Math.ceil((((d-y)/86400000)+1)/7);
+}
+
+async function submitReport() {
+  const nv=document.getElementById('fi_employee').value;
+  const g=document.getElementById('fi_group').value;
+  const job=document.getElementById('fi_job').value;
+  const week=parseInt(document.getElementById('fi_week').value)||0;
+  const month=parseInt(document.getElementById('fi_month').value)||0;
+  const year=parseInt(document.getElementById('fi_year').value)||2026;
+  if(!nv||!g||!job||!week||!month) { showToast('⚠️ Vui lòng điền đầy đủ thông tin bắt buộc (*)', '#f59e0b'); return; }
+  const r={
+    nv, group:g, job,
+    status:document.getElementById('fi_status').value,
+    volume:parseFloat(document.getElementById('fi_volume').value)||0,
+    value:parseFloat((document.getElementById('fi_value').value||'0').replace(/[^0-9.]/g,''))||0,
+    start:0, end:0,
+    days:parseInt(document.getElementById('fi_days').value)||0,
+    result:document.getElementById('fi_result').value,
+    suggest:document.getElementById('fi_suggest').value,
+    week, month, quy:Math.ceil(month/3), year
+  };
+  const btn=document.querySelector('#tab-form .btn-primary');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Đang lưu...';}
+  try {
+    const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({
+      secret:SECRET, action:'add', data:{
+        nv:r.nv, group:r.group, job:r.job, status:r.status,
+        volume:r.volume, value:r.value,
+        startDate:document.getElementById('fi_start').value,
+        endDate:document.getElementById('fi_end').value,
+        days:r.days, result:r.result, suggest:r.suggest,
+        week:r.week, month:r.month, quy:r.quy, year:r.year
+      }
+    })});
+    const j=await res.json();
+    if(j.ok){
+      r.id=j.id; sheetData.push(r);
+      allData=[...rawData,...sheetData]; filteredData=[...allData];
+      populateDropdowns(); renderOverview(); renderDetail(); renderManager();
+      resetForm(); showToast('✅ Đã lưu lên Google Sheet thành công!');
+      switchTab('overview');
+    } else { showToast('❌ Lỗi: '+j.error,'#ef4444'); }
+  } catch(e){ showToast('❌ Không kết nối được Google Sheet','#ef4444'); }
+  if(btn){btn.disabled=false;btn.textContent='💾 Lưu báo cáo';}
+}
+function resetForm() {
+  ['fi_employee','fi_group','fi_job','fi_status'].forEach(id=>document.getElementById(id).value='');
+  ['fi_week','fi_month','fi_year','fi_volume','fi_value','fi_days'].forEach(id=>document.getElementById(id).value=id==='fi_year'?'2026':'');
+  ['fi_start','fi_end','fi_result','fi_suggest'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fi_maNV').value='';
+}
+function showToast(msg, color='#22c55e') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=color;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.section-tab').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  const tabs=['overview','form','detail','manager'];
+  const idx=tabs.indexOf(tab);
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  if(tab==='manager') renderManager();
+  if(tab==='detail') renderDetail();
+}
+
+function clock() {
+  const now=new Date();
+  document.getElementById('clock').textContent=now.toLocaleString('vi-VN',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+setInterval(clock,1000); clock();
+
+// Set current week/month auto
+(function(){
+  const n=new Date();
+  document.getElementById('fi_month').value=n.getMonth()+1;
+  document.getElementById('fi_week').value=getWeekNumber(n);
+  document.getElementById('fi_year').value=n.getFullYear();
+})();
+
+populateDropdowns();
+renderOverview();
+loadFromSheet();
+</script>
+</body>
+</html>
