@@ -611,6 +611,8 @@ let chartEff=null,chartGroup=null,chartMgr1=null,chartMgr2=null;
 let importRows=[], selectedFile=null;
 
 function fmtVal(v){if(!v||v<1000)return"—";if(v>=1e12)return(v/1e12).toFixed(1)+"T";if(v>=1e9)return(v/1e9).toFixed(1)+"B";if(v>=1e6)return(v/1e6).toFixed(1)+"M";return(v/1e3).toFixed(0)+"K";}
+function excelDateToYmd(serial){if(!serial||serial<=0)return"";const d=new Date((serial-25569)*86400*1000);return d.toISOString().slice(0,10);}
+function getRowDate(r){return r.start>0?excelDateToYmd(r.start):(r.startDate||"");}
 function getInitials(n){const p=n.trim().split(" ");return(p[p.length-2]||p[0]).charAt(0).toUpperCase()+(p[p.length-1]||"").charAt(0).toUpperCase();}
 function avatarColor(n){const c=[["rgba(79,156,249,0.2)","#4f9cf9"],["rgba(124,92,252,0.2)","#a78bfa"],["rgba(34,197,94,0.2)","#4ade80"],["rgba(245,158,11,0.2)","#fbbf24"],["rgba(236,72,153,0.2)","#f472b6"],["rgba(20,184,166,0.2)","#2dd4bf"]];const i=Math.abs(n.split("").reduce((a,c2)=>a+c2.charCodeAt(0),0))%c.length;return c[i];}
 function statusBadge(s){if(s==="Hoàn thành")return'<span class="badge done">✅ HT</span>';if(s==="Đang thực hiện")return'<span class="badge prog">🔄 Đang TH</span>';if(s==="Chưa hoàn thành")return'<span class="badge pending">❌ Chưa HT</span>';return'<span class="badge none">—</span>';}
@@ -648,6 +650,7 @@ function applyFilter(){
     if(yr&&r.year!==yr)return false;
     if(emp&&r.nv!==emp)return false;
     if(st&&r.status!==st)return false;
+    if(fr||to){const rd=getRowDate(r);if(rd){if(fr&&rd<fr)return false;if(to&&rd>to)return false;}}
     return true;
   });
   renderOverview();
@@ -792,6 +795,7 @@ function renderManager(){
   let data=allData.filter(r=>{
     if(mEmp&&r.nv!==mEmp)return false;
     if(mMo&&r.month!==mMo)return false;
+    if(mFr||mTo2){const rd=getRowDate(r);if(rd){if(mFr&&rd<mFr)return false;if(mTo2&&rd>mTo2)return false;}}
     return true;
   });
   const stats=calcEmployeeStats(data);
