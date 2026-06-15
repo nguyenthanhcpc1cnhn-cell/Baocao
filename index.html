@@ -205,7 +205,7 @@ textarea{resize:vertical;min-height:70px;}
   <div class="header-left">
     <div class="logo-dot"></div>
     <div>
-      <div class="header-title">Phòng Kế Toán — Hội Sở</div>
+      <div class="header-title">Phòng Kế Toán</div>
       <div class="header-sub">Hệ thống báo cáo công việc tuần</div>
     </div>
   </div>
@@ -349,9 +349,7 @@ textarea{resize:vertical;min-height:70px;}
     </div>
     <div class="form-row" id="fi_branchRow">
       <div><label>Chi nhánh / Văn phòng</label>
-        <select id="fi_branch">
-          <option value="Hội sở">Hội sở</option>
-        </select>
+        <select id="fi_branch"></select>
       </div>
       <div></div>
     </div>
@@ -1124,6 +1122,7 @@ async function loadFromSheet(){
       sheetData=(j.data||[]).map(sheetRowToObj).filter(r=>r.nv).map(r=>{r._uid=++_uidSeq;r.klEval=r.klEval||"";r.branch=r.branch||"Hội sở";return r;});
       allData=[...rawData,...sheetData];
       filteredData=[...getBaseData()];
+      populateDropdowns();
       renderOverview();renderDetail();
       showToast(`✅ Đã tải ${sheetData.length} bản ghi từ Google Sheet`);
     }else{showToast("⚠️ Lỗi: "+j.error,"#f59e0b");}
@@ -2740,6 +2739,15 @@ function applyRoleUI(){
   }
 }
 function onAfterLogin(){
+  // Reload config từ localStorage để đảm bảo dữ liệu mới nhất (admin có thể đã thêm NV sau lần load đầu)
+  try{
+    const se=localStorage.getItem("cfg_employees");
+    if(se){const em=JSON.parse(se);if(Array.isArray(em)&&em.length){EMPLOYEES=em;EMPLOYEES.forEach(e=>{e.branch=e.branch||"Hội sở";});}}
+    const sg=localStorage.getItem("cfg_groups");
+    if(sg){const g=JSON.parse(sg);if(Array.isArray(g)&&g.length)GROUPS=g;}
+    const sj=localStorage.getItem("cfg_jobs");
+    if(sj){const jc=JSON.parse(sj);if(jc&&typeof jc==="object")JOB_CATALOG=jc;}
+  }catch(e){}
   // Header chip
   const chip=document.getElementById("userChip");
   if(chip)chip.style.display="flex";
@@ -2752,8 +2760,9 @@ function onAfterLogin(){
   if(brRow)brRow.style.display=(currentUser.role==="user")?"none":"";
   const brSel=document.getElementById("fi_branch");
   if(brSel){
-    if(!brSel.options.length)brSel.innerHTML=BRANCHES.map(b=>`<option value="${b}">${b}</option>`).join('');
+    brSel.innerHTML=BRANCHES.map(b=>`<option value="${b}">${b}</option>`).join('');
     if(currentUser.branch)brSel.value=currentUser.branch;
+    else brSel.value=BRANCHES[0];
   }
   applyRoleUI();
   filteredData=[...getBaseData()];
