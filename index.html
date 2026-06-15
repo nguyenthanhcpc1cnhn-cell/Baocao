@@ -1612,6 +1612,11 @@ function onEmployeeChange(){
   const name=document.getElementById("fi_employee").value;
   const e=EMPLOYEES.find(x=>x.name===name);
   document.getElementById("fi_maNV").value=e?e.ma:"";
+  // Tự động điền chi nhánh theo nhân viên (chỉ áp dụng khi admin/manager — user role ẩn fi_branchRow)
+  if(e&&e.branch&&currentUser&&currentUser.role!=="user"){
+    const brSel=document.getElementById("fi_branch");
+    if(brSel)brSel.value=e.branch;
+  }
 }
 function updateJobList(){
   const g=document.getElementById("fi_group").value;
@@ -2068,9 +2073,12 @@ function renderKiemSoat(){
 }
 
 function populateDropdowns(){
-  const visibleEmps=(currentUser&&currentUser.role==="user"&&currentUser.branch)
-    ?EMPLOYEES.filter(e=>(e.branch||"Hội sở")===currentUser.branch)
-    :EMPLOYEES;
+  let visibleEmps=EMPLOYEES;
+  if(currentUser&&currentUser.role==="user"&&currentUser.branch){
+    const branchEmps=EMPLOYEES.filter(e=>(e.branch||"Hội sở")===currentUser.branch);
+    // Nếu admin chưa gán branch → không lọc, hiện tất cả để NV vẫn chọn được
+    visibleEmps=branchEmps.length>0?branchEmps:EMPLOYEES;
+  }
   // Filter dropdowns: gộp tên từ data + tên từ danh sách EMPLOYEES để hiện NV mới chưa có data
   const dataNames=[...new Set(getBaseData().map(r=>r.nv))];
   const listNames=visibleEmps.map(e=>e.name);
