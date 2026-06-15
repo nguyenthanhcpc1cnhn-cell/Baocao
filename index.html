@@ -143,9 +143,63 @@ textarea{resize:vertical;min-height:70px;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
 .section-divider{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+/* ── ĐĂNG NHẬP ── */
+.login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;}
+.login-card{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:36px 40px;width:400px;max-width:94vw;}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+.login-logo-dot{width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px rgba(79,156,249,0.6);}
+.login-logo-title{font-size:17px;font-weight:700;}
+.login-logo-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+.login-field{margin-bottom:14px;}
+.login-field label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
+.login-field input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border-color .2s;}
+.login-field input:focus{border-color:var(--accent);}
+.login-btn{width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .2s;}
+.login-btn:hover{opacity:0.88;}
+.login-error{color:#f87171;font-size:12px;margin-top:8px;text-align:center;min-height:18px;}
+.login-accounts{margin-top:18px;border-top:1px solid var(--border);padding-top:14px;}
+.login-accounts-title{font-size:11px;font-weight:600;color:var(--muted2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;}
+.login-accounts table{width:100%;border-collapse:collapse;}
+.login-accounts td{padding:3px 6px;font-size:10.5px;color:var(--muted);}
+.login-accounts td:first-child{color:var(--muted2);font-weight:600;font-family:monospace;}
+.login-accounts td:nth-child(2){color:var(--accent);font-family:monospace;}
+/* ── USER CHIP / BRANCH ── */
+.branch-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.25);border-radius:8px;padding:2px 9px;font-size:11px;color:var(--accent);font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.user-chip{display:flex;align-items:center;gap:8px;}
+.user-chip-name{font-size:12px;color:var(--text);font-weight:600;white-space:nowrap;}
+.logout-btn{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#f87171;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;}
+.role-admin .branch-badge{background:rgba(167,139,250,0.12);border-color:rgba(167,139,250,0.3);color:#a78bfa;}
+.role-manager .branch-badge{background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:#fbbf24;}
+#mainApp{display:none;}
 </style>
 </head>
 <body>
+
+<!-- ════════════════════ MÀN HÌNH ĐĂNG NHẬP ════════════════════ -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-dot"></div>
+      <div>
+        <div class="login-logo-title">Phòng Kế Toán</div>
+        <div class="login-logo-sub">Hệ thống báo cáo công việc tuần</div>
+      </div>
+    </div>
+    <div class="login-field">
+      <label>Tên đăng nhập</label>
+      <input type="text" id="loginUsername" placeholder="Nhập tên đăng nhập" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field">
+      <label>Mật khẩu</label>
+      <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Đăng nhập</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ ỨNG DỤNG CHÍNH ════════════════════ -->
+<div id="mainApp">
 
 <div class="header">
   <div class="header-left">
@@ -155,7 +209,14 @@ textarea{resize:vertical;min-height:70px;}
       <div class="header-sub">Hệ thống báo cáo công việc tuần</div>
     </div>
   </div>
-  <span id="clock" style="font-size:12px;color:var(--muted);"></span>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div id="userChip" class="user-chip" style="display:none;">
+      <span class="user-chip-name" id="userChipName"></span>
+      <span class="branch-badge" id="userChipBranch"></span>
+      <button class="logout-btn" onclick="doLogout()">Đăng xuất</button>
+    </div>
+    <span id="clock" style="font-size:12px;color:var(--muted);"></span>
+  </div>
 </div>
 <div id="loadingBar"></div>
 
@@ -285,6 +346,14 @@ textarea{resize:vertical;min-height:70px;}
     <div class="form-row">
       <div><label>Nhân viên *</label><select id="fi_employee" onchange="onEmployeeChange()"><option value="">-- Chọn nhân viên --</option></select></div>
       <div><label>Mã NV</label><input type="text" id="fi_maNV" readonly placeholder="Tự điền"></div>
+    </div>
+    <div class="form-row" id="fi_branchRow">
+      <div><label>Chi nhánh / Văn phòng</label>
+        <select id="fi_branch">
+          <option value="Hội sở">Hội sở</option>
+        </select>
+      </div>
+      <div></div>
     </div>
     <div class="form-row four">
       <div><label>Tuần</label><input type="number" id="fi_week" min="1" max="53" placeholder="1-53"></div>
@@ -531,16 +600,18 @@ textarea{resize:vertical;min-height:70px;}
           <th>Họ và tên</th>
           <th style="width:90px;">Mã NV</th>
           <th>Vị trí</th>
-          <th style="width:60px;"></th>
+          <th>Chi nhánh / VP</th>
+          <th style="width:110px;"></th>
         </tr></thead>
         <tbody id="cfg-emp-body"></tbody>
       </table>
     </div>
     <div class="section-divider">Thêm nhân viên mới</div>
-    <div class="form-row three" style="margin-bottom:0;">
+    <div class="form-row four" style="margin-bottom:0;">
       <div><label>Họ và tên *</label><input type="text" id="cfg-emp-name" placeholder="Nguyễn Văn A"></div>
       <div><label>Mã NV *</label><input type="text" id="cfg-emp-ma" placeholder="012345"></div>
       <div><label>Vị trí</label><input type="text" id="cfg-emp-vitri" placeholder="Kế toán viên"></div>
+      <div><label>Chi nhánh / VP *</label><select id="cfg-emp-branch"></select></div>
     </div>
     <div class="form-actions">
       <button class="btn btn-primary" onclick="addEmployee()">➕ Thêm nhân viên</button>
@@ -570,6 +641,47 @@ textarea{resize:vertical;min-height:70px;}
     <div style="display:flex;gap:10px;align-items:flex-end;">
       <div style="flex:1;"><label>Tên công việc *</label><input type="text" id="cfg-job-name" placeholder="Tên nội dung công việc mới" onkeydown="if(event.key==='Enter')addJob()"></div>
       <button class="btn btn-primary" onclick="addJob()">➕ Thêm</button>
+    </div>
+  </div>
+
+  <!-- ═══ QUẢN LÝ TÀI KHOẢN ═══ -->
+  <div class="form-card" style="max-width:780px;" id="cfg-accounts-section">
+    <div class="form-title">🔐 Quản lý tài khoản đăng nhập</div>
+    <div style="overflow-x:auto;max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:16px;">
+      <table>
+        <thead><tr>
+          <th style="width:36px;">#</th>
+          <th>Tên đăng nhập</th>
+          <th>Mật khẩu</th>
+          <th>Vai trò</th>
+          <th>Chi nhánh / VP</th>
+          <th>Tên hiển thị</th>
+          <th style="width:120px;"></th>
+        </tr></thead>
+        <tbody id="cfg-acc-body"></tbody>
+      </table>
+    </div>
+    <div class="section-divider">Thêm tài khoản mới</div>
+    <div class="form-row four" style="margin-bottom:10px;">
+      <div><label>Tên đăng nhập *</label><input type="text" id="cfg-acc-username" placeholder="vd: hoiso"></div>
+      <div><label>Mật khẩu *</label><input type="text" id="cfg-acc-password" placeholder="vd: HS@2026"></div>
+      <div><label>Vai trò *</label>
+        <select id="cfg-acc-role" onchange="updateAccBranchVisibility()">
+          <option value="user">user — Kế toán khu vực</option>
+          <option value="manager">manager — Quản lý</option>
+          <option value="admin">admin — Quản trị viên</option>
+        </select>
+      </div>
+      <div><label>Tên hiển thị *</label><input type="text" id="cfg-acc-display" placeholder="vd: Kế toán Hội sở"></div>
+    </div>
+    <div class="form-row" id="cfg-acc-branch-row">
+      <div><label>Chi nhánh / VP</label><select id="cfg-acc-branch" onchange="updateAccNvList()"></select></div>
+      <div><label>Nhân viên cụ thể <span style="font-size:10px;font-weight:400;color:var(--muted);">(để trống = thấy cả chi nhánh)</span></label>
+        <select id="cfg-acc-nv"><option value="">— Tất cả nhân viên chi nhánh —</option></select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="addAccount()">➕ Thêm tài khoản</button>
     </div>
   </div>
 
@@ -648,9 +760,90 @@ textarea{resize:vertical;min-height:70px;}
 
 <div class="toast" id="toast"></div>
 
+</div><!-- /#mainApp -->
+
+<!-- ════════ MODAL SỬA TÀI KHOẢN ════════ -->
+<div id="editAccModal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:500px;max-width:94vw;padding:26px 28px;">
+    <div style="font-size:15px;font-weight:700;margin-bottom:18px;">✏️ Sửa tài khoản</div>
+    <input type="hidden" id="editAccIdx">
+    <div class="form-row">
+      <div><label>Tên đăng nhập *</label><input type="text" id="editAccUsername" placeholder="username"></div>
+      <div><label>Mật khẩu *</label><input type="text" id="editAccPassword" placeholder="password"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Vai trò</label>
+        <select id="editAccRole" onchange="updateEditAccBranchVisibility()">
+          <option value="user">user — Kế toán khu vực</option>
+          <option value="manager">manager — Quản lý</option>
+          <option value="admin">admin — Quản trị viên</option>
+        </select>
+      </div>
+      <div><label>Tên hiển thị *</label><input type="text" id="editAccDisplay" placeholder="Tên hiển thị"></div>
+    </div>
+    <div class="form-row" id="editAccBranchRow">
+      <div><label>Chi nhánh / VP</label><select id="editAccBranch" onchange="updateEditAccNvList()"></select></div>
+      <div><label>Nhân viên cụ thể <span style="font-size:10px;font-weight:400;color:var(--muted);">(để trống = thấy cả chi nhánh)</span></label>
+        <select id="editAccNv"><option value="">— Tất cả nhân viên chi nhánh —</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+      <button class="btn btn-secondary" onclick="document.getElementById('editAccModal').style.display='none'">Hủy</button>
+      <button class="btn btn-primary" onclick="saveEditAccount()">💾 Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODAL SỬA NHÂN VIÊN ════════ -->
+<div id="editEmpModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:500px;max-width:94vw;padding:26px 28px;">
+    <div style="font-size:15px;font-weight:700;margin-bottom:18px;">✏️ Sửa thông tin nhân viên</div>
+    <input type="hidden" id="editEmpIdx">
+    <div class="form-row">
+      <div><label>Họ và tên *</label><input type="text" id="editEmpName" placeholder="Nguyễn Văn A"></div>
+      <div><label>Mã NV *</label><input type="text" id="editEmpMa" placeholder="012345"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Vị trí</label><input type="text" id="editEmpVitri" placeholder="Kế toán viên"></div>
+      <div><label>Chi nhánh / Văn phòng</label><select id="editEmpBranch"></select></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+      <button class="btn btn-secondary" onclick="document.getElementById('editEmpModal').style.display='none'">Hủy</button>
+      <button class="btn btn-primary" onclick="saveEditEmployee()">💾 Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API_URL="https://script.google.com/macros/s/AKfycbz33StsbV7HXwuh3-mjM6BvBM6lclS9haGEFsqGaqc7OKAXoD9bM8t13cqQwznfF1qC/exec";
 const SECRET="ketoan2026";
+const BRANCHES=["Hội sở","Chi nhánh Hà Nội","Văn phòng Nghệ An","Văn phòng Thanh Hoá","Văn Phòng Hải Phòng","Văn Phòng Thái Nguyên","Chi nhánh Đà Nẵng","Chi nhánh Hồ Chí Minh","Văn Phòng Đắk Lắk","Văn Phòng Khánh Hoà","Văn Phòng Cần Thơ"];
+let ACCOUNTS=[
+  {username:"admin",password:"Admin@2026",role:"admin",branch:null,display:"Quản trị viên"},
+  {username:"quanly",password:"QL@2026",role:"manager",branch:null,display:"Quản lý"},
+  {username:"hoiso",password:"HS@2026",role:"user",branch:"Hội sở",display:"Kế toán Hội sở"},
+  {username:"hanoi",password:"HN@2026",role:"user",branch:"Chi nhánh Hà Nội",display:"Kế toán Hà Nội"},
+  {username:"nghean",password:"NA@2026",role:"user",branch:"Văn phòng Nghệ An",display:"Kế toán Nghệ An"},
+  {username:"thanhhoa",password:"TH@2026",role:"user",branch:"Văn phòng Thanh Hoá",display:"Kế toán Thanh Hoá"},
+  {username:"haiphong",password:"HP@2026",role:"user",branch:"Văn Phòng Hải Phòng",display:"Kế toán Hải Phòng"},
+  {username:"thainguyen",password:"TN@2026",role:"user",branch:"Văn Phòng Thái Nguyên",display:"Kế toán Thái Nguyên"},
+  {username:"danang",password:"DN@2026",role:"user",branch:"Chi nhánh Đà Nẵng",display:"Kế toán Đà Nẵng"},
+  {username:"hcm",password:"HCM@2026",role:"user",branch:"Chi nhánh Hồ Chí Minh",display:"Kế toán TP.HCM"},
+  {username:"daclak",password:"DL@2026",role:"user",branch:"Văn Phòng Đắk Lắk",display:"Kế toán Đắk Lắk"},
+  {username:"khanhhoa",password:"KH@2026",role:"user",branch:"Văn Phòng Khánh Hoà",display:"Kế toán Khánh Hoà"},
+  {username:"cantho",password:"CT@2026",role:"user",branch:"Văn Phòng Cần Thơ",display:"Kế toán Cần Thơ"},
+];
+(function initAccounts(){try{const s=localStorage.getItem("cfg_accounts");if(s){const saved=JSON.parse(s);if(Array.isArray(saved)&&saved.length)ACCOUNTS=saved;}}catch(e){}})();
+let currentUser=null;
+function getBaseData(){
+  if(currentUser&&currentUser.role==="user"){
+    let data=allData;
+    if(currentUser.branch)data=data.filter(r=>(r.branch||"Hội sở")===currentUser.branch);
+    if(currentUser.nv)data=data.filter(r=>r.nv===currentUser.nv);
+    return data;
+  }
+  return allData;
+}
 const TEMPLATE_B64="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";
 let GROUPS=["Chứng từ & Thanh toán","Hóa đơn & Công nợ","Thuế","Kế toán tổng hợp & Giá thành","Lãi vay Ngân hàng","Báo cáo tài chính","Công việc khác"];
 const GRP_COLORS=["#4f9cf9","#a78bfa","#4ade80","#fbbf24","#f87171","#f472b6","#2dd4bf"];
@@ -787,7 +980,7 @@ const rawData = [
 
 
 let _uidSeq=0;
-rawData.forEach(r=>{r._uid=++_uidSeq;r.klEval=r.klEval||"";});
+rawData.forEach(r=>{r._uid=++_uidSeq;r.klEval=r.klEval||"";r.branch=r.branch||"Hội sở";});
 let sheetData=[], filteredData=[], allData=[...rawData];
 filteredData=[...allData];
 let detailSort={col:"",dir:1};
@@ -795,7 +988,7 @@ let chartEff=null,chartGroup=null,chartMgr1=null,chartMgr2=null;
 let importRows=[], selectedFile=null;
 let ovCurrentEmp=null;
 
-function fmtVal(v){if(!v||v<1000)return"—";if(v>=1e12)return(v/1e12).toFixed(1)+"T";if(v>=1e9)return(v/1e9).toFixed(1)+"B";if(v>=1e6)return(v/1e6).toFixed(1)+"M";return(v/1e3).toFixed(0)+"K";}
+function fmtVal(v){if(!v||v<1000)return"—";if(v>=1e12)return(v/1e12).toFixed(1)+" NTỷ";if(v>=1e9)return(v/1e9).toFixed(1)+" Tỷ";if(v>=1e6)return(v/1e6).toFixed(1)+" Tr";return(v/1e3).toFixed(0)+" N";}
 function fmtVND(v){if(!v||v<1)return"—";return v.toLocaleString("vi-VN")+" ₫";}
 function excelDateToYmd(serial){if(!serial||serial<=0)return"";const d=new Date((serial-25569)*86400*1000);return d.toISOString().slice(0,10);}
 function getRowDate(r){return r.start>0?excelDateToYmd(r.start):(r.startDate||"");}
@@ -855,7 +1048,7 @@ function showLoading(on){const e=document.getElementById("loadingBar");if(e)e.st
 function showToast(msg,color="#22c55e"){const t=document.getElementById("toast");t.textContent=msg;t.style.background=color;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3500);}
 function getWeekNumber(d){d=new Date(d);d.setHours(0,0,0,0);d.setDate(d.getDate()+4-(d.getDay()||7));const y=new Date(d.getFullYear(),0,1);return Math.ceil((((d-y)/86400000)+1)/7);}
 
-function sheetRowToObj(r){return{id:r["ID"]||"",nv:r["Nhân viên"]||"",group:r["Nhóm CV"]||"",job:r["Nội dung CV"]||"",status:r["Trạng thái"]||"",volume:parseFloat(r["Khối lượng TH"])||0,value:parseFloat(r["Giá trị (VNĐ)"])||0,start:0,end:0,days:parseFloat(r["Số ngày TH"])||0,result:r["Kết quả đạt được"]||"",suggest:r["Đề xuất/Hướng xử lý"]||"",week:parseInt(r["Tuần"])||0,month:parseInt(r["Tháng"])||0,quy:0,year:parseInt(r["Năm"])||2026,driveLink:r["Link Drive"]||"",fileName:r["Tên file"]||"",comment:r["Nhận xét QL"]||"",fromSheet:true};}
+function sheetRowToObj(r){return{id:r["ID"]||"",nv:r["Nhân viên"]||"",group:r["Nhóm CV"]||"",job:r["Nội dung CV"]||"",status:r["Trạng thái"]||"",volume:parseFloat(r["Khối lượng TH"])||0,value:parseFloat(r["Giá trị (VNĐ)"])||0,start:0,end:0,startDate:r["Ngày bắt đầu"]||"",endDate:r["Ngày hoàn thành"]||"",days:parseFloat(r["Số ngày TH"])||0,result:r["Kết quả đạt được"]||"",suggest:r["Đề xuất/Hướng xử lý"]||"",week:parseInt(r["Tuần"])||0,month:parseInt(r["Tháng"])||0,quy:0,year:parseInt(r["Năm"])||2026,driveLink:r["Link Drive"]||"",fileName:r["Tên file"]||"",comment:r["Nhận xét QL"]||"",branch:r["Chi nhánh"]||"Hội sở",fromSheet:true};}
 
 async function loadFromSheet(){
   showLoading(true);
@@ -863,9 +1056,9 @@ async function loadFromSheet(){
     const res=await fetch(`${window.API_URL||API_URL}?secret=${window.API_SECRET||SECRET}`);
     const j=await res.json();
     if(j.ok){
-      sheetData=(j.data||[]).map(sheetRowToObj).filter(r=>r.nv).map(r=>{r._uid=++_uidSeq;r.klEval=r.klEval||"";return r;});
+      sheetData=(j.data||[]).map(sheetRowToObj).filter(r=>r.nv).map(r=>{r._uid=++_uidSeq;r.klEval=r.klEval||"";r.branch=r.branch||"Hội sở";return r;});
       allData=[...rawData,...sheetData];
-      filteredData=[...allData];
+      filteredData=[...getBaseData()];
       renderOverview();renderDetail();
       showToast(`✅ Đã tải ${sheetData.length} bản ghi từ Google Sheet`);
     }else{showToast("⚠️ Lỗi: "+j.error,"#f59e0b");}
@@ -881,7 +1074,7 @@ function applyFilter(){
   const emp=document.getElementById("fEmployee").value;
   const st=document.getElementById("fStatus").value;
   ovCurrentEmp=emp||null;
-  filteredData=allData.filter(r=>{
+  filteredData=getBaseData().filter(r=>{
     if(mo&&r.month!==mo)return false;
     if(yr&&r.year!==yr)return false;
     if(emp&&r.nv!==emp)return false;
@@ -897,7 +1090,7 @@ function clearFilter(){
   document.getElementById("fEmployee").value="";
   document.getElementById("fStatus").value="";
   ovCurrentEmp=null;
-  filteredData=[...allData];
+  filteredData=[...getBaseData()];
   renderOverview();
   renderOvDetail();
 }
@@ -997,7 +1190,7 @@ function renderDetail(){
   const emp=document.getElementById("dEmployee").value;
   const grp=document.getElementById("dGroup").value;
   const st=document.getElementById("dStatus").value;
-  let data=allData.filter(r=>{
+  let data=getBaseData().filter(r=>{
     if(emp&&r.nv!==emp)return false;
     if(grp&&r.group!==grp)return false;
     if(st&&r.status!==st)return false;
@@ -1034,7 +1227,7 @@ function renderManager(){
   const mTo2=document.getElementById("mTo").value;
   const mWk=parseInt(document.getElementById("mWeek").value)||null;
   const mMo=parseInt(document.getElementById("mMonth").value)||null;
-  let data=allData.filter(r=>{
+  let data=getBaseData().filter(r=>{
     if(mEmp&&r.nv!==mEmp)return false;
     if(mWk&&r.week!==mWk)return false;
     if(mMo&&r.month!==mMo)return false;
@@ -1150,14 +1343,15 @@ function renderManager(){
   stats.forEach((s,i)=>{
     const p=s.total?Math.round(s.done/s.total*100):0;
     const bc2=p>=80?"var(--success)":p>=50?"var(--accent)":"var(--danger)";
+    const canEditCmt=currentUser&&(currentUser.role==="admin"||currentUser.role==="manager");
     ct+=`<tr>
       <td><span class="rank rank-${i<3?i+1:"n"}">${i+1}</span></td>
       <td style="font-weight:500;">${s.name}</td>
       <td style="font-size:12px;color:var(--muted);">${s.vi_tri}</td>
       <td style="color:${bc2};font-weight:600;">${p}%</td>
       <td style="color:#2dd4bf;">${fmtVal(s.totalValue)}</td>
-      <td><textarea class="comment-box" id="cmt_${s.name.replace(/ /g,"_")}" placeholder="Nhập nhận xét...">${s.comment||""}</textarea></td>
-      <td><button class="btn btn-success" style="padding:6px 12px;font-size:12px;" onclick="saveComment('${s.name}')">💾</button></td>
+      <td><textarea class="comment-box" id="cmt_${s.name.replace(/ /g,"_")}" placeholder="${canEditCmt?"Nhập nhận xét...":"Quản lý chưa có nhận xét"}" ${canEditCmt?"":"readonly style='opacity:0.65;cursor:default;'"} >${s.comment||""}</textarea></td>
+      <td>${canEditCmt?`<button class="btn btn-success" style="padding:6px 12px;font-size:12px;" onclick="saveComment('${s.name}')">💾</button>`:`<span style="font-size:11px;color:var(--muted);">Chỉ xem</span>`}</td>
     </tr>`;
   });
   document.getElementById("commentTable").innerHTML=ct||'<tr><td colspan="7" class="empty">Không có dữ liệu</td></tr>';
@@ -1243,7 +1437,7 @@ async function exportManagerReport(){
 }
 
 function exportCSV(){
-  const rows=allData.map(r=>[r.nv,r.group,r.job,r.status,r.volume||"",r.value||"",r.days||"",r.week,r.month,r.year,(r.result||"").replace(/,/g,";"),r.driveLink||""].join(","));
+  const rows=getBaseData().map(r=>[r.nv,r.group,r.job,r.status,r.volume||"",r.value||"",r.days||"",r.week,r.month,r.year,(r.result||"").replace(/,/g,";"),r.driveLink||""].join(","));
   const h="Nhân viên,Nhóm CV,Nội dung,Trạng thái,Khối lượng,Giá trị,Ngày TH,Tuần,Tháng,Năm,Kết quả,Link Drive";
   const blob=new Blob(["\uFEFF"+h+"\n"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="baocao_ketoan.csv";a.click();
@@ -1251,7 +1445,7 @@ function exportCSV(){
 function exportExcelDetail(){
   const wb=XLSX.utils.book_new();
   const data=[["Nhân viên","Nhóm CV","Nội dung","Trạng thái","KL","Giá trị","Ngày TH","Tuần","Tháng","Kết quả","Link Drive"]];
-  for(const r of allData)data.push([r.nv,r.group,r.job,r.status,r.volume||"",r.value||"",r.days||"",r.week,r.month,r.result||"",r.driveLink||""]);
+  for(const r of getBaseData())data.push([r.nv,r.group,r.job,r.status,r.volume||"",r.value||"",r.days||"",r.week,r.month,r.result||"",r.driveLink||""]);
   const ws=XLSX.utils.aoa_to_sheet(data);
   XLSX.utils.book_append_sheet(wb,ws,"ChiTiet");
   XLSX.writeFile(wb,"ChiTiet_BaoCao.xlsx");
@@ -1387,15 +1581,19 @@ async function submitReport(){
     }catch(e){showToast("⚠️ Upload file thất bại, lưu link Drive nếu có","#f59e0b");}
   }
   const week=parseInt(document.getElementById("fi_week").value)||getWeekNumber(new Date());
+  const userBranch=currentUser?currentUser.branch||document.getElementById("fi_branch").value:"Hội sở";
   const r={nv,group:g,job,status:document.getElementById("fi_status").value,
     volume:parseFloat(document.getElementById("fi_volume").value)||0,
     value:parseFloat((document.getElementById("fi_value").value||"0").replace(/[^0-9.]/g,""))||0,
-    start:0,end:0,days:parseInt(document.getElementById("fi_days").value)||0,
+    start:0,end:0,
+    startDate:document.getElementById("fi_start").value,
+    endDate:document.getElementById("fi_end").value,
+    days:parseInt(document.getElementById("fi_days").value)||0,
     result:document.getElementById("fi_result").value,
     suggest:document.getElementById("fi_suggest").value,
-    week,month,quy:Math.ceil(month/3),year,driveLink,fileName};
+    week,month,quy:Math.ceil(month/3),year,driveLink,fileName,branch:userBranch};
   try{
-    const res=await fetch(window.API_URL||API_URL,{method:"POST",body:JSON.stringify({secret:SECRET,action:"add",data:{...r,startDate:document.getElementById("fi_start").value,endDate:document.getElementById("fi_end").value}})});
+    const res=await fetch(window.API_URL||API_URL,{method:"POST",body:JSON.stringify({secret:SECRET,action:"add",data:{...r}})});
     const j=await res.json();
     if(j.ok){
       r.id=j.id;r._uid=++_uidSeq;r.klEval="";sheetData.push(r);allData=[...rawData,...sheetData];filteredData=[...allData];
@@ -1413,7 +1611,10 @@ function resetForm(){
 }
 
 function populateDropdowns(){
-  const names=[...new Set(allData.map(r=>r.nv))].sort();
+  const visibleEmps=(currentUser&&currentUser.role==="user"&&currentUser.branch)
+    ?EMPLOYEES.filter(e=>(e.branch||"Hội sở")===currentUser.branch)
+    :EMPLOYEES;
+  const names=[...new Set(getBaseData().map(r=>r.nv))].sort();
   ["fEmployee","dEmployee","mEmployee"].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel)return;
@@ -1422,7 +1623,7 @@ function populateDropdowns(){
     names.forEach(n=>sel.innerHTML+=`<option value="${n}"${n===cur?" selected":""}>${n}</option>`);
   });
   const empSel=document.getElementById("fi_employee");
-  if(empSel){empSel.innerHTML='<option value="">-- Chọn nhân viên --</option>';EMPLOYEES.forEach(e=>empSel.innerHTML+=`<option value="${e.name}">${e.name} — ${e.vi_tri}</option>`);}
+  if(empSel){empSel.innerHTML='<option value="">-- Chọn nhân viên --</option>';visibleEmps.forEach(e=>empSel.innerHTML+=`<option value="${e.name}">${e.name} — ${e.vi_tri}</option>`);}
   const dg=document.getElementById("dGroup");
   if(dg){dg.innerHTML='<option value="">Tất cả nhóm</option>';GROUPS.forEach(g=>dg.innerHTML+=`<option value="${g}">${g}</option>`);}
   const fg=document.getElementById("fi_group");
@@ -1476,6 +1677,9 @@ async function testConnection(){
   }
 }
 function switchTab(tab){
+  if(currentUser){
+    if(tab==="settings"&&currentUser.role!=="admin"){showToast("⚠️ Chỉ quản trị viên (admin) mới có quyền vào Cài đặt","#ef4444");return;}
+  }
   document.querySelectorAll(".section-tab").forEach(el=>el.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach(el=>el.classList.remove("active"));
   document.getElementById("tab-"+tab).classList.add("active");
@@ -1512,9 +1716,7 @@ setInterval(clock,1000);clock();
     if(sj)JOB_CATALOG=JSON.parse(sj);
   }catch(e){}
 })();
-populateDropdowns();
-renderOverview();
-loadFromSheet();
+// populateDropdowns/renderOverview/loadFromSheet are called from onAfterLogin() after auth
 
 // ════════════════════════════════════════════════
 //  CHI TIẾT NHÂN VIÊN & CHỈNH SỬA CÔNG VIỆC
@@ -1694,6 +1896,10 @@ function loadConfigUI(){
   grpSel.innerHTML=GROUPS.map(g=>`<option value="${g}"${g===cur?" selected":""}>${g}</option>`).join('');
   if(!grpSel.value&&GROUPS.length)grpSel.value=GROUPS[0];
   renderCfgJobList();
+  // Populate branch dropdowns
+  const bOpts=BRANCHES.map(b=>`<option value="${b}">${b}</option>`).join('');
+  ["cfg-emp-branch","editEmpBranch","cfg-acc-branch","editAccBranch"].forEach(id=>{const el=document.getElementById(id);if(el&&!el.options.length)el.innerHTML=bOpts;});
+  if(currentUser&&currentUser.role==="admin")renderCfgAccounts();
 }
 
 /* ── NHÂN VIÊN ── */
@@ -1701,7 +1907,7 @@ function renderCfgEmployees(){
   const tbody=document.getElementById("cfg-emp-body");
   if(!tbody)return;
   if(!EMPLOYEES.length){
-    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">Chưa có nhân viên nào</td></tr>';
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">Chưa có nhân viên nào</td></tr>';
     return;
   }
   tbody.innerHTML=EMPLOYEES.map((e,i)=>`
@@ -1710,7 +1916,11 @@ function renderCfgEmployees(){
       <td style="font-weight:500;">${e.name}</td>
       <td style="font-family:monospace;font-size:12px;color:var(--muted2);">${e.ma}</td>
       <td style="color:var(--muted2);font-size:12px;">${e.vi_tri}</td>
-      <td><button onclick="deleteEmployee(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px;white-space:nowrap;">Xóa</button></td>
+      <td><span style="font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(79,156,249,0.1);color:#60a5fa;">${e.branch||"Hội sở"}</span></td>
+      <td style="display:flex;gap:5px;flex-wrap:nowrap;">
+        <button onclick="editEmployee(${i})" style="background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);color:#60a5fa;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px;white-space:nowrap;">✏️ Sửa</button>
+        <button onclick="deleteEmployee(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px;white-space:nowrap;">Xóa</button>
+      </td>
     </tr>`).join('');
 }
 
@@ -1718,9 +1928,10 @@ function addEmployee(){
   const name=document.getElementById("cfg-emp-name").value.trim();
   const ma=document.getElementById("cfg-emp-ma").value.trim();
   const vi_tri=document.getElementById("cfg-emp-vitri").value.trim()||"Kế toán viên";
+  const branch=document.getElementById("cfg-emp-branch").value||"Hội sở";
   if(!name||!ma){showToast("⚠️ Vui lòng nhập Họ tên và Mã NV","#f59e0b");return;}
   if(EMPLOYEES.find(e=>e.ma===ma)){showToast("⚠️ Mã NV này đã tồn tại","#f59e0b");return;}
-  EMPLOYEES.push({name,ma,vi_tri});
+  EMPLOYEES.push({name,ma,vi_tri,branch});
   saveConfigData();
   renderCfgEmployees();
   document.getElementById("cfg-emp-name").value="";
@@ -1751,6 +1962,7 @@ function renderCfgGroups(){
       <span style="width:10px;height:10px;border-radius:50%;background:${GRP_COLORS[i%GRP_COLORS.length]};flex-shrink:0;"></span>
       <span style="flex:1;font-size:13px;">${g}</span>
       <span style="font-size:11px;color:var(--muted);">${(JOB_CATALOG[g]||[]).length} CV</span>
+      <button onclick="editGroup(${i})" style="background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);color:#60a5fa;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px;white-space:nowrap;">✏️ Sửa</button>
       <button onclick="deleteGroup(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px;white-space:nowrap;">Xóa</button>
     </div>`).join('');
 }
@@ -1801,6 +2013,7 @@ function renderCfgJobList(){
     <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;">
       <span style="color:var(--muted);font-size:11px;min-width:24px;text-align:right;">${i+1}.</span>
       <span style="flex:1;font-size:13px;">${j}</span>
+      <button onclick="editJob(${i})" style="background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);color:#60a5fa;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px;white-space:nowrap;">✏️ Sửa</button>
       <button onclick="deleteJob(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px;white-space:nowrap;">Xóa</button>
     </div>`).join('');
 }
@@ -1830,6 +2043,282 @@ function deleteJob(idx){
   renderCfgGroups();
   showToast("✅ Đã xóa: "+j);
 }
+
+// ════════════════════════════════════════════════
+//  SỬA NHÂN VIÊN / NHÓM / CÔNG VIỆC
+// ════════════════════════════════════════════════
+function editEmployee(idx){
+  const e=EMPLOYEES[idx];
+  if(!e)return;
+  const modal=document.getElementById("editEmpModal");
+  document.getElementById("editEmpIdx").value=idx;
+  document.getElementById("editEmpName").value=e.name;
+  document.getElementById("editEmpMa").value=e.ma;
+  document.getElementById("editEmpVitri").value=e.vi_tri;
+  const brSel=document.getElementById("editEmpBranch");
+  if(!brSel.options.length)brSel.innerHTML=BRANCHES.map(b=>`<option value="${b}">${b}</option>`).join('');
+  brSel.value=e.branch||"Hội sở";
+  modal.style.display="flex";
+}
+function saveEditEmployee(){
+  const idx=parseInt(document.getElementById("editEmpIdx").value);
+  const e=EMPLOYEES[idx];
+  if(!e)return;
+  const name=document.getElementById("editEmpName").value.trim();
+  const ma=document.getElementById("editEmpMa").value.trim();
+  if(!name||!ma){showToast("⚠️ Vui lòng nhập đủ Họ tên và Mã NV","#f59e0b");return;}
+  const dup=EMPLOYEES.find((x,i)=>i!==idx&&x.ma===ma);
+  if(dup){showToast("⚠️ Mã NV này đã thuộc nhân viên khác","#f59e0b");return;}
+  e.name=name;
+  e.ma=ma;
+  e.vi_tri=document.getElementById("editEmpVitri").value.trim()||e.vi_tri;
+  e.branch=document.getElementById("editEmpBranch").value||e.branch;
+  saveConfigData();
+  renderCfgEmployees();
+  document.getElementById("editEmpModal").style.display="none";
+  showToast("✅ Đã cập nhật: "+e.name);
+}
+
+function editGroup(idx){
+  const g=GROUPS[idx];
+  const newName=prompt(`Đổi tên nhóm công việc:\n"${g}"\nThành tên mới:`,g);
+  if(!newName||newName.trim()===g)return;
+  const n=newName.trim();
+  if(GROUPS.includes(n)){showToast("⚠️ Tên nhóm này đã tồn tại","#f59e0b");return;}
+  JOB_CATALOG[n]=JOB_CATALOG[g]||[];
+  delete JOB_CATALOG[g];
+  GROUPS[idx]=n;
+  saveConfigData();
+  renderCfgGroups();
+  const grpSel=document.getElementById("cfg-job-grp");
+  if(grpSel){grpSel.innerHTML=GROUPS.map(g2=>`<option value="${g2}">${g2}</option>`).join('');grpSel.value=n;renderCfgJobList();}
+  showToast("✅ Đã đổi tên nhóm thành: "+n);
+}
+
+function editJob(idx){
+  const grp=document.getElementById("cfg-job-grp")?.value;
+  if(!grp||!JOB_CATALOG[grp])return;
+  const j=JOB_CATALOG[grp][idx];
+  const newName=prompt(`Đổi tên nội dung công việc:\n"${j}"\nThành tên mới:`,j);
+  if(!newName||newName.trim()===j)return;
+  const n=newName.trim();
+  if(JOB_CATALOG[grp].includes(n)){showToast("⚠️ Nội dung công việc này đã tồn tại","#f59e0b");return;}
+  JOB_CATALOG[grp][idx]=n;
+  saveConfigData();
+  renderCfgJobList();
+  showToast("✅ Đã đổi thành: "+n);
+}
+
+// ════════════════════════════════════════════════
+//  QUẢN LÝ TÀI KHOẢN (Admin)
+// ════════════════════════════════════════════════
+function saveAccounts(){
+  try{localStorage.setItem("cfg_accounts",JSON.stringify(ACCOUNTS));}catch(e){}
+}
+
+function renderCfgAccounts(){
+  const tbody=document.getElementById("cfg-acc-body");
+  if(!tbody)return;
+  const roleLabels={admin:"🛡️ Admin",manager:"👔 Quản lý",user:"👤 User"};
+  const roleColors={admin:"#a78bfa",manager:"#fbbf24",user:"#60a5fa"};
+  tbody.innerHTML=ACCOUNTS.map((a,i)=>`
+    <tr>
+      <td style="color:var(--muted);font-size:12px;text-align:center;">${i+1}</td>
+      <td style="font-family:monospace;font-weight:600;">${a.username}</td>
+      <td style="font-family:monospace;font-size:12px;color:var(--muted2);">${a.password}</td>
+      <td><span style="font-size:11px;padding:2px 7px;border-radius:5px;background:rgba(79,156,249,0.1);color:${roleColors[a.role]||'#60a5fa'};font-weight:600;">${roleLabels[a.role]||a.role}</span></td>
+      <td style="font-size:12px;color:var(--muted2);">
+        ${a.branch||"—"}
+        ${a.nv?`<br><span style="font-size:11px;color:#4ade80;">👤 ${a.nv}</span>`:""}
+      </td>
+      <td style="font-size:12px;">${a.display}</td>
+      <td style="display:flex;gap:5px;flex-wrap:nowrap;">
+        <button onclick="openEditAcc(${i})" style="background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);color:#60a5fa;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px;">✏️ Sửa</button>
+        <button onclick="deleteAccount(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px;">Xóa</button>
+      </td>
+    </tr>`).join('');
+}
+
+function updateAccNvList(){
+  const branch=document.getElementById("cfg-acc-branch")?.value;
+  const nvSel=document.getElementById("cfg-acc-nv");
+  if(!nvSel)return;
+  const emps=branch?EMPLOYEES.filter(e=>(e.branch||"Hội sở")===branch):EMPLOYEES;
+  nvSel.innerHTML='<option value="">— Tất cả nhân viên chi nhánh —</option>'+
+    emps.map(e=>`<option value="${e.name}">${e.name}</option>`).join('');
+}
+function updateEditAccNvList(){
+  const branch=document.getElementById("editAccBranch")?.value;
+  const nvSel=document.getElementById("editAccNv");
+  if(!nvSel)return;
+  const emps=branch?EMPLOYEES.filter(e=>(e.branch||"Hội sở")===branch):EMPLOYEES;
+  nvSel.innerHTML='<option value="">— Tất cả nhân viên chi nhánh —</option>'+
+    emps.map(e=>`<option value="${e.name}">${e.name}</option>`).join('');
+}
+
+function updateAccBranchVisibility(){
+  const role=document.getElementById("cfg-acc-role")?.value;
+  const brRow=document.getElementById("cfg-acc-branch-row");
+  if(brRow)brRow.style.display=role==="user"?"":"none";
+}
+function updateEditAccBranchVisibility(){
+  const role=document.getElementById("editAccRole")?.value;
+  const brRow=document.getElementById("editAccBranchRow");
+  if(brRow)brRow.style.display=role==="user"?"":"none";
+}
+
+function addAccount(){
+  const username=document.getElementById("cfg-acc-username").value.trim().toLowerCase();
+  const password=document.getElementById("cfg-acc-password").value.trim();
+  const role=document.getElementById("cfg-acc-role").value;
+  const display=document.getElementById("cfg-acc-display").value.trim();
+  const branch=role==="user"?(document.getElementById("cfg-acc-branch").value||"Hội sở"):null;
+  const nv=role==="user"?(document.getElementById("cfg-acc-nv").value||null):null;
+  if(!username||!password||!display){showToast("⚠️ Vui lòng nhập đầy đủ thông tin","#f59e0b");return;}
+  if(ACCOUNTS.find(a=>a.username===username)){showToast("⚠️ Tên đăng nhập đã tồn tại","#f59e0b");return;}
+  ACCOUNTS.push({username,password,role,branch,nv,display});
+  saveAccounts();
+  renderCfgAccounts();
+  document.getElementById("cfg-acc-username").value="";
+  document.getElementById("cfg-acc-password").value="";
+  document.getElementById("cfg-acc-display").value="";
+  showToast("✅ Đã thêm tài khoản: "+username);
+}
+
+function deleteAccount(idx){
+  const a=ACCOUNTS[idx];
+  if(!a)return;
+  if(a.username===currentUser?.username){showToast("⚠️ Không thể xóa tài khoản đang đăng nhập","#f59e0b");return;}
+  if(!confirm(`Xóa tài khoản "${a.username}" (${a.display})?`))return;
+  ACCOUNTS.splice(idx,1);
+  saveAccounts();
+  renderCfgAccounts();
+  showToast("✅ Đã xóa tài khoản: "+a.username);
+}
+
+function openEditAcc(idx){
+  const a=ACCOUNTS[idx];
+  if(!a)return;
+  document.getElementById("editAccIdx").value=idx;
+  document.getElementById("editAccUsername").value=a.username;
+  document.getElementById("editAccPassword").value=a.password;
+  document.getElementById("editAccDisplay").value=a.display;
+  document.getElementById("editAccRole").value=a.role;
+  const brSel=document.getElementById("editAccBranch");
+  if(!brSel.options.length)brSel.innerHTML=BRANCHES.map(b=>`<option value="${b}">${b}</option>`).join('');
+  brSel.value=a.branch||"Hội sở";
+  updateEditAccBranchVisibility();
+  updateEditAccNvList();
+  const nvSel=document.getElementById("editAccNv");
+  if(nvSel&&a.nv)nvSel.value=a.nv;
+  document.getElementById("editAccModal").style.display="flex";
+}
+
+function saveEditAccount(){
+  const idx=parseInt(document.getElementById("editAccIdx").value);
+  const a=ACCOUNTS[idx];
+  if(!a)return;
+  const username=document.getElementById("editAccUsername").value.trim().toLowerCase();
+  const password=document.getElementById("editAccPassword").value.trim();
+  const display=document.getElementById("editAccDisplay").value.trim();
+  const role=document.getElementById("editAccRole").value;
+  const branch=role==="user"?(document.getElementById("editAccBranch").value||"Hội sở"):null;
+  const nv=role==="user"?(document.getElementById("editAccNv").value||null):null;
+  if(!username||!password||!display){showToast("⚠️ Vui lòng nhập đầy đủ","#f59e0b");return;}
+  if(ACCOUNTS.find((x,i)=>i!==idx&&x.username===username)){showToast("⚠️ Tên đăng nhập đã tồn tại","#f59e0b");return;}
+  a.username=username;a.password=password;a.display=display;a.role=role;a.branch=branch;a.nv=nv;
+  saveAccounts();
+  renderCfgAccounts();
+  document.getElementById("editAccModal").style.display="none";
+  showToast("✅ Đã cập nhật tài khoản: "+username);
+}
+
+// ════════════════════════════════════════════════
+//  ĐĂNG NHẬP / ĐĂNG XUẤT / PHÂN QUYỀN
+// ════════════════════════════════════════════════
+function doLogin(){
+  const username=document.getElementById("loginUsername").value.trim().toLowerCase();
+  const password=document.getElementById("loginPassword").value;
+  const errEl=document.getElementById("loginError");
+  const acc=ACCOUNTS.find(a=>a.username===username&&a.password===password);
+  if(!acc){errEl.textContent="Tên đăng nhập hoặc mật khẩu không đúng.";return;}
+  errEl.textContent="";
+  currentUser=acc;
+  try{localStorage.setItem("kt_session",JSON.stringify({u:acc.username,p:acc.password}));}catch(e){}
+  document.getElementById("loginScreen").style.display="none";
+  document.getElementById("mainApp").style.display="block";
+  onAfterLogin();
+}
+function doLogout(){
+  currentUser=null;
+  try{localStorage.removeItem("kt_session");}catch(e){}
+  document.getElementById("loginScreen").style.display="flex";
+  document.getElementById("mainApp").style.display="none";
+  document.getElementById("loginUsername").value="";
+  document.getElementById("loginPassword").value="";
+  document.getElementById("loginError").textContent="";
+  document.getElementById("userChip").style.display="none";
+}
+function applyRoleUI(){
+  const tabs=document.querySelectorAll(".tab-btn");
+  if(!currentUser)return;
+  if(currentUser.role==="user"){
+    if(tabs[3])tabs[3].style.display=""; // user thấy Góc quản lý để xem nhận xét
+    if(tabs[4])tabs[4].style.display="none";
+  }else if(currentUser.role==="manager"){
+    if(tabs[3])tabs[3].style.display="";
+    if(tabs[4])tabs[4].style.display="none";
+  }else{
+    tabs.forEach(t=>t.style.display="");
+  }
+}
+function onAfterLogin(){
+  // Header chip
+  const chip=document.getElementById("userChip");
+  if(chip)chip.style.display="flex";
+  document.getElementById("userChipName").textContent=currentUser.display;
+  document.getElementById("userChipBranch").textContent=
+    currentUser.branch||(currentUser.role==="admin"?"Toàn hệ thống":"Tất cả chi nhánh");
+  chip.className="user-chip role-"+currentUser.role;
+  // Branch field in form
+  const brRow=document.getElementById("fi_branchRow");
+  if(brRow)brRow.style.display=(currentUser.role==="user")?"none":"";
+  const brSel=document.getElementById("fi_branch");
+  if(brSel){
+    if(!brSel.options.length)brSel.innerHTML=BRANCHES.map(b=>`<option value="${b}">${b}</option>`).join('');
+    if(currentUser.branch)brSel.value=currentUser.branch;
+  }
+  applyRoleUI();
+  EMPLOYEES.forEach(e=>{e.branch=e.branch||"Hội sở";});
+  filteredData=[...getBaseData()];
+  populateDropdowns();
+  // Nếu tài khoản gắn với nhân viên cụ thể → lock dropdown chọn NV trong form nhập
+  if(currentUser.nv){
+    const empSel=document.getElementById("fi_employee");
+    if(empSel){empSel.value=currentUser.nv;empSel.disabled=true;onEmployeeChange();}
+  }
+  renderOverview();
+  loadFromSheet();
+}
+// Kiểm tra session khi tải trang
+(function initAuth(){
+  try{
+    const s=localStorage.getItem("kt_session");
+    if(s){
+      const obj=JSON.parse(s);
+      const acc=ACCOUNTS.find(a=>a.username===obj.u&&a.password===obj.p);
+      if(acc){
+        currentUser=acc;
+        document.getElementById("loginScreen").style.display="none";
+        document.getElementById("mainApp").style.display="block";
+        onAfterLogin();
+        return;
+      }
+    }
+  }catch(e){}
+  document.getElementById("loginScreen").style.display="flex";
+  document.getElementById("mainApp").style.display="none";
+})();
 </script>
 </body>
 </html>
