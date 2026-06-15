@@ -419,6 +419,46 @@ textarea{resize:vertical;min-height:70px;}
       <button class="btn btn-primary" id="btnSubmit" onclick="submitReport()">💾 Lưu báo cáo</button>
     </div>
   </div>
+
+  <!-- Danh mục nhóm & công việc — accessible to all roles -->
+  <div class="form-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;" onclick="toggleDcPanel()">
+      <div class="form-title" style="margin:0;">📂 Danh mục nhóm &amp; nội dung công việc</div>
+      <span id="dc_toggle_icon" style="font-size:20px;color:var(--muted);transition:transform .2s;">▸</span>
+    </div>
+    <div id="dc_panel" style="display:none;margin-top:16px;">
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+
+        <!-- Cột trái: Nhóm CV -->
+        <div style="flex:1;min-width:240px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--fg2);">🗂️ Nhóm công việc</div>
+          <div id="dc_grp_list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;max-height:240px;overflow-y:auto;"></div>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="dc_grp_name" placeholder="Tên nhóm mới..." onkeydown="if(event.key==='Enter')dcAddGroup()"
+              style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:6px 10px;font-size:12px;outline:none;">
+            <button onclick="dcAddGroup()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">➕ Thêm</button>
+          </div>
+        </div>
+
+        <!-- Cột phải: Nội dung CV -->
+        <div style="flex:1;min-width:240px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--fg2);">📋 Nội dung công việc</div>
+          <select id="dc_job_grp" onchange="renderDcJobList()"
+            style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:6px 8px;font-size:12px;margin-bottom:10px;outline:none;">
+            <option value="">-- Chọn nhóm --</option>
+          </select>
+          <div id="dc_job_list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;max-height:200px;overflow-y:auto;"></div>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="dc_job_name" placeholder="Tên công việc mới..." onkeydown="if(event.key==='Enter')dcAddJob()"
+              style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:6px 10px;font-size:12px;outline:none;">
+            <button onclick="dcAddJob()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">➕ Thêm</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -475,6 +515,8 @@ textarea{resize:vertical;min-height:70px;}
     <div class="fgroup"><label>Đến ngày:</label><input type="date" id="mTo" onchange="renderManager()"></div>
     <div class="fgroup"><label>Tuần:</label><input type="number" id="mWeek" min="1" max="53" style="width:60px;" placeholder="Tất cả" oninput="renderManager()"></div>
     <div class="fgroup"><label>Tháng:</label><input type="number" id="mMonth" min="1" max="12" style="width:60px;" placeholder="Tất cả" oninput="renderManager()"></div>
+    <div class="fgroup"><label>Nhóm CV:</label><select id="mGroup" onchange="updateMJobList();renderManager()"><option value="">Tất cả nhóm</option></select></div>
+    <div class="fgroup"><label>Công việc:</label><select id="mJob" onchange="renderManager()" style="max-width:200px;"><option value="">Tất cả</option></select></div>
     <button class="btn btn-warning" onclick="exportManagerReport()">📊 Xuất báo cáo Excel</button>
   </div>
   <!-- Số liệu tổng hợp -->
@@ -543,6 +585,29 @@ textarea{resize:vertical;min-height:70px;}
       <tbody id="commentTable"></tbody>
     </table>
     </div>
+  </div>
+
+  <!-- ═══ KIỂM SOÁT SỐ LIỆU ═══ -->
+  <div class="table-card" style="margin-bottom:20px;">
+    <div class="table-header" style="flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="table-title">🔍 Kiểm soát & So sánh số liệu</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Chọn các hạng mục để so sánh — kết quả theo giai đoạn đang lọc phía trên</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="ks_template" style="font-size:12px;padding:5px 9px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);outline:none;" onchange="applyKsTemplate(this.value)">
+          <option value="">📋 Mẫu phân tích nhanh...</option>
+          <option value="cashflow">💰 Dự đoán dòng tiền</option>
+          <option value="congno">📋 Phân tích công nợ</option>
+          <option value="hoadon">🧾 Hóa đơn & Thu chi</option>
+          <option value="thue">🏛️ Thuế & Nghĩa vụ</option>
+        </select>
+        <button onclick="addKsSlot()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600;">➕ Thêm hạng mục</button>
+        <button onclick="renderKiemSoat()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 16px;cursor:pointer;font-size:12px;font-weight:700;">📊 Phân tích</button>
+      </div>
+    </div>
+    <div id="ks_slots" style="padding:16px 20px;display:flex;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border);min-height:90px;align-items:flex-start;"></div>
+    <div id="ks_results"></div>
   </div>
 </div>
 </div>
@@ -1227,10 +1292,14 @@ function renderManager(){
   const mTo2=document.getElementById("mTo").value;
   const mWk=parseInt(document.getElementById("mWeek").value)||null;
   const mMo=parseInt(document.getElementById("mMonth").value)||null;
+  const mGrp=document.getElementById("mGroup")?.value||"";
+  const mJobF=document.getElementById("mJob")?.value||"";
   let data=getBaseData().filter(r=>{
     if(mEmp&&r.nv!==mEmp)return false;
     if(mWk&&r.week!==mWk)return false;
     if(mMo&&r.month!==mMo)return false;
+    if(mGrp&&r.group!==mGrp)return false;
+    if(mJobF&&r.job!==mJobF)return false;
     if(mFr||mTo2){const rd=getRowDate(r);if(rd){if(mFr&&rd<mFr)return false;if(mTo2&&rd>mTo2)return false;}}
     return true;
   });
@@ -1610,11 +1679,403 @@ function resetForm(){
   document.getElementById("fi_maNV").value="";clearFile();
 }
 
+// ════════════════════════════════════════════════
+//  DANH MỤC CV — dùng chung cho mọi vai trò
+// ════════════════════════════════════════════════
+function toggleDcPanel(){
+  const panel=document.getElementById("dc_panel");
+  const icon=document.getElementById("dc_toggle_icon");
+  if(!panel)return;
+  const open=panel.style.display==="none";
+  panel.style.display=open?"block":"none";
+  icon.textContent=open?"▾":"▸";
+  if(open){
+    renderDcGroups();
+    const grpSel=document.getElementById("dc_job_grp");
+    if(grpSel){
+      const cur=grpSel.value;
+      grpSel.innerHTML='<option value="">-- Chọn nhóm --</option>'+GROUPS.map(g=>`<option value="${g}"${g===cur?" selected":""}>${g}</option>`).join('');
+      if(!grpSel.value&&GROUPS.length){grpSel.value=GROUPS[0];}
+      renderDcJobList();
+    }
+  }
+}
+
+function renderDcGroups(){
+  const wrap=document.getElementById("dc_grp_list");
+  if(!wrap)return;
+  if(!GROUPS.length){wrap.innerHTML='<div style="text-align:center;color:var(--muted);padding:12px;font-size:12px;">Chưa có nhóm nào — hãy thêm nhóm đầu tiên</div>';return;}
+  wrap.innerHTML=GROUPS.map((g,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:${GRP_COLORS[i%GRP_COLORS.length]};flex-shrink:0;"></span>
+      <span style="flex:1;font-size:12px;">${g}</span>
+      <span style="font-size:10px;color:var(--muted);">${(JOB_CATALOG[g]||[]).length} CV</span>
+      <button onclick="dcEditGroup(${i})" style="background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);color:#60a5fa;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:11px;">✏️</button>
+      <button onclick="dcDeleteGroup(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:11px;">Xóa</button>
+    </div>`).join('');
+}
+
+function renderDcJobList(){
+  const grp=document.getElementById("dc_job_grp")?.value;
+  const wrap=document.getElementById("dc_job_list");
+  if(!wrap)return;
+  if(!grp){wrap.innerHTML='<div style="text-align:center;color:var(--muted);padding:10px;font-size:12px;">Chọn nhóm để xem công việc</div>';return;}
+  const jobs=(JOB_CATALOG[grp]||[]);
+  if(!jobs.length){wrap.innerHTML='<div style="text-align:center;color:var(--muted);padding:10px;font-size:12px;">Chưa có công việc nào trong nhóm này</div>';return;}
+  wrap.innerHTML=jobs.map((j,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;">
+      <span style="color:var(--muted);font-size:11px;min-width:18px;text-align:right;">${i+1}.</span>
+      <span style="flex:1;font-size:12px;">${j}</span>
+      <button onclick="dcEditJob(${i})" style="background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);color:#60a5fa;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:11px;">✏️</button>
+      <button onclick="dcDeleteJob(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:11px;">Xóa</button>
+    </div>`).join('');
+}
+
+function _dcSyncAll(){
+  saveConfigData();
+  renderDcGroups();
+  const grpSel=document.getElementById("dc_job_grp");
+  if(grpSel){
+    const cur=grpSel.value;
+    grpSel.innerHTML='<option value="">-- Chọn nhóm --</option>'+GROUPS.map(g=>`<option value="${g}"${g===cur?" selected":""}>${g}</option>`).join('');
+    if(!grpSel.value&&GROUPS.length)grpSel.value=GROUPS[0];
+    renderDcJobList();
+  }
+  // Sync Settings panel if it exists and admin
+  try{renderCfgGroups();}catch(e){}
+  const cfgSel=document.getElementById("cfg-job-grp");
+  if(cfgSel){cfgSel.innerHTML=GROUPS.map(g=>`<option value="${g}">${g}</option>`).join('');try{renderCfgJobList();}catch(e){}}
+  populateDropdowns();
+}
+
+function dcAddGroup(){
+  const inp=document.getElementById("dc_grp_name");
+  const name=inp?.value.trim();
+  if(!name){showToast("Vui lòng nhập tên nhóm","#f59e0b");return;}
+  if(GROUPS.includes(name)){showToast("Nhóm này đã tồn tại","#f59e0b");return;}
+  GROUPS.push(name);
+  if(!JOB_CATALOG[name])JOB_CATALOG[name]=[];
+  if(inp)inp.value="";
+  _dcSyncAll();
+  const grpSel=document.getElementById("dc_job_grp");
+  if(grpSel){grpSel.value=name;renderDcJobList();}
+  showToast("Đã thêm nhóm: "+name);
+}
+
+function dcDeleteGroup(idx){
+  const g=GROUPS[idx];
+  const cnt=(JOB_CATALOG[g]||[]).length;
+  if(!confirm(`Xóa nhóm "${g}"?`+(cnt?`\n(Kèm ${cnt} công việc)`:"")))return;
+  GROUPS.splice(idx,1);
+  delete JOB_CATALOG[g];
+  _dcSyncAll();
+  showToast("Đã xóa nhóm: "+g);
+}
+
+function dcEditGroup(idx){
+  const g=GROUPS[idx];
+  const n=prompt(`Đổi tên nhóm:\n"${g}"\nThành:`,g);
+  if(!n||n.trim()===g)return;
+  const name=n.trim();
+  if(GROUPS.includes(name)){showToast("Tên nhóm đã tồn tại","#f59e0b");return;}
+  JOB_CATALOG[name]=JOB_CATALOG[g]||[];
+  delete JOB_CATALOG[g];
+  GROUPS[idx]=name;
+  _dcSyncAll();
+  showToast("Đã đổi tên nhóm thành: "+name);
+}
+
+function dcAddJob(){
+  const grpSel=document.getElementById("dc_job_grp");
+  const grp=grpSel?.value;
+  const inp=document.getElementById("dc_job_name");
+  const name=inp?.value.trim();
+  if(!grp){showToast("Vui lòng chọn nhóm trước","#f59e0b");return;}
+  if(!name){showToast("Vui lòng nhập tên công việc","#f59e0b");return;}
+  if(!JOB_CATALOG[grp])JOB_CATALOG[grp]=[];
+  if(JOB_CATALOG[grp].includes(name)){showToast("Công việc này đã tồn tại","#f59e0b");return;}
+  JOB_CATALOG[grp].push(name);
+  if(inp)inp.value="";
+  _dcSyncAll();
+  if(grpSel)grpSel.value=grp;
+  renderDcJobList();
+  showToast("Đã thêm: "+name);
+}
+
+function dcDeleteJob(idx){
+  const grp=document.getElementById("dc_job_grp")?.value;
+  if(!grp)return;
+  const j=(JOB_CATALOG[grp]||[])[idx];
+  if(!j||!confirm(`Xóa công việc:\n"${j}"?`))return;
+  JOB_CATALOG[grp].splice(idx,1);
+  _dcSyncAll();
+  const grpSel=document.getElementById("dc_job_grp");
+  if(grpSel)grpSel.value=grp;
+  renderDcJobList();
+  showToast("Đã xóa: "+j);
+}
+
+function dcEditJob(idx){
+  const grp=document.getElementById("dc_job_grp")?.value;
+  if(!grp)return;
+  const j=(JOB_CATALOG[grp]||[])[idx];
+  const n=prompt(`Đổi tên công việc:\n"${j}"\nThành:`,j);
+  if(!n||n.trim()===j)return;
+  const name=n.trim();
+  if(JOB_CATALOG[grp].includes(name)){showToast("Tên công việc đã tồn tại","#f59e0b");return;}
+  JOB_CATALOG[grp][idx]=name;
+  _dcSyncAll();
+  const grpSel=document.getElementById("dc_job_grp");
+  if(grpSel)grpSel.value=grp;
+  renderDcJobList();
+  showToast("Đã cập nhật: "+name);
+}
+
+// ════════════════════════════════════════════════
+//  KIỂM SOÁT & SO SÁNH SỐ LIỆU
+// ════════════════════════════════════════════════
+let ksSlots=[{group:"",job:"",label:""},{group:"",job:"",label:""}];
+const KS_COLORS=["#60a5fa","#34d399","#f59e0b","#f87171","#a78bfa","#2dd4bf","#fb923c","#e879f9"];
+const KS_TEMPLATES={
+  cashflow:[
+    {group:"",job:"Tiền về",label:"Tiền về"},
+    {group:"",job:"Công nợ phải thu",label:"Phải thu"},
+    {group:"",job:"Công nợ phải trả",label:"Phải trả"}
+  ],
+  congno:[
+    {group:"",job:"Công nợ phải thu",label:"Phải thu"},
+    {group:"",job:"Công nợ phải trả",label:"Phải trả"},
+    {group:"",job:"Đã thu",label:"Đã thu"},
+    {group:"",job:"Đã trả",label:"Đã trả"}
+  ],
+  hoadon:[
+    {group:"",job:"Hóa đơn đầu ra",label:"HĐ đầu ra"},
+    {group:"",job:"Hóa đơn đầu vào",label:"HĐ đầu vào"},
+    {group:"",job:"Thu tiền",label:"Thu tiền"},
+    {group:"",job:"Chi tiền",label:"Chi tiền"}
+  ],
+  thue:[
+    {group:"",job:"Thuế GTGT",label:"GTGT"},
+    {group:"",job:"Thuế TNDN",label:"TNDN"},
+    {group:"",job:"Thuế TNCN",label:"TNCN"}
+  ]
+};
+
+function updateMJobList(){
+  const grpEl=document.getElementById("mGroup");
+  const jobEl=document.getElementById("mJob");
+  if(!grpEl||!jobEl)return;
+  const grp=grpEl.value;
+  const prev=jobEl.value;
+  jobEl.innerHTML='<option value="">Tất cả</option>';
+  const jobs=grp?(JOB_CATALOG[grp]||[]):[...new Set(Object.values(JOB_CATALOG).flat())];
+  jobs.forEach(j=>jobEl.innerHTML+=`<option value="${j}"${j===prev?" selected":""}>${j}</option>`);
+  renderManager();
+}
+
+function getKsData(){
+  const mEmp=document.getElementById("mEmployee")?.value||"";
+  const mFr=document.getElementById("mFrom")?.value||"";
+  const mTo2=document.getElementById("mTo")?.value||"";
+  const mWk=parseInt(document.getElementById("mWeek")?.value)||null;
+  const mMo=parseInt(document.getElementById("mMonth")?.value)||null;
+  return getBaseData().filter(r=>{
+    if(mEmp&&r.nv!==mEmp)return false;
+    if(mWk&&r.week!==mWk)return false;
+    if(mMo&&r.month!==mMo)return false;
+    if(mFr||mTo2){const rd=getRowDate(r);if(rd){if(mFr&&rd<mFr)return false;if(mTo2&&rd>mTo2)return false;}}
+    return true;
+  });
+}
+
+function calcKsSlot(data,slot){
+  const d=data.filter(r=>{
+    if(slot.group&&r.group!==slot.group)return false;
+    if(slot.job&&r.job!==slot.job)return false;
+    return true;
+  });
+  return{count:d.length,vol:d.reduce((a,r)=>a+(r.volume||0),0),value:d.reduce((a,r)=>a+(r.value||0),0),days:d.reduce((a,r)=>a+(r.days||0),0),done:d.filter(r=>r.status==="Hoàn thành").length};
+}
+
+function renderKsSlots(){
+  const box=document.getElementById("ks_slots");
+  if(!box)return;
+  let h="";
+  ksSlots.forEach((sl,i)=>{
+    const c=KS_COLORS[i%KS_COLORS.length];
+    let gOpts=`<option value="">Tất cả nhóm</option>`;
+    GROUPS.forEach(g=>gOpts+=`<option value="${g}"${sl.group===g?" selected":""}>${g}</option>`);
+    const jobs=sl.group?(JOB_CATALOG[sl.group]||[]):[...new Set(Object.values(JOB_CATALOG).flat())];
+    let jOpts=`<option value="">Tất cả CV</option>`;
+    [...new Set(jobs)].forEach(j=>jOpts+=`<option value="${j}"${sl.job===j?" selected":""}>${j}</option>`);
+    h+=`<div style="background:var(--bg2);border:2px solid ${c};border-radius:10px;padding:12px 14px;min-width:190px;max-width:250px;position:relative;">
+      <div style="position:absolute;top:6px;right:8px;display:flex;gap:4px;align-items:center;">
+        <span style="font-size:10px;font-weight:700;color:${c};padding:2px 7px;border-radius:10px;background:${c}22;">Hạng ${i+1}</span>
+        ${ksSlots.length>2?`<span onclick="removeKsSlot(${i})" title="Xóa" style="cursor:pointer;color:var(--danger);font-size:16px;line-height:1;margin-left:2px;">&times;</span>`:""}
+      </div>
+      <div style="margin-top:22px;display:flex;flex-direction:column;gap:6px;">
+        <input type="text" value="${sl.label||""}" placeholder="Tên hiển thị..." oninput="ksSlots[${i}].label=this.value"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:5px 8px;font-size:12px;width:100%;box-sizing:border-box;">
+        <select onchange="ksSlots[${i}].group=this.value;ksSlots[${i}].job='';renderKsSlots();"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:4px 6px;font-size:12px;width:100%;">${gOpts}</select>
+        <select onchange="ksSlots[${i}].job=this.value"
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:4px 6px;font-size:12px;width:100%;">${jOpts}</select>
+      </div>
+    </div>`;
+  });
+  box.innerHTML=h;
+}
+
+function addKsSlot(){
+  if(ksSlots.length>=8){showToast("Tối đa 8 hạng mục","#f59e0b");return;}
+  ksSlots.push({group:"",job:"",label:""});
+  renderKsSlots();
+}
+
+function removeKsSlot(i){
+  if(ksSlots.length<=2)return;
+  ksSlots.splice(i,1);
+  renderKsSlots();
+}
+
+function applyKsTemplate(key){
+  if(!key)return;
+  const tpl=KS_TEMPLATES[key];
+  if(!tpl)return;
+  ksSlots=tpl.map(t=>({...t}));
+  renderKsSlots();
+  document.getElementById("ks_template").value="";
+}
+
+function renderKiemSoat(){
+  const resEl=document.getElementById("ks_results");
+  if(!resEl)return;
+  const data=getKsData();
+  if(!data.length){resEl.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);">Không có dữ liệu theo bộ lọc hiện tại</div>';return;}
+
+  const results=ksSlots.map((sl,i)=>({
+    label:sl.label||(sl.job||sl.group||`Hạng mục ${i+1}`),
+    group:sl.group,job:sl.job,
+    color:KS_COLORS[i%KS_COLORS.length],
+    ...calcKsSlot(data,sl)
+  }));
+  const maxVal=Math.max(...results.map(r=>r.value),1);
+
+  const th=results.map(r=>`<th style="padding:10px 12px;color:${r.color};border-bottom:3px solid ${r.color};white-space:nowrap;">${r.label}</th>`).join("");
+  const row1=results.map(r=>`<td style="padding:8px 12px;text-align:center;font-weight:700;">${r.count}</td>`).join("");
+  const row2=results.map(r=>`<td style="padding:8px 12px;text-align:right;font-weight:700;color:${r.color};">${r.value>0?fmtVND(r.value):"&#8212;"}</td>`).join("");
+  const row3=results.map(r=>`<td style="padding:8px 12px;text-align:right;color:var(--muted);">${r.vol||"&#8212;"}</td>`).join("");
+  const row4=results.map(r=>`<td style="padding:8px 12px;text-align:center;color:var(--muted);">${r.days||"&#8212;"}</td>`).join("");
+  const row5=results.map(r=>`<td style="padding:8px 12px;text-align:center;color:var(--success);">${r.done}/${r.count}</td>`).join("");
+  const row6=results.map(r=>{
+    const pct=Math.round(r.value/maxVal*100);
+    return`<td style="padding:8px 12px;"><div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${r.color};border-radius:4px;"></div></div><div style="text-align:center;font-size:10px;color:var(--muted);margin-top:3px;">${pct}%</div></td>`;
+  }).join("");
+
+  let analysisHtml="";
+  const totalValue=results.reduce((a,r)=>a+r.value,0);
+
+  if(results.length>=2){
+    const base=results[0];
+    let ratioRows="";
+    for(let i=1;i<results.length;i++){
+      const comp=results[i];
+      if(base.value>0){
+        const ratio=(comp.value/base.value*100).toFixed(1);
+        const diff=comp.value-base.value;
+        const dc=diff>=0?"var(--success)":"var(--danger)";
+        ratioRows+=`<tr><td style="padding:5px 0;font-size:12px;">${comp.label} / ${base.label}</td>
+          <td style="text-align:center;font-weight:700;color:var(--accent);">${ratio}%</td>
+          <td style="text-align:right;font-size:12px;color:${dc};">${diff>=0?"+":""}${fmtVND(Math.abs(diff))}</td></tr>`;
+      }
+    }
+    if(ratioRows)analysisHtml+=`<div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:600;color:var(--fg2);margin-bottom:8px;">📊 Tỉ lệ so sánh</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr style="font-size:11px;color:var(--muted);"><th style="text-align:left;">Tương quan</th><th>Tỉ lệ</th><th style="text-align:right;">Chênh lệch</th></tr>
+        ${ratioRows}
+      </table></div>`;
+
+    if(results.length>=3){
+      const inflow=results[0].value;
+      const recv=results[1].value;
+      const pay=results[2].value;
+      const net=inflow+recv-pay;
+      const fc=net>=0?"var(--success)":"var(--danger)";
+      analysisHtml+=`<div style="padding:14px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">💰 Dự đoán dòng tiền</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <div style="flex:1;min-width:130px;text-align:center;padding:10px;border-radius:8px;background:rgba(96,165,250,0.1);">
+            <div style="font-size:11px;color:var(--muted);">${results[0].label}</div>
+            <div style="font-size:15px;font-weight:700;color:${results[0].color};">${fmtVND(inflow)}</div>
+          </div>
+          <div style="flex:1;min-width:130px;text-align:center;padding:10px;border-radius:8px;background:rgba(52,211,153,0.1);">
+            <div style="font-size:11px;color:var(--muted);">${results[1].label}</div>
+            <div style="font-size:15px;font-weight:700;color:${results[1].color};">${fmtVND(recv)}</div>
+          </div>
+          <div style="flex:1;min-width:130px;text-align:center;padding:10px;border-radius:8px;background:rgba(248,113,113,0.1);">
+            <div style="font-size:11px;color:var(--muted);">${results[2].label}</div>
+            <div style="font-size:15px;font-weight:700;color:${results[2].color};">${fmtVND(pay)}</div>
+          </div>
+          <div style="flex:1;min-width:130px;text-align:center;padding:10px;border-radius:8px;background:${net>=0?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)"};border:1px solid ${fc};">
+            <div style="font-size:11px;color:var(--muted);">Dòng tiền ròng</div>
+            <div style="font-size:17px;font-weight:700;color:${fc};">${net>=0?"📈":"📉"} ${fmtVND(Math.abs(net))}</div>
+            <div style="font-size:11px;color:${fc};">${net>=0?"Dư tiền":"Thiếu tiền"}</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted);">* ${results[0].label} + ${results[1].label} &minus; ${results[2].label} = ${net>=0?"+":""}${fmtVND(net)}</div>
+      </div>`;
+    }
+
+    const mx=results.reduce((a,b)=>b.value>a.value?b:a);
+    const mn=results.reduce((a,b)=>b.value<a.value?b:a);
+    analysisHtml+=`<div style="display:flex;flex-wrap:wrap;gap:10px;">
+      <div style="flex:1;min-width:150px;padding:10px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);">
+        <div style="font-size:11px;color:var(--muted);">Cao nhất</div>
+        <div style="font-weight:700;color:${mx.color};">${mx.label}</div>
+        <div style="font-size:13px;color:var(--success);">${fmtVND(mx.value)}</div>
+      </div>
+      <div style="flex:1;min-width:150px;padding:10px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
+        <div style="font-size:11px;color:var(--muted);">Thấp nhất</div>
+        <div style="font-weight:700;color:${mn.color};">${mn.label}</div>
+        <div style="font-size:13px;color:var(--danger);">${fmtVND(mn.value)}</div>
+      </div>
+      <div style="flex:1;min-width:150px;padding:10px;border-radius:8px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.3);">
+        <div style="font-size:11px;color:var(--muted);">Tổng giá trị</div>
+        <div style="font-weight:700;color:#a78bfa;">${fmtVND(totalValue)}</div>
+        <div style="font-size:11px;color:var(--muted);">${results.reduce((a,r)=>a+r.count,0)} công việc</div>
+      </div>
+    </div>`;
+  }
+
+  resEl.innerHTML=`<div style="padding:16px 20px;border-top:1px solid var(--border);">
+    <div style="overflow-x:auto;margin-bottom:20px;">
+      <table style="width:100%;min-width:${results.length*140+120}px;border-collapse:collapse;">
+        <thead><tr style="font-size:12px;color:var(--muted);background:var(--bg2);">
+          <th style="text-align:left;padding:10px 12px;">Chỉ tiêu</th>${th}
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;font-size:12px;color:var(--muted);">Số lượng CV</td>${row1}</tr>
+          <tr style="border-bottom:1px solid var(--border);background:var(--bg2);"><td style="padding:8px 12px;font-size:12px;font-weight:600;">Tổng giá trị</td>${row2}</tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;font-size:12px;color:var(--muted);">Khối lượng</td>${row3}</tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:8px 12px;font-size:12px;color:var(--muted);">Tổng ngày TH</td>${row4}</tr>
+          <tr style="border-bottom:1px solid var(--border);background:var(--bg2);"><td style="padding:8px 12px;font-size:12px;color:var(--muted);">Hoàn thành</td>${row5}</tr>
+          <tr><td style="padding:8px 12px;font-size:12px;color:var(--muted);">Tỉ trọng</td>${row6}</tr>
+        </tbody>
+      </table>
+    </div>
+    ${analysisHtml}
+  </div>`;
+}
+
 function populateDropdowns(){
   const visibleEmps=(currentUser&&currentUser.role==="user"&&currentUser.branch)
     ?EMPLOYEES.filter(e=>(e.branch||"Hội sở")===currentUser.branch)
     :EMPLOYEES;
-  const names=[...new Set(getBaseData().map(r=>r.nv))].sort();
+  // Filter dropdowns: gộp tên từ data + tên từ danh sách EMPLOYEES để hiện NV mới chưa có data
+  const dataNames=[...new Set(getBaseData().map(r=>r.nv))];
+  const listNames=visibleEmps.map(e=>e.name);
+  const names=[...new Set([...dataNames,...listNames])].sort();
   ["fEmployee","dEmployee","mEmployee"].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel)return;
@@ -1628,6 +2089,8 @@ function populateDropdowns(){
   if(dg){dg.innerHTML='<option value="">Tất cả nhóm</option>';GROUPS.forEach(g=>dg.innerHTML+=`<option value="${g}">${g}</option>`);}
   const fg=document.getElementById("fi_group");
   if(fg){const cur=fg.value;fg.innerHTML='<option value="">-- Chọn nhóm --</option>';GROUPS.forEach(g=>fg.innerHTML+=`<option value="${g}"${g===cur?" selected":""}>${g}</option>`);}
+  const mg=document.getElementById("mGroup");
+  if(mg){const cur=mg.value;mg.innerHTML='<option value="">Tất cả nhóm</option>';GROUPS.forEach(g=>mg.innerHTML+=`<option value="${g}"${g===cur?" selected":""}>${g}</option>`);}
 }
 
 function loadSettings(){
@@ -1685,7 +2148,7 @@ function switchTab(tab){
   document.getElementById("tab-"+tab).classList.add("active");
   const tabs=["overview","form","detail","manager","settings"];
   document.querySelectorAll(".tab-btn")[tabs.indexOf(tab)].classList.add("active");
-  if(tab==="manager")renderManager();
+  if(tab==="manager"){renderManager();renderKsSlots();}
   if(tab==="detail")renderDetail();
   if(tab==="settings"){loadSettings();loadConfigUI();}
 }
@@ -1711,10 +2174,12 @@ setInterval(clock,1000);clock();
     const sg=localStorage.getItem("cfg_groups");
     const se=localStorage.getItem("cfg_employees");
     const sj=localStorage.getItem("cfg_jobs");
-    if(sg)GROUPS=JSON.parse(sg);
-    if(se)EMPLOYEES=JSON.parse(se);
-    if(sj)JOB_CATALOG=JSON.parse(sj);
+    if(sg){const g=JSON.parse(sg);if(Array.isArray(g)&&g.length)GROUPS=g;}
+    if(se){const em=JSON.parse(se);if(Array.isArray(em)&&em.length)EMPLOYEES=em;}
+    if(sj){const jc=JSON.parse(sj);if(jc&&typeof jc==="object")JOB_CATALOG=jc;}
   }catch(e){}
+  // Gán branch mặc định ngay tại đây để các hàm filter dùng được ngay
+  EMPLOYEES.forEach(e=>{e.branch=e.branch||"Hội sở";});
 })();
 // populateDropdowns/renderOverview/loadFromSheet are called from onAfterLogin() after auth
 
@@ -1881,6 +2346,8 @@ async function saveEdit(){
 //  QUẢN LÝ DANH MỤC (Nhân viên / Nhóm / Công việc)
 // ════════════════════════════════════════════════
 function saveConfigData(){
+  // Đảm bảo tất cả employee đều có branch trước khi lưu
+  EMPLOYEES.forEach(e=>{e.branch=e.branch||"Hội sở";});
   localStorage.setItem("cfg_groups",JSON.stringify(GROUPS));
   localStorage.setItem("cfg_employees",JSON.stringify(EMPLOYEES));
   localStorage.setItem("cfg_jobs",JSON.stringify(JOB_CATALOG));
@@ -2289,7 +2756,6 @@ function onAfterLogin(){
     if(currentUser.branch)brSel.value=currentUser.branch;
   }
   applyRoleUI();
-  EMPLOYEES.forEach(e=>{e.branch=e.branch||"Hội sở";});
   filteredData=[...getBaseData()];
   populateDropdowns();
   // Nếu tài khoản gắn với nhân viên cụ thể → lock dropdown chọn NV trong form nhập
