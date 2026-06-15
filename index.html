@@ -2073,12 +2073,10 @@ function renderKiemSoat(){
 }
 
 function populateDropdowns(){
-  let visibleEmps=EMPLOYEES;
-  if(currentUser&&currentUser.role==="user"&&currentUser.branch){
-    const branchEmps=EMPLOYEES.filter(e=>(e.branch||"Hội sở")===currentUser.branch);
-    // Nếu admin chưa gán branch → không lọc, hiện tất cả để NV vẫn chọn được
-    visibleEmps=branchEmps.length>0?branchEmps:EMPLOYEES;
-  }
+  // user role → chỉ hiện NV đúng chi nhánh của họ; admin/manager → hiện tất cả
+  const visibleEmps=(currentUser&&currentUser.role==="user"&&currentUser.branch)
+    ?EMPLOYEES.filter(e=>(e.branch||"Hội sở")===currentUser.branch)
+    :EMPLOYEES;
   // Filter dropdowns: gộp tên từ data + tên từ danh sách EMPLOYEES để hiện NV mới chưa có data
   const dataNames=[...new Set(getBaseData().map(r=>r.nv))];
   const listNames=visibleEmps.map(e=>e.name);
@@ -2162,6 +2160,22 @@ function switchTab(tab){
 
 function clock(){document.getElementById("clock").textContent=new Date().toLocaleString("vi-VN",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});}
 setInterval(clock,1000);clock();
+
+// Auto-sync khi admin lưu config trên tab/cửa sổ khác
+window.addEventListener("storage",function(ev){
+  if(!currentUser)return;
+  if(ev.key==="cfg_employees"||ev.key==="cfg_groups"||ev.key==="cfg_jobs"){
+    try{
+      const se=localStorage.getItem("cfg_employees");
+      if(se){const em=JSON.parse(se);if(Array.isArray(em)&&em.length){EMPLOYEES=em;EMPLOYEES.forEach(e=>{e.branch=e.branch||"Hội sở";});}}
+      const sg=localStorage.getItem("cfg_groups");
+      if(sg){const g=JSON.parse(sg);if(Array.isArray(g)&&g.length)GROUPS=g;}
+      const sj=localStorage.getItem("cfg_jobs");
+      if(sj){const jc=JSON.parse(sj);if(jc&&typeof jc==="object")JOB_CATALOG=jc;}
+    }catch(e){}
+    populateDropdowns();
+  }
+});
 
 (function(){
   const n=new Date();
