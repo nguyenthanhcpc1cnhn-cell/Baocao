@@ -901,7 +901,11 @@ let currentUser=null;
 function getBaseData(){
   if(currentUser&&currentUser.role==="user"){
     let data=allData;
-    if(currentUser.branch)data=data.filter(r=>(r.branch||"Hội sở")===currentUser.branch);
+    if(currentUser.branch){
+      // Filter by employee's declared branch (not record's branch field, which may be wrong)
+      const branchEmpNames=new Set(EMPLOYEES.filter(e=>(e.branch||"Hội sở")===currentUser.branch).map(e=>e.name));
+      data=data.filter(r=>branchEmpNames.has(r.nv));
+    }
     if(currentUser.nv)data=data.filter(r=>r.nv===currentUser.nv);
     return data;
   }
