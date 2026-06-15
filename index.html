@@ -200,7 +200,7 @@ textarea{resize:vertical;min-height:70px;}
     </div>
   </div>
   <div class="table-card">
-    <div class="table-header"><div class="table-title">Bảng xếp hạng nhân viên</div></div>
+    <div class="table-header"><div class="table-title">Bảng xếp hạng nhân viên <span style="font-size:11px;font-weight:400;color:var(--muted);">— nhấn vào hàng để xem chi tiết</span></div></div>
     <div style="overflow-x:auto;">
     <table>
       <thead><tr>
@@ -212,6 +212,48 @@ textarea{resize:vertical;min-height:70px;}
     </table>
     </div>
   </div>
+
+  <!-- ═══ CHI TIẾT CÔNG VIỆC NHÂN VIÊN ═══ -->
+  <div id="ovEmpDetail" style="display:none;margin-top:16px;">
+    <div class="table-card">
+      <div class="table-header" style="flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="table-title" id="ovEmpDetailTitle"></div>
+          <div id="ovEmpDetailSub" style="font-size:11px;color:var(--muted);margin-top:3px;"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="ovDetailStatus" onchange="renderOvDetail()" style="font-size:12px;padding:5px 9px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);outline:none;">
+            <option value="">Tất cả trạng thái</option>
+            <option value="Hoàn thành">✅ Hoàn thành</option>
+            <option value="Đang thực hiện">🔄 Đang thực hiện</option>
+            <option value="Chưa hoàn thành">❌ Chưa hoàn thành</option>
+          </select>
+          <select id="ovDetailGroup" onchange="renderOvDetail()" style="font-size:12px;padding:5px 9px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);outline:none;">
+            <option value="">Tất cả nhóm</option>
+          </select>
+          <button onclick="ovCurrentEmp=null;document.getElementById('fEmployee').value='';applyFilter();" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;">✕ Đóng</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th style="width:32px;">#</th>
+            <th>Nhóm</th>
+            <th>Nội dung công việc</th>
+            <th>Trạng thái</th>
+            <th style="text-align:center;">KL</th>
+            <th style="text-align:right;">Giá trị</th>
+            <th style="text-align:center;">Số ngày</th>
+            <th>Tuần/T.Năm</th>
+            <th>Kết quả đạt được</th>
+            <th style="width:70px;"></th>
+          </tr></thead>
+          <tbody id="ovEmpDetailBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -254,9 +296,6 @@ textarea{resize:vertical;min-height:70px;}
       <div><label>Nhóm công việc *</label>
         <select id="fi_group" onchange="updateJobList()">
           <option value="">-- Chọn nhóm --</option>
-          <option>Chứng từ & Thanh toán</option><option>Hóa đơn & Công nợ</option>
-          <option>Thuế</option><option>Kế toán tổng hợp & Giá thành</option>
-          <option>Lãi vay Ngân hàng</option><option>Báo cáo tài chính</option><option>Công việc khác</option>
         </select>
       </div>
       <div><label>Nội dung công việc *</label><select id="fi_job"><option value="">-- Chọn công việc --</option></select></div>
@@ -365,17 +404,30 @@ textarea{resize:vertical;min-height:70px;}
     <div class="fgroup"><label>Nhân viên:</label><select id="mEmployee" onchange="renderManager()"><option value="">Tất cả</option></select></div>
     <div class="fgroup"><label>Từ ngày:</label><input type="date" id="mFrom" onchange="renderManager()"></div>
     <div class="fgroup"><label>Đến ngày:</label><input type="date" id="mTo" onchange="renderManager()"></div>
-    <div class="fgroup"><label>Tháng:</label><input type="number" id="mMonth" min="1" max="12" style="width:70px;" placeholder="Tất cả" oninput="renderManager()"></div>
+    <div class="fgroup"><label>Tuần:</label><input type="number" id="mWeek" min="1" max="53" style="width:60px;" placeholder="Tất cả" oninput="renderManager()"></div>
+    <div class="fgroup"><label>Tháng:</label><input type="number" id="mMonth" min="1" max="12" style="width:60px;" placeholder="Tất cả" oninput="renderManager()"></div>
     <button class="btn btn-warning" onclick="exportManagerReport()">📊 Xuất báo cáo Excel</button>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-    <div class="chart-card">
-      <div class="chart-title">Tổng công việc theo nhân viên</div>
-      <div style="position:relative;height:280px;"><canvas id="chartMgr1" aria-label="Tổng CV">Dữ liệu</canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Hiệu suất hoàn thành — So sánh nhân viên</div>
-      <div style="position:relative;height:280px;"><canvas id="chartMgr2" aria-label="Hiệu suất">Dữ liệu</canvas></div>
+  <!-- Số liệu tổng hợp -->
+  <div id="mgrStatsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px;"></div>
+
+  <!-- Bảng so sánh nhân viên (ẩn khi chỉ lọc 1 người) -->
+  <div class="table-card" id="mgrEmpBreakdown" style="margin-bottom:20px;display:none;">
+    <div class="table-header"><div class="table-title">📊 Thống kê theo từng nhân viên</div></div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Nhân viên</th><th>Vị trí</th>
+          <th style="text-align:center;">Tổng CV</th>
+          <th style="text-align:center;">Hoàn thành</th>
+          <th style="text-align:center;">Đang TH</th>
+          <th style="text-align:center;">Chưa HT</th>
+          <th style="text-align:center;">Tổng ngày</th>
+          <th style="text-align:right;">Tổng giá trị</th>
+          <th>Hiệu suất</th>
+        </tr></thead>
+        <tbody id="mgrEmpBreakdownBody"></tbody>
+      </table>
     </div>
   </div>
   <div class="table-card" style="margin-bottom:20px;">
@@ -385,8 +437,32 @@ textarea{resize:vertical;min-height:70px;}
     </div>
     <div style="overflow-x:auto;">
     <table>
-      <thead><tr><th>Nhân viên</th><th>Ngày BĐ</th><th>Công việc</th><th>Nhóm</th><th style="text-align:right;">KL</th><th style="text-align:right;">Giá trị</th><th>Trạng thái</th><th>Đánh giá KL</th><th>Kết quả / Ghi chú</th></tr></thead>
+      <thead><tr>
+        <th>Nhân viên</th><th>Ngày BĐ</th><th>Ngày HT</th><th style="text-align:center;">Số ngày</th>
+        <th>Công việc</th><th>Nhóm</th>
+        <th style="text-align:right;">KL</th><th style="text-align:right;">Giá trị (VNĐ)</th>
+        <th>Trạng thái</th><th>Đánh giá KL</th>
+        <th>Kết quả / Ghi chú</th><th>Đề xuất xử lý</th>
+      </tr></thead>
       <tbody id="alertTable"></tbody>
+    </table>
+    </div>
+  </div>
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">📊 Tổng hợp theo hạng mục</div>
+      <div style="font-size:11px;color:var(--muted);">Gom nhóm công việc lặp lại trong giai đoạn lọc</div>
+    </div>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr>
+        <th>Nhóm</th><th>Công việc</th>
+        <th style="text-align:center;">Số lần</th>
+        <th style="text-align:right;">Tổng KL</th>
+        <th style="text-align:right;">Tổng Giá trị (VNĐ)</th>
+        <th style="text-align:center;">Tổng Số ngày</th>
+      </tr></thead>
+      <tbody id="summaryTable"></tbody>
     </table>
     </div>
   </div>
@@ -444,6 +520,59 @@ textarea{resize:vertical;min-height:70px;}
       <div style="color:var(--warning);font-size:12px;margin-top:10px;">⚠️ Mỗi lần thay đổi code Apps Script cần <strong>Triển khai lại phiên bản mới</strong> thì URL mới nhận được code mới.</div>
     </div>
   </div>
+
+  <!-- ═══ QUẢN LÝ NHÂN VIÊN ═══ -->
+  <div class="form-card" style="max-width:780px;">
+    <div class="form-title">👥 Danh sách nhân viên</div>
+    <div style="overflow-x:auto;max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:16px;">
+      <table>
+        <thead><tr>
+          <th style="width:36px;">#</th>
+          <th>Họ và tên</th>
+          <th style="width:90px;">Mã NV</th>
+          <th>Vị trí</th>
+          <th style="width:60px;"></th>
+        </tr></thead>
+        <tbody id="cfg-emp-body"></tbody>
+      </table>
+    </div>
+    <div class="section-divider">Thêm nhân viên mới</div>
+    <div class="form-row three" style="margin-bottom:0;">
+      <div><label>Họ và tên *</label><input type="text" id="cfg-emp-name" placeholder="Nguyễn Văn A"></div>
+      <div><label>Mã NV *</label><input type="text" id="cfg-emp-ma" placeholder="012345"></div>
+      <div><label>Vị trí</label><input type="text" id="cfg-emp-vitri" placeholder="Kế toán viên"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="addEmployee()">➕ Thêm nhân viên</button>
+    </div>
+  </div>
+
+  <!-- ═══ QUẢN LÝ NHÓM VIỆC ═══ -->
+  <div class="form-card" style="max-width:780px;">
+    <div class="form-title">🗂️ Nhóm công việc</div>
+    <div id="cfg-group-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;max-height:280px;overflow-y:auto;"></div>
+    <div class="section-divider">Thêm nhóm mới</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;">
+      <div style="flex:1;"><label>Tên nhóm *</label><input type="text" id="cfg-grp-name" placeholder="Tên nhóm công việc mới"></div>
+      <button class="btn btn-primary" onclick="addGroup()">➕ Thêm nhóm</button>
+    </div>
+  </div>
+
+  <!-- ═══ QUẢN LÝ NỘI DUNG CÔNG VIỆC ═══ -->
+  <div class="form-card" style="max-width:780px;">
+    <div class="form-title">📋 Nội dung công việc theo nhóm</div>
+    <div style="margin-bottom:12px;">
+      <label>Chọn nhóm để xem / chỉnh sửa:</label>
+      <select id="cfg-job-grp" onchange="renderCfgJobList()" style="margin-top:5px;"></select>
+    </div>
+    <div id="cfg-job-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:16px;max-height:300px;overflow-y:auto;"></div>
+    <div class="section-divider">Thêm nội dung công việc</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;">
+      <div style="flex:1;"><label>Tên công việc *</label><input type="text" id="cfg-job-name" placeholder="Tên nội dung công việc mới" onkeydown="if(event.key==='Enter')addJob()"></div>
+      <button class="btn btn-primary" onclick="addJob()">➕ Thêm</button>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -467,15 +596,65 @@ textarea{resize:vertical;min-height:70px;}
   </div>
 </div>
 
+<!-- ═══ EDIT MODAL ═══ -->
+<div id="editModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;" onclick="if(event.target===this)closeEditModal()">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:660px;max-width:96vw;max-height:92vh;overflow-y:auto;padding:26px 28px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:16px;font-weight:700;">✏️ Chỉnh sửa công việc</div>
+        <div id="editModalSub" style="font-size:12px;color:var(--muted);margin-top:3px;"></div>
+      </div>
+      <button onclick="closeEditModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;padding:0;line-height:1;">✕</button>
+    </div>
+    <input type="hidden" id="edit_idx">
+    <div class="form-row">
+      <div><label>Nhóm công việc</label><select id="edit_group" onchange="editUpdateJobList()"></select></div>
+      <div><label>Nội dung công việc</label><select id="edit_job"></select></div>
+    </div>
+    <div class="form-row three">
+      <div><label>Trạng thái</label>
+        <select id="edit_status">
+          <option value="Hoàn thành">✅ Hoàn thành</option>
+          <option value="Đang thực hiện">🔄 Đang thực hiện</option>
+          <option value="Chưa hoàn thành">❌ Chưa hoàn thành</option>
+        </select>
+      </div>
+      <div><label>Khối lượng TH</label><input type="number" id="edit_volume" placeholder="Số lượng"></div>
+      <div><label>Giá trị (VNĐ)</label><input type="text" id="edit_value" placeholder="VD: 1000000"></div>
+    </div>
+    <div class="form-row three">
+      <div><label>Ngày bắt đầu</label><input type="date" id="edit_start"></div>
+      <div><label>Ngày hoàn thành</label><input type="date" id="edit_end"></div>
+      <div><label>Số ngày TH</label><input type="number" id="edit_days" min="0"></div>
+    </div>
+    <div class="form-row four">
+      <div><label>Tuần</label><input type="number" id="edit_week" min="1" max="53"></div>
+      <div><label>Tháng *</label><input type="number" id="edit_month" min="1" max="12" oninput="document.getElementById('edit_quy').value=Math.ceil(parseInt(this.value)||1/3)"></div>
+      <div><label>Năm</label><input type="number" id="edit_year"></div>
+      <div><label>Quý</label><input type="number" id="edit_quy" readonly style="opacity:.6;"></div>
+    </div>
+    <div class="form-row full">
+      <div><label>Kết quả đạt được</label><textarea id="edit_result" style="min-height:70px;"></textarea></div>
+    </div>
+    <div class="form-row full">
+      <div><label>Đề xuất / Hướng xử lý</label><textarea id="edit_suggest" style="min-height:55px;"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+      <button class="btn btn-secondary" onclick="closeEditModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="saveEdit()">💾 Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 const API_URL="https://script.google.com/macros/s/AKfycbz33StsbV7HXwuh3-mjM6BvBM6lclS9haGEFsqGaqc7OKAXoD9bM8t13cqQwznfF1qC/exec";
 const SECRET="ketoan2026";
 const TEMPLATE_B64="UEsDBBQAAAAIAAUazVxGx01IlQAAAM0AAAAQAAAAZG9jUHJvcHMvYXBwLnhtbE3PTQvCMAwG4L9SdreZih6kDkQ9ip68zy51hbYpbYT67+0EP255ecgboi6JIia2mEXxLuRtMzLHDUDWI/o+y8qhiqHke64x3YGMsRoPpB8eA8OibdeAhTEMOMzit7Dp1C5GZ3XPlkJ3sjpRJsPiWDQ6sScfq9wcChDneiU+ixNLOZcrBf+LU8sVU57mym/8ZAW/B7oXUEsDBBQAAAAIAAUazVzmv6Ei7QAAACsCAAARAAAAZG9jUHJvcHMvY29yZS54bWzNksFqwzAMhl9l+J7ITiAHk/qyslMLgxU2djO22prFibE1kr79Eq9NGdsD7Gjp96dPoNYEaYaIz3EIGMlheph81ydpwoadiYIESOaMXqdyTvRz8zhEr2l+xhMEbT70CaHivAGPpK0mDQuwCCuRqdYaaSJqGuIVb82KD5+xyzBrADv02FMCUQpgapkYLlPXwh2wwAijT98FtCsxV//E5g6wa3JKbk2N41iOdc7NOwh42+9e8rqF6xPp3uD8KzlJl4Abdpv8Wj9uD09MVbxqCt4Uoj7wWopGCvG+uP7wuwv7wbqj+8fGN0HVwq+7UF9QSwMEFAAAAAgABRrNXJlcnCMQBgAAnCcAABMAAAB4bC90aGVtZS90aGVtZTEueG1s7Vpbc9o4FH7vr9B4Z/ZtC8Y2gba0E3Npdtu0mYTtTh+FEViNbHlkkYR/v0c2EMuWDe2STbqbPAQs6fvORUfn6Dh58+4uYuiGiJTyeGDZL9vWu7cv3uBXMiQRQTAZp6/wwAqlTF61WmkAwzh9yRMSw9yCiwhLeBTL1lzgWxovI9bqtNvdVoRpbKEYR2RgfV4saEDQVFFab18gtOUfM/gVy1SNZaMBE1dBJrmItPL5bMX82t4+Zc/pOh0ygW4wG1ggf85vp+ROWojhVMLEwGpnP1Zrx9HSSICCyX2UBbpJ9qPTFQgyDTs6nVjOdnz2xO2fjMradDRtGuDj8Xg4tsvSi3AcBOBRu57CnfRsv6RBCbSjadBk2PbarpGmqo1TT9P3fd/rm2icCo1bT9Nrd93TjonGrdB4Db7xT4fDronGq9B062kmJ/2ua6TpFmhCRuPrehIVteVA0yAAWHB21szSA5ZeKfp1lBrZHbvdQVzwWO45iRH+xsUE1mnSGZY0RnKdkAUOADfE0UxQfK9BtorgwpLSXJDWzym1UBoImsiB9UeCIcXcr/31l7vJpDN6nX06zmuUf2mrAaftu5vPk/xz6OSfp5PXTULOcLwsCfH7I1thhyduOxNyOhxnQnzP9vaRpSUyz+/5CutOPGcfVpawXc/P5J6MciO73fZYffZPR24j16nAsyLXlEYkRZ/ILbrkETi1SQ0yEz8InYaYalAcAqQJMZahhvi0xqwR4BN9t74IyN+NiPerb5o9V6FYSdqE+BBGGuKcc+Zz0Wz7B6VG0fZVvNyjl1gVAZcY3zSqNSzF1niVwPGtnDwdExLNlAsGQYaXJCYSqTl+TUgT/iul2v6c00DwlC8k+kqRj2mzI6d0Js3oMxrBRq8bdYdo0jx6/gX5nDUKHJEbHQJnG7NGIYRpu/AerySOmq3CEStCPmIZNhpytRaBtnGphGBaEsbReE7StBH8Waw1kz5gyOzNkXXO1pEOEZJeN0I+Ys6LkBG/HoY4SprtonFYBP2eXsNJweiCy2b9uH6G1TNsLI73R9QXSuQPJqc/6TI0B6OaWQm9hFZqn6qHND6oHjIKBfG5Hj7lengKN5bGvFCugnsB/9HaN8Kr+ILAOX8ufc+l77n0PaHStzcjfWfB04tb3kZuW8T7rjHa1zQuKGNXcs3Ix1SvkynYOZ/A7P1oPp7x7frZJISvmlktIxaQS4GzQSS4/IvK8CrECehkWyUJy1TTZTeKEp5CG27pU/VKldflr7kouDxb5OmvoXQ+LM/5PF/ntM0LM0O3ckvqtpS+tSY4SvSxzHBOHssMO2c8kh22d6AdNfv2XXbkI6UwU5dDuBpCvgNtup3cOjiemJG5CtNSkG/D+enFeBriOdkEuX2YV23n2NHR++fBUbCj7zyWHceI8qIh7qGGmM/DQ4d5e1+YZ5XGUDQUbWysJCxGt2C41/EsFOBkYC2gB4OvUQLyUlVgMVvGAyuQonxMjEXocOeXXF/j0ZLj26ZltW6vKXcZbSJSOcJpmBNnq8reZbHBVR3PVVvysL5qPbQVTs/+Wa3InwwRThYLEkhjlBemSqLzGVO+5ytJxFU4v0UzthKXGLzj5sdxTlO4Ena2DwIyubs5qXplMWem8t8tDAksW4hZEuJNXe3V55ucrnoidvqXd8Fg8v1wyUcP5TvnX/RdQ65+9t3j+m6TO0hMnHnFEQF0RQIjlRwGFhcy5FDukpAGEwHNlMlE8AKCZKYcgJj6C73yDLkpFc6tPjl/RSyDhk5e0iUSFIqwDAUhF3Lj7++TaneM1/osgW2EVDJk1RfKQ4nBPTNyQ9hUJfOu2iYLhdviVM27Gr4mYEvDem6dLSf/217UPbQXPUbzo5ngHrOHc5t6uMJFrP9Y1h75Mt85cNs63gNe5hMsQ6R+wX2KioARq2K+uq9P+SWcO7R78YEgm/zW26T23eAMfNSrWqVkKxE/Swd8H5IGY4xb9DRfjxRiraaxrcbaMQx5gFjzDKFmON+HRZoaM9WLrDmNCm9B1UDlP9vUDWj2DTQckQVeMZm2NqPkTgo83P7vDbDCxI7h7Yu/AVBLAwQUAAAACAAFGs1cxoNb+IgEAAC2EAAAGAAAAHhsL3dvcmtzaGVldHMvc2hlZXQxLnhtbI1Yf2+jOBD9KhaVqjtpbwEDIZQ00jXpNt3+1DbXu39d4gZUwCyYpv32NwaHJmBIpCqAmfdmPOM32J1sWP5WhJRy9JHEaXGuhZxnZ7peBCFNSPGdZTSFN68sTwiHx3ytF1lOyaoCJbGODWOkJyRKtemkGnvMpxNW8jhK6WOOijJJSP55QWO2OddMbTvwK1qHXAzo00lG1vSJ8n+yxxye9IZlFSU0LSKWopy+nmt/m2cPlrCvDJ4juil27pGYyQtjb+LhenWuGSIgGtOACwYCl3c6o3EsiCCM35JTa1wK4O79lv1HNXeYywsp6IzF/0YrHp5rYw2t6CspY/6LbRZUzscRfAGLi+oXbWpbbGgoKAvOEgmGCJIora/kQ+ZhF+D0ALAE4BbA6gNYEmC1AOa4B2BLgN0G4B6AIwHOsR5GEjBqA+wegCsB7rGAsQSM24C+OngS4B2bVsFUV85oQ3pr3RS7Xe2+RJnbapvtcvcituU22/XuRWzrbbYLbvdOZFvxerXr9XKvtDInnEwnOdugvLIXmvhKSKMSkGYgLColVoYwGqWiZzzxHN5GQMin9+HpCcYjP0XvEdxZtp9OdA4exWs9kCQXR5DYlp+g2bMCPTuAPj1xx57rR2hVpms1xXyYYpkLDtv0Ac+rGTl+pKC5HKa5CQXN2INQ4tMT28I+PHuGK2iXCwXfj2G+q6gOBfEqvrHloz+eYbrYxf6fCrqrA4laCzrb/0Qvgs5xfI4EmeVXs3f9UsG5OJYzZPVdKjMId6GC73qY70lmEKUNsTJzPw9UQtC4Jkzwd1lNDlK3M1VzZ+Y7ZQoUjm6GHdXFqLyBi4/aGSRWXzTMY88TC+BDODFdXywN7Fi+wtftgVVayjqpJHZ3ACtXdbpWYO8PCgw7np8okA/DyNsofUPzHD7r+1gd2k/Tg3DTanBFhnuXWvlZJRoSgJbhVhELue5Uer0YZpyFVU2sSvbVLWjtlCSZD/wkDRFnMmuqrjTM/V+r3ChQOQtCVdjzYerFcUq73GURe7/3qTme6O+7/adrYuxbXA2Hgg08+suAP0/VOo7DmpaqTXQjs/cj+znMvgxLkV1kjlEWRrIdqBrcTR/Plyy7sWBrP5i7rslo3+JeQQIJ2Dd6GIplTzRWIxprMA3zbRuyzfoz1OimvoPGyFTCGWZd1N9r8tVEBbuUzky8tIWzVPZVlXqGHdxWHyjLz+RnxfFbrq6WV0uVcg7EfaRyrO7ia+niR9fEsT1smZaB3ZaEhmMaltBxWLWEFLNoSaiP/UscBy1uu1464uiatMWhIOmKYyiWWhz6zg53Bb/PJI7gCqfLAgWsTOXGdv/V9qA5x2dz0zBgK1yEbDPPWTZnm1ScUquB6zQr+R0tCjgKN4OXec7y3UESwyn6IibpW/1V/MxgPI4KDm7FCb2MiTnVVOvwW72VIHIL6nrY9AMkWxfsIL6Jr5XQMlFutbSJ3vBP9P0ZdgaK+kR/R/J1BKmJ6Stkxvjuwqkhr/f/9QNnWTWNF8bhbFAfFyhZ0VwYwPtXxvj2QRwzmn9VTP8HUEsDBBQAAAAIAAUazVw/HEfAXAMAAHQIAAAYAAAAeGwvd29ya3NoZWV0cy9zaGVldDIueG1sjVZhb+I4EP0ro1Sq7qTtJiSBhBqQFtCV1bYc2u3u6T66wSQWSZxLTGn//c3YSdqVALVqyzie9+Y9jx0zOap632RCaHgp8rKZOpnW1a3rNkkmCt58VpUocWan6oJrHNap21S14FsDKnLX97yRW3BZOrOJebapZxN10LksxaaG5lAUvH6di1wdp87A6R58l2mm6YE7m1Q8FT+E/lltahy5PctWFqJspCqhFrup82VwO48p3yT8kuLYvIuBnDwptafB1+3U8UiQyEWiiYHjx7NYiDwnIpTxX8vp9CUJ+D7u2P8y3tHLE2/EQuX/yK3Opk7swFbs+CHX39VxJVo/Q+JLVN6Y/3C0uf7QgeTQaFW0YFRQyNJ+8pd2Hd4BYu8MwG8BvtFtCxmVS675bFKrI9SUjWwUGKtTJ3AAxcmSmvJD1zgrEadnq+urMBiw66soHsdsfQdLCoceW8N6ZUKfbeD+K4VRzH5OXI1VCesm+IfV+pJBXzIwJcMzJRemWMQ0fIEbWGfXV74/YiU8S4yCkJW3vxcxnPNzBgiPKgNWAcKjAK34KL9MQbd0oGuFQ5MXjRloE8VjzLngJuzdhB90M+/chAErYPHrpI2zNCRqPAha4RgOGVzzomLwmPEyA61onYZox4WVLcJ7x+EgwgmbvqDJkHhK4vEihojH7GDsD2jwrQvfOLVxYapnLapq+e6kTTLr5vvInCHHPcURk/DMX2Gddj3sUlJMmVucgqQLtJ2VkFBeEFmqN8G0A0yPEthnFpRcaNGwb9Hwgy1aYoseaxqGA7PSbRV5slfDc2dGtS5/XxJqhs94SxuN/QH6yDpL1DdqchhgDmQnKC44HfVORx90evdpRdsxteSvJ/2NzrBYI+aQBGRt+7Zg/+LPzcPDzXIJfzxvb8H3/NGNh7/jPy/Ij3r50Qfl/43i72W5h2WNL+2T6qMzJBveaAE5ge+USnNhOcxpoF1/MPsRjw/sJE72Lw27HfcU+ay44Cbu3cQX3dzbZh+oBL6fTpqIz2C/Zf2heOkO+5YC32zb9k156NWjs4B9sqfGwsy+wpyC7LarWphozOQpd+67S4Tu4wdep7JsIBc7lOh9jvA41PaOswOtKnMrPSmNt5QJM/xaIGpKwPmdUrob0FXVf9GY/Q9QSwMEFAAAAAgABRrNXJgXf1LrAgAAUw0AAA0AAAB4bC9zdHlsZXMueG1s3VfbjpswEP0VxAeUEHZpqEKkFmmlSm21Uvehr04wYMnY1Jgt2a+vB3PJxbPabbcvJUqw5/icuXgwyrbVR06/V5Rqr6+5aFO/0rr5EATtoaI1ad/JhgqDFFLVRJupKoO2UZTkLZBqHqxXqzioCRP+biu6+q7WrXeQndCpv/KD3baQYrHc+NZglpKaeo+Ep35GONsrNqwlNeNHa16D4SC5VJ42odDUD8HSPlk4tDOIctSpmZAKjIH1YH/34/JFTZV7E9rqbriuJV/GDsn7iG7O2DfPskdguLVmAeN8rkrkW8Nu2xCtqRJ3ZjJwBuMV5I3jh2NjylIqcgzXt/6LCa3kLAeXZeZOKTihzqLDzUS+lyqnao597U+m3ZbTQhu6YmUFdy2bAECtZW0GOSOlFGRIbGKcMr2hF1NfV6aXJplLo9G8NFkHl9bZxTgwkR8o599h1Y9iDj804feFZxv3cw4968EWTUOT8zi0MnYC+qdqVvtE9vaPZL2GPUr9qTP5iGH+s5Oa3itasH6Y98XsH1MPF/X1qbqxk6bhx4+claKmNvcXO9xtycTzKqnYk/EGrX0wBqp875EqzQ6nll+KNA+011P798XrK/J2Mf9dfOt/umPRm6gHYweetPlZk89WD07e1P8GBzpfJLx9x7hmYpxVLM+puOp1I6/J3rwxzvTN+pwWpOP6YQZTfxl/pTnr6mRedQ9pjauW8Rd43sN4PmqNLyZy2tM8G6fmoDo7sew1nBUXyHK4XyMYx2JuBDDMDxYBxrEszM//lM8GzcdiWGwbJ7JBORuUY1kuJBs+mB83JzGXO9MkiaI4xiqaZc4IMqxucQxftxoWGzAwP+DpdbXGdxvvkOf7ANvT5zoEyxTvRCxTvNaAuOsGjCRx7zbmBxjYLmC9A/7dfqCn3Jwogl3FYsOeYBxJEgyBXnT3aBwj1Ynh494f7CmJoiRxI4C5I4giDIGnEUewCCAGDImi4T148T4KpvdUsPyN2v0GUEsDBBQAAAAIAAUazVyXirscwAAAABMCAAALAAAAX3JlbHMvLnJlbHOdkrluwzAMQH/F0J4wB9AhiDNl8RYE+QFWog/YEgWKRZ2/r9qlcZALGXk9PBLcHmlA7TiktoupGP0QUmla1bgBSLYlj2nOkUKu1CweNYfSQETbY0OwWiw+QC4ZZre9ZBanc6RXiFzXnaU92y9PQW+ArzpMcUJpSEszDvDN0n8y9/MMNUXlSiOVWxp40+X+duBJ0aEiWBaaRcnToh2lfx3H9pDT6a9jIrR6W+j5cWhUCo7cYyWMcWK0/jWCyQ/sfgBQSwMEFAAAAAgABRrNXPBfDUdaAQAAtwIAAA8AAAB4bC93b3JrYm9vay54bWy1UkFOwzAQ/ErkB5A0gkpUTQ+0glZCUFHUuxNvmlVtb2Q7LfQrPIELZ7jzj/4Ex1FEJSTEhdN6Z1fjmbHHezLbnGgbPSmpbcYq5+pRHNuiAsXtGdWg/aQko7jzrdnEtjbAha0AnJJxmiTDWHHUbDLuuZYmPm3IQeGQtAdbYI2wt9/zto12aDFHie45Y+EsgUUKNSo8gMhYwiJb0X5OBg+kHZerwpCUGRt0gzUYh8UPeNWKfOS5DYjj+QP3QjI2TDxhica6sBH4ude4A7/cdY2ja5QOzIw7uDHU1Kg3LY13EZ/YCDn0tQtxZP4SI5UlFjCjolGgXZejAdkK1LbC2rJIcwUZu+I05dQa8jcsRGfOeVUnUZkR+oFZiKDv/7TMP9+OHy96E4nj+6s+0ZT+oikNmfVBCShRg7jzfNbj/tGKpYnaEryl5xeDS/84jZRTj93rW+Kiz73/M5MvUEsDBBQAAAAIAAUazVyN9yxatAAAAIkCAAAaAAAAeGwvX3JlbHMvd29ya2Jvb2sueG1sLnJlbHPFkk0KgzAQRq8ScoCO2tJFUVfduC1eIOj4g9GEzJTq7Wt1oYEuupGuwjch73swiR+oFbdmoKa1JMZeD5TIhtneAKhosFd0MhaH+aYyrlc8R1eDVUWnaoQoCK7g9gyZxnumyCeLvxBNVbUF3k3x7HHgL2B4GddRg8hS5MrVyImEUW9jguUITzNZiqxMpMvKUMK/hSJPKDpQiHjSSJvNmr3684H1PL/FrX2J69DfyeXjAN7PS99QSwMEFAAAAAgABRrNXG6nJLweAQAAVwQAABMAAABbQ29udGVudF9UeXBlc10ueG1sxZTPTsMwDMZfpcp1ajJ24IDWXYAr7MALhNZdo+afYm90b4/bbpNAo2IqEpdGje3v5/iLsn47RsCsc9ZjIRqi+KAUlg04jTJE8BypQ3Ka+DftVNRlq3egVsvlvSqDJ/CUU68hNusnqPXeUvbc8Taa4AuRwKLIHsfEnlUIHaM1pSaOq4OvvlHyE0Fy5ZCDjYm44AShrhL6yM+AU93rAVIyFWRbnehFO85SnVVIRwsopyWu9Bjq2pRQhXLvuERiTKArbADIWTmKLqbJxBOG8Xs3mz/ITAE5c5tCRHYswe24syV9dR5ZCBKZ6SNeiCw9+3zQu11B9Us2j/cjpHbwA9WwzJ/xV48v+jf2sfrHPt5DaP/6qverdNr4M18N78nmE1BLAQIUAxQAAAAIAAUazVxGx01IlQAAAM0AAAAQAAAAAAAAAAAAAACAAQAAAABkb2NQcm9wcy9hcHAueG1sUEsBAhQDFAAAAAgABRrNXOa/oSLtAAAAKwIAABEAAAAAAAAAAAAAAIABwwAAAGRvY1Byb3BzL2NvcmUueG1sUEsBAhQDFAAAAAgABRrNXJlcnCMQBgAAnCcAABMAAAAAAAAAAAAAAIAB3wEAAHhsL3RoZW1lL3RoZW1lMS54bWxQSwECFAMUAAAACAAFGs1cxoNb+IgEAAC2EAAAGAAAAAAAAAAAAAAAgIEgCAAAeGwvd29ya3NoZWV0cy9zaGVldDEueG1sUEsBAhQDFAAAAAgABRrNXD8cR8BcAwAAdAgAABgAAAAAAAAAAAAAAICB3gwAAHhsL3dvcmtzaGVldHMvc2hlZXQyLnhtbFBLAQIUAxQAAAAIAAUazVyYF39S6wIAAFMNAAANAAAAAAAAAAAAAACAAXAQAAB4bC9zdHlsZXMueG1sUEsBAhQDFAAAAAgABRrNXJeKuxzAAAAAEwIAAAsAAAAAAAAAAAAAAIABhhMAAF9yZWxzLy5yZWxzUEsBAhQDFAAAAAgABRrNXPBfDUdaAQAAtwIAAA8AAAAAAAAAAAAAAIABbxQAAHhsL3dvcmtib29rLnhtbFBLAQIUAxQAAAAIAAUazVyN9yxatAAAAIkCAAAaAAAAAAAAAAAAAACAAfYVAAB4bC9fcmVscy93b3JrYm9vay54bWwucmVsc1BLAQIUAxQAAAAIAAUazVxupyS8HgEAAFcEAAATAAAAAAAAAAAAAACAAeIWAABbQ29udGVudF9UeXBlc10ueG1sUEsFBgAAAAAKAAoAhAIAADEYAAAAAA==";
-const GROUPS=["Chứng từ & Thanh toán","Hóa đơn & Công nợ","Thuế","Kế toán tổng hợp & Giá thành","Lãi vay Ngân hàng","Báo cáo tài chính","Công việc khác"];
+let GROUPS=["Chứng từ & Thanh toán","Hóa đơn & Công nợ","Thuế","Kế toán tổng hợp & Giá thành","Lãi vay Ngân hàng","Báo cáo tài chính","Công việc khác"];
 const GRP_COLORS=["#4f9cf9","#a78bfa","#4ade80","#fbbf24","#f87171","#f472b6","#2dd4bf"];
-const EMPLOYEES=[
+let EMPLOYEES=[
   {name:"Nguyễn Thị Hoài",ma:"010023",vi_tri:"Kế toán viên"},
   {name:"Dương Thị Ngọc Quỳnh",ma:"013900",vi_tri:"Kế toán viên"},
   {name:"Hoàng Diệu Linh",ma:"010753",vi_tri:"Kế toán thanh toán"},
@@ -492,7 +671,7 @@ const EMPLOYEES=[
   {name:"Phạm Thị Hà Thanh",ma:"019633",vi_tri:"Kế toán viên"},
   {name:"Nguyễn Đức Mạnh",ma:"019838",vi_tri:"Kế toán dự án"}
 ];
-const JOB_CATALOG={
+let JOB_CATALOG={
   "Chứng từ & Thanh toán":["Xử lý chứng từ chi","Xử lý chứng từ thu","Đối chiếu tài khoản ngân hàng","Kiểm kê quỹ tiền mặt","Báo cáo giải ngân trong tuần/tháng","Hạch toán hoá đơn phí dịch vụ","Check, Thanh toán lương, thưởng","Làm đề nghị các khoản cần chi","Sắp xếp hồ sơ, chứng từ thanh toán","Hồ sơ thanh toán ngoại tệ","Tạo lệnh thanh toán OL qua ngân hàng","Làm hồ sơ giải ngân","Hạch toán phiếu báo nợ","Hạch toán phiếu báo có","Thủ quỹ","Hồ sơ thanh toán","Làm hồ sơ mua bán ngoại tệ"],
   "Hóa đơn & Công nợ":["Lập hoá đơn GTGT","Lập hoá đơn hàng trả lại","Lập hoá đơn hàng điều nội bộ","Đối soát công nợ phải thu (TK 131)","Đối soát công nợ phải trả (TK 331)","Đối soát tiền tạm ứng","Thanh quyết toán hợp đồng","Áp thanh toán khách hàng","BC tình trạng công nợ phải thu","Báo cáo tình trạng công nợ phải trả (TK 331)","Hạch toán hoá đơn","Hạch toán kết chuyển công nợ","Xuất đơn xuất khẩu","Hạch toán chi phí logistic xuất khẩu","Hạch toán hoá đơn TSCĐ, CCDC","Báo cáo tiền về xuất khẩu","Hạch toán báo nợ, báo có","Xuất vật tư tiêu hao, VPP"],
   "Thuế":["Kê khai thuế GTGT","Kê khai thuế TNCN","Kê khai thuế TNDN","Kê khai thuế nhà thầu","Báo cáo thuế GTGT","Báo cáo thuế TNCN","Nộp thuế nhập khẩu","Nộp thuế GTGT Chi nhánh","Nộp thuế TNDN hàng tuần","Quyết toán thuế TNCN","phát hành chứng từ khấu trừ thuế","Thuế GTGT đầu ra"],
@@ -607,24 +786,67 @@ const rawData = [
 ];
 
 
+let _uidSeq=0;
+rawData.forEach(r=>{r._uid=++_uidSeq;r.klEval=r.klEval||"";});
 let sheetData=[], filteredData=[], allData=[...rawData];
 filteredData=[...allData];
 let detailSort={col:"",dir:1};
 let chartEff=null,chartGroup=null,chartMgr1=null,chartMgr2=null;
 let importRows=[], selectedFile=null;
+let ovCurrentEmp=null;
 
 function fmtVal(v){if(!v||v<1000)return"—";if(v>=1e12)return(v/1e12).toFixed(1)+"T";if(v>=1e9)return(v/1e9).toFixed(1)+"B";if(v>=1e6)return(v/1e6).toFixed(1)+"M";return(v/1e3).toFixed(0)+"K";}
+function fmtVND(v){if(!v||v<1)return"—";return v.toLocaleString("vi-VN")+" ₫";}
 function excelDateToYmd(serial){if(!serial||serial<=0)return"";const d=new Date((serial-25569)*86400*1000);return d.toISOString().slice(0,10);}
 function getRowDate(r){return r.start>0?excelDateToYmd(r.start):(r.startDate||"");}
 function fmtDate(ymd){if(!ymd)return"—";const p=ymd.split("-");return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:"—";}
-function evalVolume(r,groupAvg){
-  if(r.status==="Chưa hoàn thành")return['❌ Chưa đạt','#f87171','rgba(239,68,68,0.12)'];
-  if(r.status==="Đang thực hiện")return['⏳ Đang theo dõi','#60a5fa','rgba(59,130,246,0.1)'];
-  const vol=r.volume||0;const avg=groupAvg[r.group]||0;
-  if(!avg||!vol)return['✅ Hoàn thành','#4ade80','rgba(34,197,94,0.1)'];
-  if(vol>=avg*1.3)return['⭐ Vượt KH','#fbbf24','rgba(245,158,11,0.15)'];
-  if(vol>=avg*0.7)return['✅ Đạt KH','#4ade80','rgba(34,197,94,0.1)'];
-  return['⚠️ Thấp KH','#f59e0b','rgba(245,158,11,0.1)'];
+const EVAL_OPTIONS=[
+  {key:"",lbl:"— Chưa đánh giá",clr:"var(--muted)",bg:"rgba(123,129,153,0.1)"},
+  {key:"vuot",lbl:"⭐ Vượt KH",clr:"#fbbf24",bg:"rgba(245,158,11,0.15)"},
+  {key:"dat",lbl:"✅ Đạt KH",clr:"#4ade80",bg:"rgba(34,197,94,0.1)"},
+  {key:"thap",lbl:"⚠️ Thấp KH",clr:"#f59e0b",bg:"rgba(245,158,11,0.1)"},
+  {key:"hoan",lbl:"✅ Hoàn thành",clr:"#4ade80",bg:"rgba(34,197,94,0.1)"},
+  {key:"chua",lbl:"❌ Chưa đạt",clr:"#f87171",bg:"rgba(239,68,68,0.12)"},
+  {key:"theo",lbl:"⏳ Đang theo dõi",clr:"#60a5fa",bg:"rgba(59,130,246,0.1)"},
+];
+function evalTask(r,groupDayAvg){
+  if(r.klEval){
+    const o=EVAL_OPTIONS.find(x=>x.key===r.klEval);
+    if(o)return[o.lbl,o.clr,o.bg,true];
+  }
+  if(r.status==="Chưa hoàn thành")return['❌ Chưa đạt','#f87171','rgba(239,68,68,0.12)',false];
+  if(r.status==="Đang thực hiện")return['⏳ Đang theo dõi','#60a5fa','rgba(59,130,246,0.1)',false];
+  const days=r.days||0;const avg=groupDayAvg[r.group]||0;
+  if(!avg||!days)return['✅ Hoàn thành','#4ade80','rgba(34,197,94,0.1)',false];
+  if(days<=avg*0.75)return['⭐ Vượt KH','#fbbf24','rgba(245,158,11,0.15)',false];
+  if(days<=avg*1.25)return['✅ Đạt KH','#4ade80','rgba(34,197,94,0.1)',false];
+  return['⚠️ Thấp KH','#f59e0b','rgba(245,158,11,0.1)',false];
+}
+function evalVolume(r,groupAvg){return evalTask(r,groupAvg);}
+let _evalPickerUid=null;
+function showEvalPicker(e,uid){
+  e.stopPropagation();
+  let picker=document.getElementById("evalPicker");
+  if(!picker){
+    picker=document.createElement("div");
+    picker.id="evalPicker";
+    picker.style.cssText="position:fixed;z-index:9999;background:#1e2332;border:1px solid rgba(255,255,255,0.13);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,0.5);min-width:160px;";
+    document.body.appendChild(picker);
+    document.addEventListener("click",()=>{picker.style.display="none";});
+  }
+  _evalPickerUid=uid;
+  picker.innerHTML=EVAL_OPTIONS.map(o=>`<div onclick="setEvalOverride('${o.key}')" style="padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:${o.clr||'var(--muted)'};display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background=''">${o.lbl}</div>`).join("");
+  const rect=e.target.getBoundingClientRect();
+  picker.style.display="block";
+  picker.style.top=(rect.bottom+4)+"px";
+  picker.style.left=rect.left+"px";
+}
+function setEvalOverride(key){
+  const r=allData.find(x=>x._uid===_evalPickerUid);
+  if(r){r.klEval=key;}
+  document.getElementById("evalPicker").style.display="none";
+  renderOverview();renderDetail();
+  if(document.getElementById("tab-manager")&&document.getElementById("tab-manager").classList.contains("active"))renderManager();
 }
 function getInitials(n){const p=n.trim().split(" ");return(p[p.length-2]||p[0]).charAt(0).toUpperCase()+(p[p.length-1]||"").charAt(0).toUpperCase();}
 function avatarColor(n){const c=[["rgba(79,156,249,0.2)","#4f9cf9"],["rgba(124,92,252,0.2)","#a78bfa"],["rgba(34,197,94,0.2)","#4ade80"],["rgba(245,158,11,0.2)","#fbbf24"],["rgba(236,72,153,0.2)","#f472b6"],["rgba(20,184,166,0.2)","#2dd4bf"]];const i=Math.abs(n.split("").reduce((a,c2)=>a+c2.charCodeAt(0),0))%c.length;return c[i];}
@@ -641,7 +863,7 @@ async function loadFromSheet(){
     const res=await fetch(`${window.API_URL||API_URL}?secret=${window.API_SECRET||SECRET}`);
     const j=await res.json();
     if(j.ok){
-      sheetData=(j.data||[]).map(sheetRowToObj).filter(r=>r.nv);
+      sheetData=(j.data||[]).map(sheetRowToObj).filter(r=>r.nv).map(r=>{r._uid=++_uidSeq;r.klEval=r.klEval||"";return r;});
       allData=[...rawData,...sheetData];
       filteredData=[...allData];
       renderOverview();renderDetail();
@@ -658,6 +880,7 @@ function applyFilter(){
   const yr=parseInt(document.getElementById("fYear").value)||null;
   const emp=document.getElementById("fEmployee").value;
   const st=document.getElementById("fStatus").value;
+  ovCurrentEmp=emp||null;
   filteredData=allData.filter(r=>{
     if(mo&&r.month!==mo)return false;
     if(yr&&r.year!==yr)return false;
@@ -667,12 +890,16 @@ function applyFilter(){
     return true;
   });
   renderOverview();
+  renderOvDetail();
 }
 function clearFilter(){
   ["fFrom","fTo","fMonth","fYear"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("fEmployee").value="";
   document.getElementById("fStatus").value="";
-  filteredData=[...allData];renderOverview();
+  ovCurrentEmp=null;
+  filteredData=[...allData];
+  renderOverview();
+  renderOvDetail();
 }
 
 function calcEmployeeStats(data){
@@ -723,7 +950,8 @@ function renderOverview(){
     const [bg,fg]=avatarColor(s.name);
     const rc=i===0?"rank-1":i===1?"rank-2":i===2?"rank-3":"rank-n";
     const bc=p>=80?"#22c55e":p>=50?"#4f9cf9":"#ef4444";
-    rt+=`<tr style="cursor:pointer;" onclick="openPanel('${s.name}')">
+    const isSelected=ovCurrentEmp===s.name;
+    rt+=`<tr style="cursor:pointer;${isSelected?'background:rgba(79,156,249,0.08);outline:1px solid rgba(79,156,249,0.3);':''}" onclick="selectEmployee('${s.name.replace(/'/g,"\\'")}')" title="Nhấn để xem danh sách công việc chi tiết">
       <td><span class="rank ${rc}">${i+1}</span></td>
       <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar" style="background:${bg};color:${fg};">${getInitials(s.name)}</div><div><div style="font-weight:500;">${s.name}</div><div style="font-size:11px;color:var(--muted);">${s.ma}</div></div></div></td>
       <td style="color:var(--muted);font-size:12px;">${s.vi_tri}</td>
@@ -804,46 +1032,120 @@ function renderManager(){
   const mEmp=document.getElementById("mEmployee").value;
   const mFr=document.getElementById("mFrom").value;
   const mTo2=document.getElementById("mTo").value;
+  const mWk=parseInt(document.getElementById("mWeek").value)||null;
   const mMo=parseInt(document.getElementById("mMonth").value)||null;
   let data=allData.filter(r=>{
     if(mEmp&&r.nv!==mEmp)return false;
+    if(mWk&&r.week!==mWk)return false;
     if(mMo&&r.month!==mMo)return false;
     if(mFr||mTo2){const rd=getRowDate(r);if(rd){if(mFr&&rd<mFr)return false;if(mTo2&&rd>mTo2)return false;}}
     return true;
   });
   const stats=calcEmployeeStats(data);
-  const names=stats.map(s=>s.name.split(" ").slice(-2).join(" "));
-  const dones=stats.map(s=>s.done);
-  const progs=stats.map(s=>s.prog);
-  const pcts=stats.map(s=>s.total?Math.round(s.done/s.total*100):0);
-  if(chartMgr1)chartMgr1.destroy();
-  chartMgr1=new Chart(document.getElementById("chartMgr1"),{type:"bar",data:{labels:names,datasets:[{label:"Hoàn thành",data:dones,backgroundColor:"rgba(34,197,94,0.7)",borderRadius:4},{label:"Đang TH",data:progs,backgroundColor:"rgba(79,156,249,0.5)",borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#7b8199",boxWidth:10,font:{size:11}}}},scales:{x:{stacked:true,ticks:{color:"#7b8199",font:{size:9}},grid:{display:false}},y:{stacked:true,ticks:{color:"#7b8199"},grid:{color:"rgba(255,255,255,0.04)"}}}}});
-  if(chartMgr2)chartMgr2.destroy();
-  const bc=pcts.map(p=>p>=80?"rgba(34,197,94,0.7)":p>=50?"rgba(79,156,249,0.7)":"rgba(239,68,68,0.7)");
-  chartMgr2=new Chart(document.getElementById("chartMgr2"),{type:"bar",data:{labels:names,datasets:[{label:"Hiệu suất %",data:pcts,backgroundColor:bc,borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#7b8199",font:{size:9}},grid:{display:false}},y:{ticks:{color:"#7b8199",callback:v=>v+"%"},grid:{color:"rgba(255,255,255,0.04)"},min:0,max:100}}}});
-  const groupVols={};
-  for(const r of data){if((r.volume||0)>0){if(!groupVols[r.group])groupVols[r.group]=[];groupVols[r.group].push(r.volume);}}
-  const groupAvg={};for(const g in groupVols){groupAvg[g]=groupVols[g].reduce((a,v)=>a+v,0)/groupVols[g].length;}
+  // ── Số liệu tổng hợp ──
+  const mTotal=data.length;
+  const mDone=data.filter(r=>r.status==="Hoàn thành").length;
+  const mProg=data.filter(r=>r.status==="Đang thực hiện").length;
+  const mNot=mTotal-mDone-mProg;
+  const mPct=mTotal?Math.round(mDone/mTotal*100):0;
+  const mDays=data.reduce((a,r)=>a+(r.days||0),0);
+  const mVal=data.reduce((a,r)=>a+(r.value||0),0);
+  const mPctColor=mPct>=80?"var(--success)":mPct>=50?"var(--accent)":"var(--danger)";
+  document.getElementById("mgrStatsGrid").innerHTML=`
+    <div class="stat-card s-blue"><div class="stat-label">Tổng công việc</div><div class="stat-value">${mTotal}</div><div class="stat-sub">${stats.length} nhân viên</div></div>
+    <div class="stat-card s-green"><div class="stat-label">Hoàn thành</div><div class="stat-value">${mDone}</div><div class="stat-sub">${mTotal?Math.round(mDone/mTotal*100):0}% tỷ lệ</div></div>
+    <div class="stat-card"><div class="stat-label">Đang thực hiện</div><div class="stat-value" style="color:#60a5fa;">${mProg}</div><div class="stat-sub">${mTotal?Math.round(mProg/mTotal*100):0}%</div></div>
+    <div class="stat-card s-red"><div class="stat-label">Chưa hoàn thành</div><div class="stat-value">${mNot}</div></div>
+    <div class="stat-card"><div class="stat-label">Hiệu suất chung</div><div class="stat-value" style="color:${mPctColor};">${mPct}%</div><div class="stat-sub">${mDone}/${mTotal} CV</div></div>
+    <div class="stat-card s-purple"><div class="stat-label">Tổng ngày TH</div><div class="stat-value">${mDays}</div><div class="stat-sub">ngày công</div></div>
+    <div class="stat-card s-teal"><div class="stat-label">Tổng giá trị</div><div class="stat-value">${fmtVal(mVal)}</div><div class="stat-sub">VNĐ</div></div>
+  `;
+  // ── Bảng so sánh nhân viên ──
+  const breakdownEl=document.getElementById("mgrEmpBreakdown");
+  const breakdownBody=document.getElementById("mgrEmpBreakdownBody");
+  if(stats.length>1){
+    breakdownEl.style.display="block";
+    let brows="";
+    stats.forEach((s,i)=>{
+      const p=s.total?Math.round(s.done/s.total*100):0;
+      const bc2=p>=80?"var(--success)":p>=50?"var(--accent)":"var(--danger)";
+      brows+=`<tr>
+        <td><span class="rank rank-${i<3?i+1:"n"}">${i+1}</span></td>
+        <td style="font-weight:500;white-space:nowrap;">${s.name}</td>
+        <td style="font-size:12px;color:var(--muted);">${s.vi_tri}</td>
+        <td style="text-align:center;font-weight:700;">${s.total}</td>
+        <td style="text-align:center;color:var(--success);font-weight:600;">${s.done}</td>
+        <td style="text-align:center;color:#60a5fa;">${s.prog}</td>
+        <td style="text-align:center;color:var(--danger);">${s.notdone||0}</td>
+        <td style="text-align:center;color:var(--muted);">${s.days}</td>
+        <td style="text-align:right;color:#2dd4bf;font-weight:500;">${fmtVal(s.totalValue)}</td>
+        <td><div style="display:flex;align-items:center;gap:8px;min-width:110px;">
+          <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;border-radius:3px;width:${p}%;background:${bc2};transition:width .4s;"></div>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:${bc2};min-width:34px;">${p}%</span>
+        </div></td>
+      </tr>`;
+    });
+    breakdownBody.innerHTML=brows;
+  }else{
+    breakdownEl.style.display="none";
+  }
+  const groupDayBuckets={};
+  for(const r of data){if((r.days||0)>0&&r.status==="Hoàn thành"){if(!groupDayBuckets[r.group])groupDayBuckets[r.group]=[];groupDayBuckets[r.group].push(r.days);}}
+  const groupDayAvg={};for(const g in groupDayBuckets){groupDayAvg[g]=groupDayBuckets[g].reduce((a,v)=>a+v,0)/groupDayBuckets[g].length;}
   let at="";
   const sorted=[...data].sort((a,b)=>{const o={Hoàn:0,"Đang":1,"Chưa":2};const ka=a.status.slice(0,4),kb=b.status.slice(0,4);return(o[ka]??9)-(o[kb]??9)||a.nv.localeCompare(b.nv);});
   for(const r of sorted){
     const gi=GROUPS.indexOf(r.group);
-    const rd=getRowDate(r);
-    const [evalLbl,evalClr,evalBg]=evalVolume(r,groupAvg);
+    const rdStart=getRowDate(r);
+    const rdEnd=r.endDate||(r.end>0?excelDateToYmd(r.end):"");
+    const [evalLbl,evalClr,evalBg,isOverride]=evalTask(r,groupDayAvg);
     const rowBg=r.status==="Chưa hoàn thành"?"background:rgba(239,68,68,0.05);":r.status==="Đang thực hiện"?"background:rgba(59,130,246,0.04);":"";
+    const overrideDot=isOverride?`<span title="Quản lý đã điền" style="margin-left:4px;color:#a78bfa;font-size:9px;">★</span>`:"";
     at+=`<tr style="${rowBg}">
       <td style="font-weight:500;white-space:nowrap;">${r.nv.split(" ").slice(-2).join(" ")}</td>
-      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(rd)}</td>
-      <td style="font-size:12px;max-width:200px;">${r.job}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(rdStart)}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(rdEnd)}</td>
+      <td style="text-align:center;font-size:12px;color:var(--muted);">${r.days||"—"}</td>
+      <td style="font-size:12px;max-width:180px;">${r.job}</td>
       <td><span class="grp-tag grp-${gi<0?0:gi}">${r.group}</span></td>
       <td style="text-align:right;font-size:12px;">${r.volume||"—"}</td>
-      <td style="text-align:right;font-size:12px;color:#2dd4bf;">${r.value>1?fmtVal(r.value):"—"}</td>
+      <td style="text-align:right;font-size:12px;color:#2dd4bf;white-space:nowrap;">${r.value>1?fmtVND(r.value):"—"}</td>
       <td>${statusBadge(r.status)}</td>
-      <td><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:${evalBg};color:${evalClr};">${evalLbl}</span></td>
+      <td><span onclick="showEvalPicker(event,${r._uid})" title="Click để thay đổi đánh giá" style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:${evalBg};color:${evalClr};cursor:pointer;user-select:none;">${evalLbl}${overrideDot}</span></td>
       <td style="font-size:11px;color:var(--muted2);max-width:180px;">${r.result||"—"}</td>
+      <td style="font-size:11px;color:var(--muted2);max-width:160px;">${r.suggest||"—"}</td>
     </tr>`;
   }
-  document.getElementById("alertTable").innerHTML=at||'<tr><td colspan="9" class="empty">Không có dữ liệu</td></tr>';
+  document.getElementById("alertTable").innerHTML=at||'<tr><td colspan="12" class="empty">Không có dữ liệu</td></tr>';
+
+  // ── Tổng hợp theo hạng mục ──
+  const sumMap={};
+  for(const r of data){
+    const key=r.group+"|||"+r.job;
+    if(!sumMap[key])sumMap[key]={group:r.group,job:r.job,count:0,vol:0,value:0,days:0};
+    sumMap[key].count++;
+    sumMap[key].vol+=r.volume||0;
+    sumMap[key].value+=r.value||0;
+    sumMap[key].days+=r.days||0;
+  }
+  const sumRows=Object.values(sumMap).sort((a,b)=>GROUPS.indexOf(a.group)-GROUPS.indexOf(b.group)||a.job.localeCompare(b.job));
+  let st="";
+  for(const s of sumRows){
+    const gi=GROUPS.indexOf(s.group);
+    const countStyle=s.count>1?`color:#fbbf24;font-weight:700;`:`color:var(--muted);`;
+    st+=`<tr>
+      <td><span class="grp-tag grp-${gi<0?0:gi}">${s.group}</span></td>
+      <td style="font-size:12px;">${s.job}</td>
+      <td style="text-align:center;font-size:13px;${countStyle}">${s.count}×</td>
+      <td style="text-align:right;font-size:12px;">${s.vol||"—"}</td>
+      <td style="text-align:right;font-size:12px;color:#2dd4bf;white-space:nowrap;">${s.value>1?fmtVND(s.value):"—"}</td>
+      <td style="text-align:center;font-size:12px;color:var(--muted);">${s.days||"—"}</td>
+    </tr>`;
+  }
+  document.getElementById("summaryTable").innerHTML=st||'<tr><td colspan="6" class="empty">Không có dữ liệu</td></tr>';
+
   let ct="";
   stats.forEach((s,i)=>{
     const p=s.total?Math.round(s.done/s.total*100):0;
@@ -886,9 +1188,9 @@ async function exportManagerReport(){
     return true;
   });
   const stats=calcEmployeeStats(exportData);
-  const groupVols={};
-  for(const r of exportData){if((r.volume||0)>0){if(!groupVols[r.group])groupVols[r.group]=[];groupVols[r.group].push(r.volume);}}
-  const groupAvg={};for(const g in groupVols){groupAvg[g]=groupVols[g].reduce((a,v)=>a+v,0)/groupVols[g].length;}
+  const groupDayBucketsExp={};
+  for(const r of exportData){if((r.days||0)>0&&r.status==="Hoàn thành"){if(!groupDayBucketsExp[r.group])groupDayBucketsExp[r.group]=[];groupDayBucketsExp[r.group].push(r.days);}}
+  const groupAvg={};for(const g in groupDayBucketsExp){groupAvg[g]=groupDayBucketsExp[g].reduce((a,v)=>a+v,0)/groupDayBucketsExp[g].length;}
 
   const wb=XLSX.utils.book_new();
   const now=new Date();
@@ -927,7 +1229,7 @@ async function exportManagerReport(){
   ];
   const sorted2=[...exportData].sort((a,b)=>a.nv.localeCompare(b.nv)||(getRowDate(a)||"").localeCompare(getRowDate(b)||""));
   sorted2.forEach((r,i)=>{
-    const [evalLbl]=evalVolume(r,groupAvg);
+    const [evalLbl]=evalTask(r,groupAvg);
     ws2Data.push([i+1,r.nv,fmtDate(getRowDate(r)),r.group,r.job,r.volume||0,r.value||0,r.days||0,r.status,evalLbl,r.result||""]);
   });
   const ws2=XLSX.utils.aoa_to_sheet(ws2Data);
@@ -1096,7 +1398,7 @@ async function submitReport(){
     const res=await fetch(window.API_URL||API_URL,{method:"POST",body:JSON.stringify({secret:SECRET,action:"add",data:{...r,startDate:document.getElementById("fi_start").value,endDate:document.getElementById("fi_end").value}})});
     const j=await res.json();
     if(j.ok){
-      r.id=j.id;sheetData.push(r);allData=[...rawData,...sheetData];filteredData=[...allData];
+      r.id=j.id;r._uid=++_uidSeq;r.klEval="";sheetData.push(r);allData=[...rawData,...sheetData];filteredData=[...allData];
       populateDropdowns();renderOverview();renderDetail();
       resetForm();showToast("✅ Đã lưu báo cáo thành công!");switchTab("overview");
     }else{showToast("❌ Lỗi: "+j.error,"#ef4444");}
@@ -1123,6 +1425,8 @@ function populateDropdowns(){
   if(empSel){empSel.innerHTML='<option value="">-- Chọn nhân viên --</option>';EMPLOYEES.forEach(e=>empSel.innerHTML+=`<option value="${e.name}">${e.name} — ${e.vi_tri}</option>`);}
   const dg=document.getElementById("dGroup");
   if(dg){dg.innerHTML='<option value="">Tất cả nhóm</option>';GROUPS.forEach(g=>dg.innerHTML+=`<option value="${g}">${g}</option>`);}
+  const fg=document.getElementById("fi_group");
+  if(fg){const cur=fg.value;fg.innerHTML='<option value="">-- Chọn nhóm --</option>';GROUPS.forEach(g=>fg.innerHTML+=`<option value="${g}"${g===cur?" selected":""}>${g}</option>`);}
 }
 
 function loadSettings(){
@@ -1179,7 +1483,7 @@ function switchTab(tab){
   document.querySelectorAll(".tab-btn")[tabs.indexOf(tab)].classList.add("active");
   if(tab==="manager")renderManager();
   if(tab==="detail")renderDetail();
-  if(tab==="settings")loadSettings();
+  if(tab==="settings"){loadSettings();loadConfigUI();}
 }
 
 function clock(){document.getElementById("clock").textContent=new Date().toLocaleString("vi-VN",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});}
@@ -1199,10 +1503,333 @@ setInterval(clock,1000);clock();
   const savedSecret=localStorage.getItem("api_secret");
   if(savedUrl)window.API_URL=savedUrl;
   if(savedSecret)window.API_SECRET=savedSecret;
+  try{
+    const sg=localStorage.getItem("cfg_groups");
+    const se=localStorage.getItem("cfg_employees");
+    const sj=localStorage.getItem("cfg_jobs");
+    if(sg)GROUPS=JSON.parse(sg);
+    if(se)EMPLOYEES=JSON.parse(se);
+    if(sj)JOB_CATALOG=JSON.parse(sj);
+  }catch(e){}
 })();
 populateDropdowns();
 renderOverview();
 loadFromSheet();
+
+// ════════════════════════════════════════════════
+//  CHI TIẾT NHÂN VIÊN & CHỈNH SỬA CÔNG VIỆC
+// ════════════════════════════════════════════════
+
+function selectEmployee(name){
+  ovCurrentEmp=name;
+  const sel=document.getElementById("fEmployee");
+  if(sel)sel.value=name;
+  // Không lọc filteredData theo người — chỉ highlight row và show detail
+  renderOverview(); // re-render để highlight row
+  renderOvDetail();
+  setTimeout(()=>{const el=document.getElementById("ovEmpDetail");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},80);
+}
+
+function renderOvDetail(){
+  const section=document.getElementById("ovEmpDetail");
+  if(!section)return;
+  const name=ovCurrentEmp;
+  if(!name){section.style.display="none";return;}
+  section.style.display="block";
+
+  // Populate nhóm filter (once)
+  const grpSel=document.getElementById("ovDetailGroup");
+  if(grpSel&&grpSel.options.length<=1){
+    GROUPS.forEach(g=>grpSel.innerHTML+=`<option value="${g}">${g}</option>`);
+  }
+
+  const stFlt=document.getElementById("ovDetailStatus")?.value||"";
+  const grpFlt=document.getElementById("ovDetailGroup")?.value||"";
+
+  // Lấy toàn bộ CV của người này (từ allData, không bị filter thời gian)
+  const empJobs=allData.filter(r=>r.nv===name);
+  let displayJobs=[...empJobs];
+  if(stFlt)displayJobs=displayJobs.filter(r=>r.status===stFlt);
+  if(grpFlt)displayJobs=displayJobs.filter(r=>r.group===grpFlt);
+
+  const st=calcEmployeeStats(empJobs)[0]||{total:0,done:0,prog:0,days:0,totalValue:0,vi_tri:""};
+  const p=st.total?Math.round(st.done/st.total*100):0;
+  const bc=p>=80?"#22c55e":p>=50?"#4f9cf9":"#ef4444";
+
+  document.getElementById("ovEmpDetailTitle").innerHTML=
+    `Chi tiết công việc — <span style="color:var(--accent);">${name}</span>`;
+  document.getElementById("ovEmpDetailSub").innerHTML=
+    `${st.vi_tri||""} &nbsp;·&nbsp; ${st.total} CV &nbsp;·&nbsp; `+
+    `<span style="color:var(--success);">${st.done} hoàn thành</span> &nbsp;·&nbsp; `+
+    `<span style="color:${bc};font-weight:600;">${p}% hiệu suất</span> &nbsp;·&nbsp; `+
+    `<span style="color:#2dd4bf;">${fmtVal(st.totalValue)}</span> tổng giá trị &nbsp;·&nbsp; `+
+    `hiển thị <b>${displayJobs.length}</b> / ${empJobs.length} CV`;
+
+  let rows="";
+  displayJobs.forEach((r,i)=>{
+    const idx=allData.indexOf(r);
+    const gi=GROUPS.indexOf(r.group);
+    const cls=gi>=0?`grp-${gi}`:"";
+    rows+=`<tr id="ov-row-${idx}" style="transition:background .2s;">
+      <td style="color:var(--muted);font-size:12px;text-align:center;">${i+1}</td>
+      <td><span class="grp-tag ${cls}" style="font-size:10px;white-space:nowrap;">${r.group}</span></td>
+      <td style="font-size:13px;font-weight:500;min-width:160px;">${r.job}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td style="text-align:center;color:var(--muted2);">${r.volume||"—"}</td>
+      <td style="text-align:right;color:#2dd4bf;font-weight:500;">${fmtVal(r.value)}</td>
+      <td style="text-align:center;color:var(--muted);">${r.days||"—"}</td>
+      <td style="font-size:11.5px;color:var(--muted);white-space:nowrap;">T${r.week}/T${r.month}/${r.year}</td>
+      <td style="max-width:240px;font-size:11.5px;color:var(--muted2);">${r.result||"—"}</td>
+      <td><button onclick="openEditModal(${idx})" style="background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);color:#60a5fa;border-radius:6px;padding:4px 11px;cursor:pointer;font-size:11.5px;white-space:nowrap;font-weight:500;">✏️ Sửa</button></td>
+    </tr>`;
+  });
+  document.getElementById("ovEmpDetailBody").innerHTML=rows||
+    '<tr><td colspan="10" class="empty">Không có công việc phù hợp</td></tr>';
+}
+
+function openEditModal(idx){
+  const r=allData[idx];
+  if(!r)return;
+  document.getElementById("edit_idx").value=idx;
+  document.getElementById("editModalSub").innerHTML=
+    `<span style="color:var(--accent);font-weight:600;">${r.nv}</span> &nbsp;·&nbsp; ${r.group}`;
+
+  // Populate nhóm
+  const grpSel=document.getElementById("edit_group");
+  grpSel.innerHTML=GROUPS.map(g=>`<option value="${g}"${g===r.group?" selected":""}>${g}</option>`).join('');
+
+  // Populate nội dung CV
+  editUpdateJobList(r.job);
+
+  document.getElementById("edit_status").value=r.status||"Hoàn thành";
+  document.getElementById("edit_volume").value=r.volume||"";
+  document.getElementById("edit_value").value=r.value||"";
+  document.getElementById("edit_start").value=excelDateToYmd(r.start)||r.startDate||"";
+  document.getElementById("edit_end").value=excelDateToYmd(r.end)||r.endDate||"";
+  document.getElementById("edit_days").value=r.days||"";
+  document.getElementById("edit_week").value=r.week||"";
+  document.getElementById("edit_month").value=r.month||"";
+  document.getElementById("edit_year").value=r.year||2026;
+  document.getElementById("edit_quy").value=r.quy||(r.month?Math.ceil(r.month/3):"");
+  document.getElementById("edit_result").value=r.result||"";
+  document.getElementById("edit_suggest").value=r.suggest||"";
+
+  document.getElementById("editModal").style.display="flex";
+}
+
+function editUpdateJobList(selectedJob){
+  const g=document.getElementById("edit_group").value;
+  const sel=document.getElementById("edit_job");
+  const jobs=JOB_CATALOG[g]||[];
+  const cur=selectedJob||sel.value;
+  sel.innerHTML=jobs.map(j=>`<option value="${j}"${j===cur?" selected":""}>${j}</option>`).join('');
+  // Nếu không có trong catalog, vẫn giữ giá trị cũ
+  if(!sel.value&&cur){sel.innerHTML+=`<option value="${cur}" selected>${cur}</option>`;}
+}
+
+function closeEditModal(){
+  document.getElementById("editModal").style.display="none";
+}
+
+async function saveEdit(){
+  const idx=parseInt(document.getElementById("edit_idx").value);
+  const r=allData[idx];
+  if(!r){showToast("❌ Không tìm thấy dữ liệu","#ef4444");return;}
+  const btn=document.querySelector("#editModal .btn-primary");
+  if(btn){btn.disabled=true;btn.textContent="⏳ Đang lưu...";}
+  const month=parseInt(document.getElementById("edit_month").value)||r.month;
+
+  // Cập nhật in-memory
+  r.group=document.getElementById("edit_group").value||r.group;
+  r.job=document.getElementById("edit_job").value||r.job;
+  r.status=document.getElementById("edit_status").value;
+  r.volume=parseFloat(document.getElementById("edit_volume").value)||0;
+  r.value=parseFloat((document.getElementById("edit_value").value||"0").replace(/[^0-9.]/g,""))||0;
+  r.days=parseInt(document.getElementById("edit_days").value)||0;
+  r.week=parseInt(document.getElementById("edit_week").value)||r.week;
+  r.month=month;
+  r.year=parseInt(document.getElementById("edit_year").value)||r.year;
+  r.quy=Math.ceil(month/3);
+  r.result=document.getElementById("edit_result").value;
+  r.suggest=document.getElementById("edit_suggest").value;
+  r.startDate=document.getElementById("edit_start").value;
+  r.endDate=document.getElementById("edit_end").value;
+
+  // Nếu là bản ghi từ Sheet có ID thì thử update lên Sheet
+  if(r.fromSheet&&r.id){
+    try{
+      const res=await fetch(window.API_URL||API_URL,{method:"POST",
+        body:JSON.stringify({secret:window.API_SECRET||SECRET,action:"update",id:r.id,data:{...r}})});
+      const j=await res.json();
+      if(j.ok)showToast("✅ Đã cập nhật lên Google Sheet");
+      else showToast("✅ Lưu cục bộ thành công (Sheet: "+j.error+")","#f59e0b");
+    }catch(e){showToast("✅ Đã lưu cục bộ (mất kết nối Sheet)","#f59e0b");}
+  }else{
+    showToast("✅ Đã cập nhật công việc");
+  }
+
+  if(btn){btn.disabled=false;btn.textContent="💾 Lưu thay đổi";}
+  closeEditModal();
+  filteredData=[...allData];
+  renderOverview();
+  renderOvDetail();
+}
+
+// ════════════════════════════════════════════════
+//  QUẢN LÝ DANH MỤC (Nhân viên / Nhóm / Công việc)
+// ════════════════════════════════════════════════
+function saveConfigData(){
+  localStorage.setItem("cfg_groups",JSON.stringify(GROUPS));
+  localStorage.setItem("cfg_employees",JSON.stringify(EMPLOYEES));
+  localStorage.setItem("cfg_jobs",JSON.stringify(JOB_CATALOG));
+  populateDropdowns();
+}
+
+function loadConfigUI(){
+  renderCfgEmployees();
+  renderCfgGroups();
+  const grpSel=document.getElementById("cfg-job-grp");
+  if(!grpSel)return;
+  const cur=grpSel.value;
+  grpSel.innerHTML=GROUPS.map(g=>`<option value="${g}"${g===cur?" selected":""}>${g}</option>`).join('');
+  if(!grpSel.value&&GROUPS.length)grpSel.value=GROUPS[0];
+  renderCfgJobList();
+}
+
+/* ── NHÂN VIÊN ── */
+function renderCfgEmployees(){
+  const tbody=document.getElementById("cfg-emp-body");
+  if(!tbody)return;
+  if(!EMPLOYEES.length){
+    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">Chưa có nhân viên nào</td></tr>';
+    return;
+  }
+  tbody.innerHTML=EMPLOYEES.map((e,i)=>`
+    <tr>
+      <td style="color:var(--muted);font-size:12px;text-align:center;">${i+1}</td>
+      <td style="font-weight:500;">${e.name}</td>
+      <td style="font-family:monospace;font-size:12px;color:var(--muted2);">${e.ma}</td>
+      <td style="color:var(--muted2);font-size:12px;">${e.vi_tri}</td>
+      <td><button onclick="deleteEmployee(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px;white-space:nowrap;">Xóa</button></td>
+    </tr>`).join('');
+}
+
+function addEmployee(){
+  const name=document.getElementById("cfg-emp-name").value.trim();
+  const ma=document.getElementById("cfg-emp-ma").value.trim();
+  const vi_tri=document.getElementById("cfg-emp-vitri").value.trim()||"Kế toán viên";
+  if(!name||!ma){showToast("⚠️ Vui lòng nhập Họ tên và Mã NV","#f59e0b");return;}
+  if(EMPLOYEES.find(e=>e.ma===ma)){showToast("⚠️ Mã NV này đã tồn tại","#f59e0b");return;}
+  EMPLOYEES.push({name,ma,vi_tri});
+  saveConfigData();
+  renderCfgEmployees();
+  document.getElementById("cfg-emp-name").value="";
+  document.getElementById("cfg-emp-ma").value="";
+  document.getElementById("cfg-emp-vitri").value="";
+  showToast("✅ Đã thêm: "+name);
+}
+
+function deleteEmployee(idx){
+  const e=EMPLOYEES[idx];
+  if(!confirm(`Xóa nhân viên "${e.name}" (${e.ma})?`))return;
+  EMPLOYEES.splice(idx,1);
+  saveConfigData();
+  renderCfgEmployees();
+  showToast("✅ Đã xóa: "+e.name);
+}
+
+/* ── NHÓM VIỆC ── */
+function renderCfgGroups(){
+  const wrap=document.getElementById("cfg-group-list");
+  if(!wrap)return;
+  if(!GROUPS.length){
+    wrap.innerHTML='<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px;">Chưa có nhóm nào</div>';
+    return;
+  }
+  wrap.innerHTML=GROUPS.map((g,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;">
+      <span style="width:10px;height:10px;border-radius:50%;background:${GRP_COLORS[i%GRP_COLORS.length]};flex-shrink:0;"></span>
+      <span style="flex:1;font-size:13px;">${g}</span>
+      <span style="font-size:11px;color:var(--muted);">${(JOB_CATALOG[g]||[]).length} CV</span>
+      <button onclick="deleteGroup(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px;white-space:nowrap;">Xóa</button>
+    </div>`).join('');
+}
+
+function addGroup(){
+  const name=document.getElementById("cfg-grp-name").value.trim();
+  if(!name){showToast("⚠️ Vui lòng nhập tên nhóm","#f59e0b");return;}
+  if(GROUPS.includes(name)){showToast("⚠️ Nhóm này đã tồn tại","#f59e0b");return;}
+  GROUPS.push(name);
+  if(!JOB_CATALOG[name])JOB_CATALOG[name]=[];
+  saveConfigData();
+  renderCfgGroups();
+  document.getElementById("cfg-grp-name").value="";
+  const grpSel=document.getElementById("cfg-job-grp");
+  if(grpSel){grpSel.innerHTML=GROUPS.map(g=>`<option value="${g}">${g}</option>`).join('');grpSel.value=name;renderCfgJobList();}
+  showToast("✅ Đã thêm nhóm: "+name);
+}
+
+function deleteGroup(idx){
+  const g=GROUPS[idx];
+  const jobCount=(JOB_CATALOG[g]||[]).length;
+  const msg=jobCount?`Xóa nhóm "${g}"?\n(Kèm theo ${jobCount} nội dung công việc thuộc nhóm này)`:`Xóa nhóm "${g}"?`;
+  if(!confirm(msg))return;
+  GROUPS.splice(idx,1);
+  delete JOB_CATALOG[g];
+  saveConfigData();
+  renderCfgGroups();
+  const grpSel=document.getElementById("cfg-job-grp");
+  if(grpSel){
+    grpSel.innerHTML=GROUPS.map(g=>`<option value="${g}">${g}</option>`).join('');
+    if(GROUPS.length)grpSel.value=GROUPS[0];
+    renderCfgJobList();
+  }
+  showToast("✅ Đã xóa nhóm: "+g);
+}
+
+/* ── NỘI DUNG CÔNG VIỆC ── */
+function renderCfgJobList(){
+  const grp=document.getElementById("cfg-job-grp")?.value;
+  const wrap=document.getElementById("cfg-job-list");
+  if(!wrap)return;
+  const jobs=(JOB_CATALOG[grp]||[]);
+  if(!jobs.length){
+    wrap.innerHTML='<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px;">Chưa có nội dung công việc nào</div>';
+    return;
+  }
+  wrap.innerHTML=jobs.map((j,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;">
+      <span style="color:var(--muted);font-size:11px;min-width:24px;text-align:right;">${i+1}.</span>
+      <span style="flex:1;font-size:13px;">${j}</span>
+      <button onclick="deleteJob(${i})" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px;white-space:nowrap;">Xóa</button>
+    </div>`).join('');
+}
+
+function addJob(){
+  const grp=document.getElementById("cfg-job-grp")?.value;
+  const name=document.getElementById("cfg-job-name").value.trim();
+  if(!grp){showToast("⚠️ Vui lòng chọn nhóm","#f59e0b");return;}
+  if(!name){showToast("⚠️ Vui lòng nhập tên công việc","#f59e0b");return;}
+  if(!JOB_CATALOG[grp])JOB_CATALOG[grp]=[];
+  if(JOB_CATALOG[grp].includes(name)){showToast("⚠️ Nội dung này đã tồn tại","#f59e0b");return;}
+  JOB_CATALOG[grp].push(name);
+  saveConfigData();
+  renderCfgJobList();
+  renderCfgGroups();
+  document.getElementById("cfg-job-name").value="";
+  showToast("✅ Đã thêm: "+name);
+}
+
+function deleteJob(idx){
+  const grp=document.getElementById("cfg-job-grp")?.value;
+  const j=JOB_CATALOG[grp][idx];
+  if(!confirm(`Xóa nội dung công việc:\n"${j}"?`))return;
+  JOB_CATALOG[grp].splice(idx,1);
+  saveConfigData();
+  renderCfgJobList();
+  renderCfgGroups();
+  showToast("✅ Đã xóa: "+j);
+}
 </script>
 </body>
 </html>
