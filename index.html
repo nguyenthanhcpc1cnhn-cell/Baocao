@@ -508,6 +508,7 @@ textarea{resize:vertical;min-height:70px;}
 <div id="tab-manager" class="section-tab">
 <div class="main">
   <div class="filter-bar">
+    <div class="fgroup" id="mBranchRow"><label>Chi nhánh:</label><select id="mBranch" onchange="updateMBranchFilter()"><option value="">Tất cả</option></select></div>
     <div class="fgroup"><label>Nhân viên:</label><select id="mEmployee" onchange="renderManager()"><option value="">Tất cả</option></select></div>
     <div class="fgroup"><label>Từ ngày:</label><input type="date" id="mFrom" onchange="renderManager()"></div>
     <div class="fgroup"><label>Đến ngày:</label><input type="date" id="mTo" onchange="renderManager()"></div>
@@ -1290,6 +1291,7 @@ function renderDetail(){
 function sortDetail(col){if(detailSort.col===col)detailSort.dir*=-1;else{detailSort.col=col;detailSort.dir=1;}renderDetail();}
 
 function renderManager(){
+  const mBranch=document.getElementById("mBranch")?.value||"";
   const mEmp=document.getElementById("mEmployee").value;
   const mFr=document.getElementById("mFrom").value;
   const mTo2=document.getElementById("mTo").value;
@@ -1297,7 +1299,9 @@ function renderManager(){
   const mMo=parseInt(document.getElementById("mMonth").value)||null;
   const mGrp=document.getElementById("mGroup")?.value||"";
   const mJobF=document.getElementById("mJob")?.value||"";
+  const branchEmpNames=mBranch?new Set(EMPLOYEES.filter(e=>(e.branch||"Hội sở")===mBranch).map(e=>e.name)):null;
   let data=getBaseData().filter(r=>{
+    if(branchEmpNames&&!branchEmpNames.has(r.nv))return false;
     if(mEmp&&r.nv!==mEmp)return false;
     if(mWk&&r.week!==mWk)return false;
     if(mMo&&r.month!==mMo)return false;
@@ -1673,7 +1677,7 @@ async function submitReport(){
     const res=await fetch(window.API_URL||API_URL,{method:"POST",body:JSON.stringify({secret:SECRET,action:"add",data:{...r}})});
     const j=await res.json();
     if(j.ok){
-      r.id=j.id;r._uid=++_uidSeq;r.klEval="";sheetData.push(r);allData=[...rawData,...sheetData];filteredData=[...allData];
+      r.id=j.id;r._uid=++_uidSeq;r.klEval="";sheetData.push(r);allData=[...rawData,...sheetData];filteredData=[...getBaseData()];
       populateDropdowns();renderOverview();renderDetail();
       resetForm();showToast("✅ Đã lưu báo cáo thành công!");switchTab("overview");
     }else{showToast("❌ Lỗi: "+j.error,"#ef4444");}
@@ -1878,6 +1882,16 @@ function updateMJobList(){
   jobEl.innerHTML='<option value="">Tất cả</option>';
   const jobs=grp?(JOB_CATALOG[grp]||[]):[...new Set(Object.values(JOB_CATALOG).flat())];
   jobs.forEach(j=>jobEl.innerHTML+=`<option value="${j}"${j===prev?" selected":""}>${j}</option>`);
+  renderManager();
+}
+function updateMBranchFilter(){
+  const branch=document.getElementById("mBranch").value;
+  const empSel=document.getElementById("mEmployee");
+  const prev=empSel.value;
+  const visibleEmps=branch?EMPLOYEES.filter(e=>(e.branch||"Hội sở")===branch):EMPLOYEES;
+  empSel.innerHTML='<option value="">Tất cả</option>';
+  visibleEmps.forEach(e=>empSel.innerHTML+=`<option value="${e.name}"${e.name===prev?" selected":""}>${e.name}</option>`);
+  if(branch&&prev&&!visibleEmps.find(e=>e.name===prev))empSel.value="";
   renderManager();
 }
 
@@ -2100,6 +2114,8 @@ function populateDropdowns(){
   if(fg){const cur=fg.value;fg.innerHTML='<option value="">-- Chọn nhóm --</option>';GROUPS.forEach(g=>fg.innerHTML+=`<option value="${g}"${g===cur?" selected":""}>${g}</option>`);}
   const mg=document.getElementById("mGroup");
   if(mg){const cur=mg.value;mg.innerHTML='<option value="">Tất cả nhóm</option>';GROUPS.forEach(g=>mg.innerHTML+=`<option value="${g}"${g===cur?" selected":""}>${g}</option>`);}
+  const mb=document.getElementById("mBranch");
+  if(mb){const cur=mb.value;mb.innerHTML='<option value="">Tất cả</option>';BRANCHES.forEach(b=>mb.innerHTML+=`<option value="${b}"${b===cur?" selected":""}>${b}</option>`);}
 }
 
 function loadSettings(){
@@ -2754,14 +2770,18 @@ function doLogout(){
 function applyRoleUI(){
   const tabs=document.querySelectorAll(".tab-btn");
   if(!currentUser)return;
+  const mbrRow=document.getElementById("mBranchRow");
   if(currentUser.role==="user"){
     if(tabs[3])tabs[3].style.display=""; // user thấy Góc quản lý để xem nhận xét
     if(tabs[4])tabs[4].style.display="none";
+    if(mbrRow)mbrRow.style.display="none"; // branch user không cần chọn chi nhánh
   }else if(currentUser.role==="manager"){
     if(tabs[3])tabs[3].style.display="";
     if(tabs[4])tabs[4].style.display="none";
+    if(mbrRow)mbrRow.style.display="";
   }else{
     tabs.forEach(t=>t.style.display="");
+    if(mbrRow)mbrRow.style.display="";
   }
 }
 function onAfterLogin(){
