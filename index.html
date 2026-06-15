@@ -1059,8 +1059,8 @@ let ovCurrentEmp=null;
 function fmtVal(v){if(!v||v<1000)return"—";if(v>=1e12)return(v/1e12).toFixed(1)+" NTỷ";if(v>=1e9)return(v/1e9).toFixed(1)+" Tỷ";if(v>=1e6)return(v/1e6).toFixed(1)+" Tr";return(v/1e3).toFixed(0)+" N";}
 function fmtVND(v){if(!v||v<1)return"—";return v.toLocaleString("vi-VN")+" ₫";}
 function excelDateToYmd(serial){if(!serial||serial<=0)return"";const d=new Date((serial-25569)*86400*1000);return d.toISOString().slice(0,10);}
-function getRowDate(r){return r.start>0?excelDateToYmd(r.start):(r.startDate||"");}
-function fmtDate(ymd){if(!ymd)return"—";const p=ymd.split("-");return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:"—";}
+function getRowDate(r){return r.start>0?excelDateToYmd(r.start):((r.startDate||"").split("T")[0]);}
+function fmtDate(ymd){if(!ymd)return"—";const d=ymd.split("T")[0];const p=d.split("-");return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:"—";}
 const EVAL_OPTIONS=[
   {key:"",lbl:"— Chưa đánh giá",clr:"var(--muted)",bg:"rgba(123,129,153,0.1)"},
   {key:"vuot",lbl:"⭐ Vượt KH",clr:"#fbbf24",bg:"rgba(245,158,11,0.15)"},
