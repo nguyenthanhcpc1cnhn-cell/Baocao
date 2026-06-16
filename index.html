@@ -143,6 +143,45 @@ textarea{resize:vertical;min-height:70px;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
 .section-divider{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+/* ══ KPI SYSTEM (Feature 1) ══ */
+.kpi-bar-wrap2{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:visible;position:relative;min-width:60px;}
+.kpi-bar-fill2{height:100%;border-radius:3px;transition:width .5s;}
+.kpi-bar-target-line{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--warning);border-radius:1px;z-index:2;}
+.kpi-gap-pos{background:rgba(34,197,94,.15);color:#4ade80;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;}
+.kpi-gap-neg{background:rgba(239,68,68,.15);color:#f87171;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;}
+/* ══ OVERDUE (Feature 4) ══ */
+.overdue-row td{background:rgba(239,68,68,.04)!important;}
+.overdue-badge{display:inline-flex;align-items:center;gap:3px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.4);color:#f87171;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700;}
+/* ══ NOTIFICATIONS (Feature 10) ══ */
+.notif-bell-wrap{position:relative;display:inline-flex;}
+.notif-bell-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:4px 9px;cursor:pointer;font-size:15px;display:flex;align-items:center;gap:3px;transition:background .15s;}
+.notif-bell-btn:hover{background:var(--bg2);}
+.notif-count-dot{position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;min-width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg2);padding:0 2px;pointer-events:none;}
+.notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:320px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:400;display:none;flex-direction:column;max-height:400px;overflow:hidden;}
+.notif-panel.open{display:flex;}
+.notif-panel-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;flex-shrink:0;}
+.notif-list{overflow-y:auto;flex:1;}
+.notif-item{padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px;transition:background .1s;}
+.notif-item:hover{background:var(--bg3);}
+.notif-item.unread{background:rgba(79,156,249,.06);}
+.notif-item-title{font-weight:600;margin-bottom:2px;}
+.notif-item-body{color:var(--muted2);font-size:11px;margin-bottom:2px;}
+.notif-item-time{color:var(--muted);font-size:10px;}
+/* ══ APPROVAL (Feature 9) ══ */
+.badge.apv-pending{background:rgba(245,158,11,.12);color:#fbbf24;}
+.badge.apv-approved{background:rgba(34,197,94,.12);color:#4ade80;}
+.badge.apv-rejected{background:rgba(239,68,68,.12);color:#f87171;}
+.badge.apv-revision{background:rgba(124,92,252,.12);color:#a78bfa;}
+/* ══ SUBMISSION TRACKER (Feature 7) ══ */
+.sub-tracker{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;}
+.sub-tracker-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.sub-bar-outer{height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;flex:1;margin:0 12px;}
+.sub-bar-inner{height:100%;background:var(--success);border-radius:4px;transition:width .4s;}
+/* ══ MONTHLY CHARTS (Feature 8) ══ */
+.period-tab{padding:4px 12px;font-size:11px;font-weight:600;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.period-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+/* ══ ASSIGN FIELDS (Feature 3) ══ */
+.assign-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);border-radius:5px;padding:2px 7px;font-size:11px;color:#a78bfa;font-weight:500;}
 /* ── ĐĂNG NHẬP ── */
 .login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;}
 .login-card{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:36px 40px;width:400px;max-width:94vw;}
@@ -215,6 +254,18 @@ textarea{resize:vertical;min-height:70px;}
       <span class="branch-badge" id="userChipBranch"></span>
       <button class="logout-btn" onclick="doLogout()">Đăng xuất</button>
     </div>
+    <!-- Notification bell (Feature 10) -->
+    <div class="notif-bell-wrap" id="notifBellWrap" style="display:none;">
+      <button class="notif-bell-btn" onclick="toggleNotifPanel(event)" title="Thông báo">🔔<span style="font-size:11px;font-weight:600;">TB</span></button>
+      <span class="notif-count-dot" id="notifCountDot" style="display:none;">0</span>
+      <div class="notif-panel" id="notifPanel">
+        <div class="notif-panel-head">
+          Thông báo
+          <button onclick="markAllRead(event)" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;font-weight:600;padding:0;">Đọc tất cả</button>
+        </div>
+        <div class="notif-list" id="notifList"><div class="empty" style="padding:20px;">Không có thông báo</div></div>
+      </div>
+    </div>
     <span id="clock" style="font-size:12px;color:var(--muted);"></span>
   </div>
 </div>
@@ -267,10 +318,35 @@ textarea{resize:vertical;min-height:70px;}
       <thead><tr>
         <th>#</th><th>Nhân viên</th><th>Vị trí</th>
         <th>Tổng CV</th><th>Hoàn thành</th><th>Đang TH</th>
-        <th>Tổng ngày</th><th>Tổng giá trị</th><th>Hiệu suất</th>
+        <th>Tổng ngày</th><th>Tổng giá trị</th><th>Hiệu suất</th><th>KPI so sánh</th>
+        <th title="Việc quản lý giao chưa hoàn thành">📋 Giao việc</th>
       </tr></thead>
       <tbody id="rankTable"></tbody>
     </table>
+    </div>
+  </div>
+
+  <!-- ═══ BIỂU ĐỒ THEO THÁNG (Feature 8) ═══ -->
+  <div class="table-card" style="margin-bottom:24px;">
+    <div class="table-header" style="flex-wrap:wrap;gap:10px;">
+      <div class="table-title">📅 Xu hướng theo tháng</div>
+      <div style="display:flex;gap:6px;">
+        <button class="period-tab active" onclick="setMonthPeriod(3,this)">3 tháng</button>
+        <button class="period-tab" onclick="setMonthPeriod(6,this)">6 tháng</button>
+        <button class="period-tab" onclick="setMonthPeriod(12,this)">12 tháng</button>
+      </div>
+    </div>
+    <div style="padding:16px 20px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Tổng CV / Hoàn thành theo tháng</div>
+          <div style="position:relative;height:180px;"><canvas id="chartMonthTask" aria-label="Biểu đồ CV theo tháng"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Tổng giá trị theo tháng (VNĐ)</div>
+          <div style="position:relative;height:180px;"><canvas id="chartMonthValue" aria-label="Biểu đồ giá trị theo tháng"></canvas></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -322,8 +398,48 @@ textarea{resize:vertical;min-height:70px;}
 <div id="tab-form" class="section-tab">
 <div class="main">
 
+  <!-- VIỆC ĐƯỢC GIAO (hiển thị cho nhân viên khi có việc được giao) -->
+  <div id="assignedTasksBanner" style="display:none;" class="form-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+      <div class="form-title" style="margin:0;">📋 Việc được giao — cần báo cáo</div>
+      <span id="assignedTasksCount" style="font-size:11px;font-weight:700;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;padding:3px 10px;border-radius:12px;"></span>
+    </div>
+    <div id="assignedTasksList" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
+  <!-- MANAGER: GIAO VIỆC PANEL (ẩn với user/admin) -->
+  <div id="managerAssignFormCard" class="form-card" style="display:none;">
+    <div class="form-title">📋 Giao việc cho nhân viên</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Tạo việc và giao trực tiếp — công việc tự xuất hiện trong báo cáo của nhân viên</div>
+    <div class="form-row">
+      <div><label>Chi nhánh / Văn phòng *</label><select id="fm_branch" onchange="fmUpdateNvByBranch()"><option value="">— Chọn chi nhánh —</option></select></div>
+      <div><label>Người giao việc</label><input type="text" id="fm_by" readonly></div>
+    </div>
+    <div class="form-row">
+      <div><label>Nhân viên nhận việc *</label><select id="fm_nv"><option value="">— Chọn chi nhánh trước —</option></select></div>
+      <div></div>
+    </div>
+    <div class="form-row">
+      <div><label>Nhóm công việc *</label><select id="fm_group" onchange="fmUpdateJobList()"><option value="">— Chọn nhóm —</option></select></div>
+      <div><label>Nội dung công việc *</label><select id="fm_job"><option value="">— Chọn công việc —</option></select></div>
+    </div>
+    <div class="form-row three">
+      <div><label>Ngày giao</label><input type="date" id="fm_date"></div>
+      <div><label>Deadline *</label><input type="date" id="fm_deadline" onchange="fmUpdateWeekDisplay()"></div>
+      <div><label>Kỳ báo cáo (tự tính)</label><div id="fm_week_display" style="padding:6px 10px;background:rgba(79,156,249,.08);border:1px solid rgba(79,156,249,.2);border-radius:6px;font-size:12px;color:var(--accent);font-weight:600;min-height:32px;display:flex;align-items:center;">— Chọn deadline</div></div>
+    </div>
+    <div class="form-row full">
+      <div><label>Yêu cầu / Mô tả chi tiết</label><textarea id="fm_note" rows="2" placeholder="Mô tả cụ thể yêu cầu, kết quả cần đạt..."></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="fmDoAssign()">📋 Giao việc</button>
+      <button class="btn btn-secondary" onclick="fmResetForm()">🔄 Làm mới</button>
+    </div>
+    <div id="fm_assignedList" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;display:none;"></div>
+  </div>
+
   <!-- Import hàng loạt -->
-  <div class="form-card">
+  <div id="formCardImport" class="form-card">
     <div class="form-title">📥 Nhập hàng loạt từ Excel</div>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
       <button class="btn btn-warning" onclick="downloadTemplate()">⬇️ Tải file mẫu Excel</button>
@@ -341,8 +457,14 @@ textarea{resize:vertical;min-height:70px;}
   </div>
 
   <!-- Nhập đơn lẻ -->
-  <div class="form-card">
-    <div class="form-title">📝 Nhập báo cáo đơn lẻ</div>
+  <div id="formCardReport" class="form-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <div class="form-title" style="margin:0;">📝 Nhập báo cáo đơn lẻ</div>
+      <!-- Feature 6: Sao chép công việc tuần trước -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="copyFromPrevWeek()" title="Sao chép công việc từ tuần trước của nhân viên đang chọn" style="font-size:12px;padding:6px 12px;">📋 Sao chép tuần trước</button>
+      </div>
+    </div>
     <div class="form-row">
       <div><label>Nhân viên *</label><select id="fi_employee" onchange="onEmployeeChange()"><option value="">-- Chọn nhân viên --</option></select></div>
       <div><label>Mã NV</label><input type="text" id="fi_maNV" readonly placeholder="Tự điền"></div>
@@ -353,11 +475,12 @@ textarea{resize:vertical;min-height:70px;}
       </div>
       <div></div>
     </div>
-    <div class="form-row four">
-      <div><label>Tuần</label><input type="number" id="fi_week" min="1" max="53" placeholder="1-53"></div>
-      <div><label>Tháng *</label><input type="number" id="fi_month" min="1" max="12" placeholder="1-12"></div>
-      <div><label>Năm *</label><input type="number" id="fi_year" value="2026"></div>
-      <div><label>Quý</label><input type="number" id="fi_quy" min="1" max="4" placeholder="Tự tính" readonly></div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Kỳ báo cáo <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;">(tự nhận biết từ ngày bắt đầu)</span></label>
+      <div id="fi_period_chip" style="display:inline-flex;align-items:center;gap:8px;background:rgba(79,156,249,.1);border:1px solid rgba(79,156,249,.3);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--accent);">
+        📅 — Chọn ngày bắt đầu để nhận biết kỳ báo cáo
+      </div>
+      <input type="hidden" id="fi_week"><input type="hidden" id="fi_month"><input type="hidden" id="fi_year" value="2026"><input type="hidden" id="fi_quy">
     </div>
     <div class="form-row">
       <div><label>Nhóm công việc *</label>
@@ -379,7 +502,7 @@ textarea{resize:vertical;min-height:70px;}
       <div><label>Giá trị (VNĐ)</label><input type="text" id="fi_value" placeholder="VD: 1,000,000"></div>
     </div>
     <div class="form-row three">
-      <div><label>Ngày bắt đầu</label><input type="date" id="fi_start" onchange="calcDays()"></div>
+      <div><label>Ngày bắt đầu</label><input type="date" id="fi_start" onchange="calcDays();autoDetectPeriod(this.value)"></div>
       <div><label>Ngày hoàn thành</label><input type="date" id="fi_end" onchange="calcDays()"></div>
       <div><label>Số ngày TH</label><input type="number" id="fi_days" placeholder="Tự tính"></div>
     </div>
@@ -388,6 +511,14 @@ textarea{resize:vertical;min-height:70px;}
     </div>
     <div class="form-row full">
       <div><label>Đề xuất / Hướng xử lý</label><textarea id="fi_suggest" placeholder="Đề xuất hoặc hướng xử lý tiếp theo..."></textarea></div>
+    </div>
+    <!-- Feature 3: Giao việc từ trưởng bộ phận -->
+    <div class="section-divider">Giao việc từ trưởng bộ phận <span style="font-size:10px;font-weight:400;color:var(--muted);">(không bắt buộc)</span></div>
+    <div class="form-row four">
+      <div><label>Người giao việc</label><input type="text" id="fi_assigner" placeholder="Họ tên người giao"></div>
+      <div><label>Ngày giao việc</label><input type="date" id="fi_assignDate"></div>
+      <div><label>Deadline hoàn thành ⚠️</label><input type="date" id="fi_deadline" title="Dùng để cảnh báo quá hạn"></div>
+      <div><label>Nội dung được giao</label><input type="text" id="fi_assignTask" placeholder="Mô tả ngắn..."></div>
     </div>
     <div class="section-divider">Đính kèm tài liệu</div>
     <div class="form-row">
@@ -464,9 +595,10 @@ textarea{resize:vertical;min-height:70px;}
 <div id="tab-detail" class="section-tab">
 <div class="main">
   <div class="filter-bar">
-    <div class="fgroup"><label>Tìm kiếm:</label><input type="text" id="dSearch" placeholder="Tìm tên, nội dung..." style="width:200px;" oninput="renderDetail()"></div>
-    <div class="fgroup"><label>Nhân viên:</label><select id="dEmployee" onchange="renderDetail()"><option value="">Tất cả</option></select></div>
-    <div class="fgroup"><label>Nhóm:</label><select id="dGroup" onchange="renderDetail()"><option value="">Tất cả nhóm</option></select></div>
+    <div class="fgroup"><label>Từ ngày:</label><input type="date" id="dFrom" onchange="renderDetail()"></div>
+    <div class="fgroup"><label>Đến ngày:</label><input type="date" id="dTo" onchange="renderDetail()"></div>
+    <input type="hidden" id="dMonth"><input type="hidden" id="dYear">
+    <div class="fgroup"><label>Tìm kiếm:</label><input type="text" id="dSearch" placeholder="Tìm nội dung..." style="width:160px;" oninput="renderDetail()"></div>
     <div class="fgroup"><label>Trạng thái:</label>
       <select id="dStatus" onchange="renderDetail()">
         <option value="">Tất cả</option>
@@ -475,32 +607,16 @@ textarea{resize:vertical;min-height:70px;}
         <option value="Chưa hoàn thành">❌ Chưa hoàn thành</option>
       </select>
     </div>
-    <button class="btn btn-secondary" onclick="exportCSV()">📥 Xuất CSV</button>
-    <button class="btn btn-warning" onclick="exportExcelDetail()">📊 Xuất Excel</button>
+    <button class="btn btn-secondary" onclick="exportCSV()">📥 CSV</button>
+    <button class="btn btn-warning" onclick="exportExcelDetail()">📊 Excel</button>
   </div>
-  <div class="table-card">
-    <div class="table-header">
-      <div class="table-title">Chi tiết công việc</div>
-      <div id="detailCount" style="font-size:12px;color:var(--muted);"></div>
-    </div>
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr>
-        <th onclick="sortDetail('nv')">Nhân viên ↕</th>
-        <th onclick="sortDetail('group')">Nhóm CV ↕</th>
-        <th>Nội dung</th>
-        <th onclick="sortDetail('status')">Trạng thái ↕</th>
-        <th>KL</th>
-        <th>Giá trị</th>
-        <th>Ngày TH</th>
-        <th>Tuần/Tháng</th>
-        <th>Kết quả</th>
-        <th>File đính kèm</th>
-      </tr></thead>
-      <tbody id="detailTable"></tbody>
-    </table>
-    </div>
-  </div>
+  <!-- Accordion theo nhân viên -->
+  <div id="detailAccordion" style="display:flex;flex-direction:column;gap:10px;"></div>
+  <!-- Compat elements (dùng cho populateDropdowns) -->
+  <select id="dEmployee" style="display:none;"></select>
+  <select id="dGroup" style="display:none;"></select>
+  <div id="detailCount" style="display:none;"></div>
+  <div style="display:none;"><table><tbody id="detailTable"></tbody></table></div>
 </div>
 </div>
 
@@ -516,8 +632,70 @@ textarea{resize:vertical;min-height:70px;}
     <div class="fgroup"><label>Tháng:</label><input type="number" id="mMonth" min="1" max="12" style="width:60px;" placeholder="Tất cả" oninput="renderManager()"></div>
     <div class="fgroup"><label>Nhóm CV:</label><select id="mGroup" onchange="updateMJobList();renderManager()"><option value="">Tất cả nhóm</option></select></div>
     <div class="fgroup"><label>Công việc:</label><select id="mJob" onchange="renderManager()" style="max-width:200px;"><option value="">Tất cả</option></select></div>
+    <!-- Feature 4: Lọc quá hạn -->
+    <div class="fgroup"><label>Quá hạn:</label>
+      <select id="mOverdue" onchange="renderManager()" style="font-size:12px;padding:6px 9px;">
+        <option value="">Tất cả</option>
+        <option value="yes">⚠️ Chỉ quá hạn</option>
+        <option value="no">✅ Không quá hạn</option>
+      </select>
+    </div>
     <button class="btn btn-warning" onclick="exportManagerReport()">📊 Xuất báo cáo Excel</button>
+    <!-- Feature 11: AI Phân tích -->
+    <button class="btn btn-secondary" onclick="openAIReport()" style="background:rgba(124,92,252,0.12);border:1px solid rgba(124,92,252,0.3);color:#a78bfa;font-weight:700;" title="AI tự động tổng hợp và phân tích dữ liệu theo bộ lọc hiện tại">🤖 AI Phân tích</button>
   </div>
+
+  <!-- Feature 7: Thống kê tiến độ nộp báo cáo -->
+  <div class="sub-tracker" id="subTracker">
+    <div class="sub-tracker-head">
+      <span style="font-size:13px;font-weight:600;">📊 Tiến độ nộp báo cáo tuần</span>
+      <span id="subTrackerCount" style="font-size:13px;font-weight:700;color:var(--success);">0 / 0 nhân viên</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="sub-bar-outer"><div class="sub-bar-inner" id="subBarInner" style="width:0%;"></div></div>
+      <span id="subTrackerPct" style="font-size:12px;font-weight:600;color:var(--muted);min-width:36px;">0%</span>
+    </div>
+    <div id="subTrackerNames" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;font-size:11px;"></div>
+  </div>
+
+  <!-- GIAO VIỆC CHO NHÂN VIÊN (chỉ hiện với manager) -->
+  <div class="table-card" id="assignTaskSection" style="margin-bottom:16px;display:none;">
+    <div class="table-header" style="flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="table-title">📋 Giao việc cho nhân viên</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Giao việc trực tiếp — công việc sẽ tự động xuất hiện trong báo cáo của nhân viên</div>
+      </div>
+      <button class="btn btn-secondary" onclick="toggleAssignForm()" id="assignFormToggleBtn" style="font-size:12px;">➕ Tạo việc mới</button>
+    </div>
+    <div id="assignFormArea" style="display:none;padding:14px 0 4px;border-top:1px solid var(--border);margin-top:4px;">
+      <div class="form-row">
+        <div><label>Chi nhánh / Văn phòng *</label><select id="asgn_branch" onchange="asgnUpdateNvByBranch()"><option value="">— Chọn chi nhánh —</option></select></div>
+        <div><label>Người giao việc</label><input type="text" id="asgn_by" readonly></div>
+      </div>
+      <div class="form-row">
+        <div><label>Nhân viên nhận việc *</label><select id="asgn_nv" onchange="updateAsgnWeekDisplay()"><option value="">— Chọn chi nhánh trước —</option></select></div>
+        <div></div>
+      </div>
+      <div class="form-row">
+        <div><label>Nhóm công việc *</label><select id="asgn_group" onchange="updateAsgnJobList()"><option value="">— Chọn nhóm —</option></select></div>
+        <div><label>Nội dung công việc *</label><select id="asgn_job"><option value="">— Chọn công việc —</option></select></div>
+      </div>
+      <div class="form-row three">
+        <div><label>Ngày giao</label><input type="date" id="asgn_date"></div>
+        <div><label>Deadline *</label><input type="date" id="asgn_deadline" onchange="updateAsgnWeekDisplay()"></div>
+        <div><label>Tuần báo cáo (tự tính từ deadline)</label><div id="asgn_week_display" style="padding:6px 10px;background:rgba(79,156,249,.08);border:1px solid rgba(79,156,249,.2);border-radius:6px;font-size:12px;color:var(--accent);font-weight:600;min-height:32px;display:flex;align-items:center;">— Chọn deadline</div></div>
+      </div>
+      <div class="form-row full">
+        <div><label>Yêu cầu / Mô tả chi tiết</label><textarea id="asgn_note" rows="2" placeholder="Nội dung cụ thể cần nhân viên thực hiện..."></textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-primary" onclick="doAssignTask()">📋 Giao việc</button>
+        <button class="btn btn-secondary" onclick="toggleAssignForm()">Hủy</button>
+      </div>
+    </div>
+    <div id="assignedList" style="margin-top:8px;"></div>
+  </div>
+
   <!-- Số liệu tổng hợp -->
   <div id="mgrStatsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px;"></div>
 
@@ -534,7 +712,8 @@ textarea{resize:vertical;min-height:70px;}
           <th style="text-align:center;">Chưa HT</th>
           <th style="text-align:center;">Tổng ngày</th>
           <th style="text-align:right;">Tổng giá trị</th>
-          <th>Hiệu suất</th>
+          <th>Hiệu suất</th><th>KPI so sánh</th>
+          <th style="text-align:center;" title="Việc quản lý giao chưa hoàn thành">📋 Giao việc</th>
         </tr></thead>
         <tbody id="mgrEmpBreakdownBody"></tbody>
       </table>
@@ -553,6 +732,7 @@ textarea{resize:vertical;min-height:70px;}
         <th style="text-align:right;">KL</th><th style="text-align:right;">Giá trị (VNĐ)</th>
         <th>Trạng thái</th><th>Đánh giá KL</th>
         <th>Kết quả / Ghi chú</th><th>Đề xuất xử lý</th>
+        <th style="min-width:120px;">Phê duyệt</th>
       </tr></thead>
       <tbody id="alertTable"></tbody>
     </table>
@@ -583,6 +763,34 @@ textarea{resize:vertical;min-height:70px;}
       <thead><tr><th>#</th><th>Nhân viên</th><th>Vị trí</th><th>Hiệu suất</th><th>Tổng giá trị</th><th>Nhận xét quản lý</th><th>Lưu</th></tr></thead>
       <tbody id="commentTable"></tbody>
     </table>
+    </div>
+  </div>
+
+  <!-- PHÊ DUYỆT đã tích hợp vào bảng "Toàn bộ công việc" phía trên -->
+  <div class="table-card" style="display:none;" id="approvalSection">
+    <div class="table-header" style="flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="table-title">✅ Phê duyệt báo cáo</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Quản lý duyệt / từ chối / yêu cầu bổ sung báo cáo theo giai đoạn lọc</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select id="apvStatusFilter" onchange="renderApproval()" style="font-size:12px;padding:5px 9px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);outline:none;">
+          <option value="">Tất cả trạng thái</option>
+          <option value="pending">⏳ Chờ duyệt</option>
+          <option value="approved">✅ Đã duyệt</option>
+          <option value="rejected">❌ Từ chối</option>
+          <option value="revision">🔄 Yêu cầu bổ sung</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>
+          <th>Nhân viên</th><th>Công việc</th><th>Nhóm</th><th>Tuần/Tháng</th>
+          <th>Trạng thái CV</th><th>Trạng thái duyệt</th><th>Người duyệt</th><th>Ngày duyệt</th><th>Ghi chú duyệt</th><th style="width:160px;">Thao tác</th>
+        </tr></thead>
+        <tbody id="approvalTable"></tbody>
+      </table>
     </div>
   </div>
 
@@ -651,6 +859,26 @@ textarea{resize:vertical;min-height:70px;}
       <div style="margin-bottom:8px;"><span style="color:var(--accent);font-weight:600;">Bước 3:</span> Copy URL dạng <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;">https://script.google.com/macros/s/.../exec</code></div>
       <div style="margin-bottom:8px;"><span style="color:var(--accent);font-weight:600;">Bước 4:</span> Paste vào ô URL phía trên → nhấn <strong>Lưu cài đặt</strong></div>
       <div style="color:var(--warning);font-size:12px;margin-top:10px;">⚠️ Mỗi lần thay đổi code Apps Script cần <strong>Triển khai lại phiên bản mới</strong> thì URL mới nhận được code mới.</div>
+    </div>
+  </div>
+
+  <!-- ═══ KPI MỤC TIÊU THEO VỊ TRÍ (Feature 1) ═══ -->
+  <div class="form-card" style="max-width:780px;">
+    <div class="form-title">🎯 KPI mục tiêu theo vị trí</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Đặt % hoàn thành mục tiêu cho từng vị trí. Dùng để so sánh KPI thực tế trên Dashboard.</div>
+    <div style="overflow-x:auto;max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:14px;">
+      <table>
+        <thead><tr><th style="width:36px;">#</th><th>Vị trí</th><th style="width:100px;text-align:center;">KPI mục tiêu (%)</th><th style="width:80px;"></th></tr></thead>
+        <tbody id="cfg-kpi-body"></tbody>
+      </table>
+    </div>
+    <div class="section-divider">Thêm mục tiêu KPI mới</div>
+    <div class="form-row" style="margin-bottom:0;">
+      <div><label>Vị trí *</label><input type="text" id="cfg-kpi-vitri" placeholder="VD: Kế toán thuế"></div>
+      <div><label>KPI mục tiêu (%) *</label><input type="number" id="cfg-kpi-target" min="0" max="100" placeholder="VD: 90"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="addKpiTarget()">➕ Thêm / Cập nhật</button>
     </div>
   </div>
 
@@ -823,6 +1051,62 @@ textarea{resize:vertical;min-height:70px;}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ════ MODAL SAO CHÉP TUẦN TRƯỚC (Feature 6) ════ -->
+<div id="copyWeekModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.65);align-items:flex-start;justify-content:center;padding-top:60px;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:700px;max-width:96vw;max-height:82vh;overflow-y:auto;padding:26px 28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div><div style="font-size:15px;font-weight:700;">📋 Sao chép công việc tuần trước</div>
+      <div id="copyWeekModalSub" style="font-size:12px;color:var(--muted);margin-top:3px;"></div></div>
+      <button onclick="document.getElementById('copyWeekModal').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;line-height:1;">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:12px;">Chọn các công việc muốn sao chép sang tuần hiện tại. Sau khi sao chép bạn có thể chỉnh sửa trước khi lưu.</div>
+    <div id="copyTargetWeekRow" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 13px;background:rgba(79,156,249,.07);border:1px solid rgba(79,156,249,.22);border-radius:8px;"></div>
+    <div id="copyWeekList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:300px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:10px;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid var(--border);">
+      <label style="font-size:12px;font-weight:600;color:var(--muted2);display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;">
+        <input type="checkbox" id="copyWeekSelectAll" onchange="toggleCopySelectAll(this.checked)"> Chọn tất cả
+      </label>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="document.getElementById('copyWeekModal').style.display='none'">Hủy</button>
+        <button class="btn btn-primary" onclick="confirmCopyWeek()">📋 Sao chép sang tuần này</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL AI PHÂN TÍCH (Feature 11) ════ -->
+<div id="aiReportModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.65);align-items:flex-start;justify-content:center;padding-top:40px;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:760px;max-width:96vw;max-height:88vh;overflow-y:auto;padding:26px 28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div><div style="font-size:16px;font-weight:700;">🤖 Báo cáo AI — Phân tích tự động</div>
+      <div id="aiReportTime" style="font-size:11px;color:var(--muted);margin-top:3px;"></div></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="copyAIReport()" class="btn btn-secondary" style="font-size:12px;padding:6px 12px;">📋 Copy</button>
+        <button onclick="printAIReport()" class="btn btn-secondary" style="font-size:12px;padding:6px 12px;">🖨️ In / PDF</button>
+        <button onclick="document.getElementById('aiReportModal').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:22px;line-height:1;padding:0;">✕</button>
+      </div>
+    </div>
+    <div id="aiReportContent" style="font-size:13px;line-height:1.7;color:var(--text);"></div>
+  </div>
+</div>
+
+<!-- ════ MODAL GHI CHÚ PHÊ DUYỆT (Feature 9) ════ -->
+<div id="apvNoteModal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.65);align-items:center;justify-content:center;" onclick="if(event.target===this)closeApvModal()">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:480px;max-width:94vw;padding:24px 26px;">
+    <div style="font-size:15px;font-weight:700;margin-bottom:16px;" id="apvModalTitle">✅ Phê duyệt công việc</div>
+    <input type="hidden" id="apvModalUid">
+    <input type="hidden" id="apvModalAction">
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Ghi chú / Nội dung phản hồi</label>
+      <textarea id="apvNoteInput" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;resize:vertical;min-height:80px;" placeholder="Nhập ghi chú cho nhân viên..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeApvModal()">Hủy</button>
+      <button class="btn btn-primary" id="apvModalConfirm" onclick="confirmApproval()">Xác nhận</button>
+    </div>
+  </div>
+</div>
 
 </div><!-- /#mainApp -->
 
@@ -1050,6 +1334,52 @@ const rawData = [
 let _uidSeq=0;
 rawData.forEach(r=>{r._uid=++_uidSeq;r.klEval=r.klEval||"";r.branch=r.branch||"Hội sở";});
 let sheetData=[], filteredData=[], allData=[...rawData];
+
+// ── Persistence: lưu/load assigned tasks & approvals vào localStorage ──
+function saveAssignedTasks(){
+  const tasks=allData.filter(r=>r.isAssigned);
+  try{localStorage.setItem("kt_assigned_tasks",JSON.stringify(tasks));}catch(e){}
+}
+function saveApprovals(){
+  const map={};
+  allData.forEach(r=>{
+    if(r.approvalStatus){
+      const key=`${r.nv}|${r.job}|${r.startDate||""}|${r.week}|${r.month}|${r.year}`;
+      map[key]={approvalStatus:r.approvalStatus,approvalBy:r.approvalBy||"",approvalDate:r.approvalDate||"",approvalNote:r.approvalNote||""};
+    }
+  });
+  try{localStorage.setItem("kt_approvals",JSON.stringify(map));}catch(e){}
+}
+function applyPersistedApprovals(){
+  try{
+    const s=localStorage.getItem("kt_approvals");
+    if(!s)return;
+    const map=JSON.parse(s);
+    allData.forEach(r=>{
+      const key=`${r.nv}|${r.job}|${r.startDate||""}|${r.week}|${r.month}|${r.year}`;
+      if(map[key])Object.assign(r,map[key]);
+    });
+  }catch(e){}
+}
+function injectPersistedAssignedTasks(){
+  try{
+    const s=localStorage.getItem("kt_assigned_tasks");
+    if(!s)return;
+    const tasks=JSON.parse(s);
+    if(Array.isArray(tasks)&&tasks.length){
+      // Tránh duplicate: xóa các task isAssigned cũ rồi thêm lại
+      allData=allData.filter(r=>!r.isAssigned);
+      tasks.forEach(t=>{t._uid=++_uidSeq;allData.push(t);});
+    }
+  }catch(e){}
+}
+
+// Restore dữ liệu đã lưu khi khởi động
+(function(){
+  injectPersistedAssignedTasks();
+  applyPersistedApprovals();
+})();
+
 filteredData=[...allData];
 let detailSort={col:"",dir:1};
 let chartEff=null,chartGroup=null,chartMgr1=null,chartMgr2=null;
@@ -1126,6 +1456,9 @@ async function loadFromSheet(){
     if(j.ok){
       sheetData=(j.data||[]).map(sheetRowToObj).filter(r=>r.nv).map(r=>{r._uid=++_uidSeq;r.klEval=r.klEval||"";r.branch=r.branch||"Hội sở";return r;});
       allData=[...rawData,...sheetData];
+      // Restore local data sau khi rebuild từ sheet
+      injectPersistedAssignedTasks();
+      applyPersistedApprovals();
       filteredData=[...getBaseData()];
       populateDropdowns();
       renderOverview();renderDetail();
@@ -1213,6 +1546,16 @@ function renderOverview(){
     const rc=i===0?"rank-1":i===1?"rank-2":i===2?"rank-3":"rank-n";
     const bc=p>=80?"#22c55e":p>=50?"#4f9cf9":"#ef4444";
     const isSelected=ovCurrentEmp===s.name;
+    // Đếm việc được giao chưa hoàn thành
+    const assignedPending=allData.filter(r=>r.nv===s.name&&r.isAssigned&&r.status!=="Hoàn thành");
+    const apCount=assignedPending.length;
+    const apOverdue=assignedPending.filter(r=>isOverdue(r)).length;
+    const apCell=apCount===0
+      ?`<span style="color:var(--muted);font-size:12px;">—</span>`
+      :`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <span style="font-size:13px;font-weight:700;color:${apOverdue?'#f87171':'#fbbf24'};">${apCount}</span>
+          ${apOverdue?`<span style="font-size:9px;font-weight:700;color:#f87171;">⚠️ ${apOverdue} quá hạn</span>`:`<span style="font-size:9px;color:var(--muted);">chưa xong</span>`}
+        </div>`;
     rt+=`<tr style="cursor:pointer;${isSelected?'background:rgba(79,156,249,0.08);outline:1px solid rgba(79,156,249,0.3);':''}" onclick="selectEmployee('${s.name.replace(/'/g,"\\'")}')" title="Nhấn để xem danh sách công việc chi tiết">
       <td><span class="rank ${rc}">${i+1}</span></td>
       <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar" style="background:${bg};color:${fg};">${getInitials(s.name)}</div><div><div style="font-weight:500;">${s.name}</div><div style="font-size:11px;color:var(--muted);">${s.ma}</div></div></div></td>
@@ -1223,9 +1566,13 @@ function renderOverview(){
       <td style="color:var(--muted);">${s.days}</td>
       <td style="color:#2dd4bf;font-weight:500;">${fmtVal(s.totalValue)}</td>
       <td><div class="prog-bar-wrap"><div class="prog-bar"><div class="prog-bar-fill" style="width:${p}%;background:${bc};"></div></div><span class="prog-pct" style="color:${bc};">${p}%</span></div></td>
+      <td>${kpiCompareHtml(p,s.vi_tri)}</td>
+      <td style="text-align:center;">${apCell}</td>
     </tr>`;
   });
-  document.getElementById("rankTable").innerHTML=rt||'<tr><td colspan="9" class="empty">Không có dữ liệu</td></tr>';
+  document.getElementById("rankTable").innerHTML=rt||'<tr><td colspan="11" class="empty">Không có dữ liệu</td></tr>';
+  // Feature 8: Cập nhật biểu đồ tháng
+  renderMonthCharts();
 }
 
 function openPanel(name){
@@ -1254,41 +1601,190 @@ function openPanel(name){
 }
 function closePanel(){document.getElementById("sidePanel").classList.remove("open");document.getElementById("overlay").classList.remove("show");}
 
+let _detailExpanded=new Set();
+
 function renderDetail(){
-  const q=document.getElementById("dSearch").value.toLowerCase();
-  const emp=document.getElementById("dEmployee").value;
-  const grp=document.getElementById("dGroup").value;
-  const st=document.getElementById("dStatus").value;
+  const fromDate=document.getElementById("dFrom")?.value||"";
+  const toDate=document.getElementById("dTo")?.value||"";
+  const dMonth=parseInt(document.getElementById("dMonth")?.value)||0;
+  const dYear=parseInt(document.getElementById("dYear")?.value)||0;
+  const q=(document.getElementById("dSearch")?.value||"").toLowerCase();
+  const st=document.getElementById("dStatus")?.value||"";
   let data=getBaseData().filter(r=>{
-    if(emp&&r.nv!==emp)return false;
-    if(grp&&r.group!==grp)return false;
     if(st&&r.status!==st)return false;
     if(q&&!r.nv.toLowerCase().includes(q)&&!r.job.toLowerCase().includes(q)&&!r.group.toLowerCase().includes(q))return false;
+    if(dMonth&&r.month!==dMonth)return false;
+    if(dYear&&r.year!==dYear)return false;
+    if(fromDate||toDate){const rd=getRowDate(r);if(rd){if(fromDate&&rd<fromDate)return false;if(toDate&&rd>toDate)return false;}}
     return true;
   });
-  if(detailSort.col)data.sort((a,b)=>{let av=a[detailSort.col]||"",bv=b[detailSort.col]||"";return(av>bv?1:av<bv?-1:0)*detailSort.dir;});
   document.getElementById("detailCount").textContent=`${data.length} bản ghi`;
-  let rows="";
-  for(const r of data){
-    const gi=GROUPS.indexOf(r.group);
-    const cls=gi>=0?`grp-${gi}`:"";
-    const linkHtml=r.driveLink?`<a href="${r.driveLink}" target="_blank" class="job-link">📎 ${r.fileName||"Xem file"}</a>`:"—";
-    rows+=`<tr>
-      <td style="font-weight:500;white-space:nowrap;">${r.nv.split(" ").slice(-2).join(" ")}</td>
-      <td><span class="grp-tag ${cls}">${r.group}</span></td>
-      <td style="max-width:200px;font-size:12px;">${r.job}</td>
-      <td>${statusBadge(r.status)}</td>
-      <td style="text-align:center;">${r.volume||"—"}</td>
-      <td style="color:#2dd4bf;font-weight:500;">${fmtVal(r.value)}</td>
-      <td style="text-align:center;">${r.days||"—"}</td>
-      <td style="text-align:center;font-size:12px;">T${r.week}/T${r.month}</td>
-      <td style="max-width:160px;font-size:11px;color:var(--muted2);">${r.result||"—"}</td>
-      <td>${linkHtml}</td>
-    </tr>`;
+  // Group by employee
+  const empMap={};
+  data.forEach(r=>{if(!empMap[r.nv])empMap[r.nv]=[];empMap[r.nv].push(r);});
+  // Build period label
+  let period="";
+  if(fromDate||toDate){
+    const fmt=d=>{if(!d)return"…";const p=d.split("-");return`${p[2]}/${p[1]}/${p[0]}`;}
+    period=`${fmt(fromDate)} — ${fmt(toDate)}`;
+  }else period="Tất cả kỳ";
+  const accordion=document.getElementById("detailAccordion");
+  if(!accordion)return;
+  const empNames=Object.keys(empMap).sort();
+  if(!empNames.length){
+    accordion.innerHTML='<div class="table-card" style="text-align:center;color:var(--muted);padding:40px 20px;">Không có dữ liệu phù hợp với bộ lọc đã chọn</div>';
+    return;
   }
-  document.getElementById("detailTable").innerHTML=rows||'<tr><td colspan="10" class="empty">Không tìm thấy dữ liệu</td></tr>';
+  let html="";
+  empNames.forEach(name=>{
+    const jobs=empMap[name];
+    const emp=EMPLOYEES.find(e=>e.name===name)||{};
+    const expanded=_detailExpanded.has(name);
+    const done=jobs.filter(j=>j.status==="Hoàn thành").length;
+    const pct=jobs.length?Math.round(done/jobs.length*100):0;
+    const bc=pct>=80?"#22c55e":pct>=50?"#4f9cf9":"#ef4444";
+    const safeId="dtl_"+name.replace(/[^a-zA-Z0-9]/g,"_");
+    const ePer=encodeURIComponent(period);
+    html+=`<div class="table-card" style="margin:0;padding:0;overflow:hidden;">
+      <div onclick="toggleDetailEmp('${name.replace(/'/g,"\\'")}','${safeId}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;user-select:none;background:var(--bg2);gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+          <span id="${safeId}_arrow" style="font-size:14px;transition:transform .2s;${expanded?"transform:rotate(90deg)":""}">▶</span>
+          <div style="min-width:0;">
+            <div style="font-weight:700;font-size:14px;">${name}</div>
+            <div style="font-size:11px;color:var(--muted);">${emp.ma||""} · ${emp.vi_tri||""} · ${emp.branch||""}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:6px;">
+            <span style="background:rgba(79,156,249,.1);border:1px solid rgba(79,156,249,.2);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--accent);">${jobs.length} CV</span>
+            <span style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--success);">${done} HT</span>
+            <span style="font-size:12px;font-weight:700;color:${bc};">${pct}%</span>
+          </div>
+        </div>
+        <div onclick="event.stopPropagation()">
+          <button onclick="printEmpReport('${name.replace(/'/g,"\\'")}','${ePer}')" class="btn btn-secondary" style="font-size:11px;padding:5px 12px;white-space:nowrap;">🖨️ In báo cáo</button>
+        </div>
+      </div>
+      <div id="${safeId}" style="display:${expanded?"block":"none"};overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th style="width:28px;">#</th><th>Nhóm</th><th>Nội dung công việc</th>
+            <th>Trạng thái</th><th style="text-align:center;">KL</th>
+            <th style="text-align:right;">Giá trị</th><th style="text-align:center;">Số ngày</th>
+            <th style="white-space:nowrap;">Tuần/Tháng</th><th>Kết quả</th><th>File</th>
+          </tr></thead>
+          <tbody>${jobs.map((r,i)=>{
+            const gi=GROUPS.indexOf(r.group);
+            const cls=gi>=0?`grp-${gi}`:"";
+            const lk=r.driveLink?`<a href="${r.driveLink}" target="_blank" class="job-link">📎</a>`:"—";
+            return`<tr>
+              <td style="color:var(--muted);text-align:center;font-size:11px;">${i+1}</td>
+              <td><span class="grp-tag ${cls}" style="font-size:10px;">${r.group}</span></td>
+              <td style="font-size:12px;font-weight:500;min-width:140px;">${r.job}</td>
+              <td>${statusBadge(r.status)}</td>
+              <td style="text-align:center;">${r.volume||"—"}</td>
+              <td style="text-align:right;color:#2dd4bf;font-weight:500;">${fmtVal(r.value)}</td>
+              <td style="text-align:center;">${r.days||"—"}</td>
+              <td style="font-size:11px;white-space:nowrap;">T${r.week}/T${r.month}/${r.year}</td>
+              <td style="font-size:11px;color:var(--muted2);max-width:150px;">${r.result||"—"}</td>
+              <td>${lk}</td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>
+      </div>
+    </div>`;
+  });
+  accordion.innerHTML=html;
 }
-function sortDetail(col){if(detailSort.col===col)detailSort.dir*=-1;else{detailSort.col=col;detailSort.dir=1;}renderDetail();}
+
+function toggleDetailEmp(name,safeId){
+  const body=document.getElementById(safeId);
+  const arrow=document.getElementById(safeId+"_arrow");
+  if(!body)return;
+  const expanded=body.style.display!=="none";
+  body.style.display=expanded?"none":"block";
+  if(arrow)arrow.style.transform=expanded?"":"rotate(90deg)";
+  if(expanded)_detailExpanded.delete(name);else _detailExpanded.add(name);
+}
+
+function printEmpReport(empName,periodEncoded){
+  const period=decodeURIComponent(periodEncoded);
+  const emp=EMPLOYEES.find(e=>e.name===empName)||{};
+  const fromDate=document.getElementById("dFrom")?.value||"";
+  const toDate=document.getElementById("dTo")?.value||"";
+  const dMonth=parseInt(document.getElementById("dMonth")?.value)||0;
+  const dYear=parseInt(document.getElementById("dYear")?.value)||0;
+  const st=document.getElementById("dStatus")?.value||"";
+  const jobs=getBaseData().filter(r=>{
+    if(r.nv!==empName)return false;
+    if(st&&r.status!==st)return false;
+    if(dMonth&&r.month!==dMonth)return false;
+    if(dYear&&r.year!==dYear)return false;
+    if(fromDate||toDate){const rd=getRowDate(r);if(rd){if(fromDate&&rd<fromDate)return false;if(toDate&&rd>toDate)return false;}}
+    return true;
+  });
+  const now=new Date().toLocaleDateString("vi-VN");
+  const rows=jobs.map((r,i)=>`<tr>
+    <td style="text-align:center;">${i+1}</td>
+    <td>${r.group}</td>
+    <td>${r.job}</td>
+    <td style="text-align:center;">${r.status}</td>
+    <td style="text-align:center;">${r.volume||""}</td>
+    <td style="text-align:right;">${r.value>0?r.value.toLocaleString("vi-VN"):""}</td>
+    <td style="text-align:center;">${r.days||""}</td>
+    <td style="text-align:center;">T${r.week}/T${r.month}/${r.year}</td>
+    <td>${r.result||""}</td>
+  </tr>`).join("");
+  const w=window.open("","_blank","width=950,height=720");
+  w.document.write(`<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8">
+  <title>Báo cáo — ${empName}</title>
+  <style>
+    *{box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:12px;color:#000;margin:20px;}
+    h2{text-align:center;font-size:15px;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;}
+    .subtitle{text-align:center;font-size:12px;margin-bottom:18px;color:#444;}
+    .info{margin-bottom:14px;border:1px solid #ccc;padding:10px 14px;border-radius:4px;line-height:2;}
+    table{width:100%;border-collapse:collapse;margin-top:12px;}
+    th,td{border:1px solid #333;padding:5px 8px;font-size:11px;vertical-align:top;}
+    th{background:#e8e8e8;font-weight:700;text-align:center;}
+    .sign-area{margin-top:50px;display:flex;justify-content:flex-end;}
+    .sign-box{text-align:center;min-width:200px;}
+    .sign-box p{margin:4px 0;font-size:12px;}
+    .sign-line{margin-top:70px;border-top:1px solid #000;padding-top:5px;font-weight:700;}
+    @media print{body{margin:12mm;}.no-print{display:none;}}
+  </style></head><body>
+  <button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:8px 18px;background:#333;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;">🖨️ In / Lưu PDF</button>
+  <h2>Báo cáo chi tiết công việc</h2>
+  <div class="subtitle">Phòng Kế Toán NVT &nbsp;·&nbsp; Kỳ: ${period}</div>
+  <div class="info">
+    <strong>Nhân viên:</strong>&nbsp;${empName}&emsp;
+    <strong>Mã NV:</strong>&nbsp;${emp.ma||"—"}&emsp;
+    <strong>Vị trí:</strong>&nbsp;${emp.vi_tri||"—"}&emsp;
+    <strong>Chi nhánh:</strong>&nbsp;${emp.branch||"—"}
+  </div>
+  <table>
+    <thead><tr>
+      <th style="width:28px;">#</th><th>Nhóm CV</th>
+      <th style="min-width:180px;">Nội dung công việc</th>
+      <th style="width:90px;">Trạng thái</th>
+      <th style="width:38px;">KL</th>
+      <th style="width:95px;">Giá trị (VNĐ)</th>
+      <th style="width:48px;">Số ngày</th>
+      <th style="width:72px;">Tuần/Tháng</th>
+      <th style="min-width:130px;">Kết quả đạt được</th>
+    </tr></thead>
+    <tbody>${rows||'<tr><td colspan="9" style="text-align:center;">Không có công việc</td></tr>'}</tbody>
+  </table>
+  <div class="sign-area">
+    <div class="sign-box">
+      <p>${now}</p>
+      <p><em>Người lập</em></p>
+      <p><em>(Ký và ghi rõ họ tên)</em></p>
+      <div class="sign-line">${empName}</div>
+    </div>
+  </div>
+  </body></html>`);
+  w.document.close();
+}
+
+function sortDetail(col){}
 
 function renderManager(){
   const mBranch=document.getElementById("mBranch")?.value||"";
@@ -1299,6 +1795,8 @@ function renderManager(){
   const mMo=parseInt(document.getElementById("mMonth").value)||null;
   const mGrp=document.getElementById("mGroup")?.value||"";
   const mJobF=document.getElementById("mJob")?.value||"";
+  // Feature 4: lọc quá hạn
+  const mOverdue=document.getElementById("mOverdue")?.value||"";
   const branchEmpNames=mBranch?new Set(EMPLOYEES.filter(e=>(e.branch||"Hội sở")===mBranch).map(e=>e.name)):null;
   let data=getBaseData().filter(r=>{
     if(branchEmpNames&&!branchEmpNames.has(r.nv))return false;
@@ -1308,8 +1806,13 @@ function renderManager(){
     if(mGrp&&r.group!==mGrp)return false;
     if(mJobF&&r.job!==mJobF)return false;
     if(mFr||mTo2){const rd=getRowDate(r);if(rd){if(mFr&&rd<mFr)return false;if(mTo2&&rd>mTo2)return false;}}
+    // Feature 4: lọc overdue
+    if(mOverdue==="yes"&&!isOverdue(r))return false;
+    if(mOverdue==="no"&&isOverdue(r))return false;
     return true;
   });
+  // Feature 7: Cập nhật submission tracker (dùng năm hiện tại)
+  renderSubTracker(mWk, mMo, new Date().getFullYear());
   const stats=calcEmployeeStats(data);
   // ── Số liệu tổng hợp ──
   const mTotal=data.length;
@@ -1328,6 +1831,7 @@ function renderManager(){
     <div class="stat-card"><div class="stat-label">Hiệu suất chung</div><div class="stat-value" style="color:${mPctColor};">${mPct}%</div><div class="stat-sub">${mDone}/${mTotal} CV</div></div>
     <div class="stat-card s-purple"><div class="stat-label">Tổng ngày TH</div><div class="stat-value">${mDays}</div><div class="stat-sub">ngày công</div></div>
     <div class="stat-card s-teal"><div class="stat-label">Tổng giá trị</div><div class="stat-value">${fmtVal(mVal)}</div><div class="stat-sub">VNĐ</div></div>
+    <div class="stat-card"><div class="stat-label">Quá hạn</div><div class="stat-value" style="color:${countOverdue(data)?"var(--danger)":"var(--success)"};">${countOverdue(data)}</div><div class="stat-sub">công việc</div></div>
   `;
   // ── Bảng so sánh nhân viên ──
   const breakdownEl=document.getElementById("mgrEmpBreakdown");
@@ -1354,6 +1858,16 @@ function renderManager(){
           </div>
           <span style="font-size:12px;font-weight:700;color:${bc2};min-width:34px;">${p}%</span>
         </div></td>
+        <td>${kpiCompareHtml(p,s.vi_tri)}</td>
+        <td style="text-align:center;">${(()=>{
+          const ap=allData.filter(r=>r.nv===s.name&&r.isAssigned&&r.status!=="Hoàn thành");
+          const ov=ap.filter(r=>isOverdue(r)).length;
+          if(!ap.length)return'<span style="color:var(--muted);font-size:12px;">—</span>';
+          return`<div style="display:flex;flex-direction:column;align-items:center;">
+            <span style="font-size:13px;font-weight:700;color:${ov?'#f87171':'#fbbf24'};">${ap.length}</span>
+            ${ov?`<span style="font-size:9px;color:#f87171;">⚠️${ov} quá hạn</span>`:`<span style="font-size:9px;color:var(--muted);">chưa xong</span>`}
+          </div>`;
+        })()}</td>
       </tr>`;
     });
     breakdownBody.innerHTML=brows;
@@ -1372,12 +1886,13 @@ function renderManager(){
     const [evalLbl,evalClr,evalBg,isOverride]=evalTask(r,groupDayAvg);
     const rowBg=r.status==="Chưa hoàn thành"?"background:rgba(239,68,68,0.05);":r.status==="Đang thực hiện"?"background:rgba(59,130,246,0.04);":"";
     const overrideDot=isOverride?`<span title="Quản lý đã điền" style="margin-left:4px;color:#a78bfa;font-size:9px;">★</span>`:"";
-    at+=`<tr style="${rowBg}">
+    const overdueStr=isOverdue(r)?'<span class="overdue-badge" style="margin-left:4px;">⚠️ QUÁ HẠN</span>':"";
+    at+=`<tr style="${rowBg}" class="${isOverdue(r)?'overdue-row':''}">
       <td style="font-weight:500;white-space:nowrap;">${r.nv.split(" ").slice(-2).join(" ")}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(rdStart)}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${fmtDate(rdEnd)}</td>
       <td style="text-align:center;font-size:12px;color:var(--muted);">${r.days||"—"}</td>
-      <td style="font-size:12px;max-width:180px;">${r.job}</td>
+      <td style="font-size:12px;max-width:180px;">${r.job}${overdueStr}${r.deadline?`<div style="font-size:10px;color:var(--muted);">HẠN: ${fmtDate(r.deadline)}</div>`:""}</td>
       <td><span class="grp-tag grp-${gi<0?0:gi}">${r.group}</span></td>
       <td style="text-align:right;font-size:12px;">${r.volume||"—"}</td>
       <td style="text-align:right;font-size:12px;color:#2dd4bf;white-space:nowrap;">${r.value>1?fmtVND(r.value):"—"}</td>
@@ -1385,9 +1900,24 @@ function renderManager(){
       <td><span onclick="showEvalPicker(event,${r._uid})" title="Click để thay đổi đánh giá" style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:${evalBg};color:${evalClr};cursor:pointer;user-select:none;">${evalLbl}${overrideDot}</span></td>
       <td style="font-size:11px;color:var(--muted2);max-width:180px;">${r.result||"—"}</td>
       <td style="font-size:11px;color:var(--muted2);max-width:160px;">${r.suggest||"—"}</td>
+      <td>${(currentUser&&currentUser.role==="manager")?`
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          ${approvalBadge(r.approvalStatus||"")}
+          ${r.approvalStatus==="approved"?`
+            <div style="display:flex;gap:3px;margin-top:3px;">
+              <button onclick="openApvModal(${r._uid},'revision')" title="Yêu cầu bổ sung lại" style="background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.3);color:#a78bfa;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:10px;font-weight:700;">🔄</button>
+              <button onclick="openApvModal(${r._uid},'rejected')" title="Hủy duyệt / Từ chối" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:10px;font-weight:700;">❌</button>
+            </div>`:`<div style="display:flex;gap:3px;margin-top:3px;">
+            <button onclick="openApvModal(${r._uid},'approved')" title="Duyệt" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#4ade80;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:10px;font-weight:700;">✅</button>
+            <button onclick="openApvModal(${r._uid},'revision')" title="Yêu cầu bổ sung" style="background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.3);color:#a78bfa;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:10px;font-weight:700;">🔄</button>
+            <button onclick="openApvModal(${r._uid},'rejected')" title="Từ chối" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:10px;font-weight:700;">❌</button>
+          </div>`}
+          ${r.approvalBy?`<div style="font-size:9px;color:var(--muted);">${r.approvalBy}</div>`:""}
+        </div>
+      `:approvalBadge(r.approvalStatus||"")}</td>
     </tr>`;
   }
-  document.getElementById("alertTable").innerHTML=at||'<tr><td colspan="12" class="empty">Không có dữ liệu</td></tr>';
+  document.getElementById("alertTable").innerHTML=at||'<tr><td colspan="13" class="empty">Không có dữ liệu</td></tr>';
 
   // ── Tổng hợp theo hạng mục ──
   const sumMap={};
@@ -1431,6 +1961,16 @@ function renderManager(){
     </tr>`;
   });
   document.getElementById("commentTable").innerHTML=ct||'<tr><td colspan="7" class="empty">Không có dữ liệu</td></tr>';
+  // Feature 9: Render approval section (manager only)
+  const apvSection=document.getElementById("approvalSection");
+  if(apvSection)apvSection.style.display=(currentUser&&currentUser.role==="manager")?"block":"none";
+  renderApproval();
+  // Show/hide giao việc section
+  const asgnSec=document.getElementById("assignTaskSection");
+  if(asgnSec){
+    asgnSec.style.display=(currentUser&&currentUser.role==="manager")?"block":"none";
+    if(asgnSec.style.display!=="none")renderAssignedList();
+  }
 }
 
 async function saveComment(name){
@@ -1636,11 +2176,7 @@ function calcDays(){
   const s=document.getElementById("fi_start").value,e=document.getElementById("fi_end").value;
   if(s&&e){const d=Math.max(0,Math.round((new Date(e)-new Date(s))/86400000));document.getElementById("fi_days").value=d;}
 }
-document.getElementById("fi_month").addEventListener("input",function(){
-  const m=parseInt(this.value)||0;
-  document.getElementById("fi_quy").value=m?Math.ceil(m/3):"";
-  document.getElementById("fi_week").value=m?getWeekNumber(new Date(2026,m-1,1)):"";
-});
+// fi_month is now hidden and auto-set from fi_start date; no manual input listener needed
 
 async function submitReport(){
   const nv=document.getElementById("fi_employee").value;
@@ -1651,6 +2187,31 @@ async function submitReport(){
   if(!nv||!g||!job||!month){showToast("⚠️ Vui lòng điền đầy đủ thông tin bắt buộc (*)","#f59e0b");return;}
   const btn=document.getElementById("btnSubmit");
   btn.disabled=true;btn.textContent="⏳ Đang lưu...";
+
+  // Feature 2: Kiểm tra trùng lặp báo cáo
+  const week2=parseInt(document.getElementById("fi_week").value)||getWeekNumber(new Date());
+  const year2=parseInt(document.getElementById("fi_year").value)||2026;
+  const dupRec=findDuplicate(nv,week2,year2,g,job);
+  if(dupRec){
+    const choice=confirm(`⚠️ TRÙNG BÁO CÁO!\n\nCông việc "${job}" (${g})\nđã được báo cáo trong Tuần ${week2}/${year2} bởi ${nv}.\n\nBạn muốn CẬP NHẬT dữ liệu cũ không?\n• OK = Cập nhật dữ liệu cũ\n• Hủy = Không làm gì`);
+    if(!choice){btn.disabled=false;btn.textContent="💾 Lưu báo cáo";return;}
+    // Cập nhật record cũ thay vì tạo mới
+    dupRec.status=document.getElementById("fi_status").value;
+    dupRec.volume=parseFloat(document.getElementById("fi_volume").value)||0;
+    dupRec.value=parseFloat((document.getElementById("fi_value").value||"0").replace(/[^0-9.]/g,""))||0;
+    dupRec.startDate=document.getElementById("fi_start").value;
+    dupRec.endDate=document.getElementById("fi_end").value;
+    dupRec.days=parseInt(document.getElementById("fi_days").value)||0;
+    dupRec.result=document.getElementById("fi_result").value;
+    dupRec.suggest=document.getElementById("fi_suggest").value;
+    dupRec.assigner=document.getElementById("fi_assigner")?.value||"";
+    dupRec.assignDate=document.getElementById("fi_assignDate")?.value||"";
+    dupRec.deadline=document.getElementById("fi_deadline")?.value||"";
+    dupRec.assignTask=document.getElementById("fi_assignTask")?.value||"";
+    filteredData=[...getBaseData()];populateDropdowns();renderOverview();renderDetail();
+    resetForm();showToast("✅ Đã cập nhật báo cáo trùng thành công!");btn.disabled=false;btn.textContent="💾 Lưu báo cáo";return;
+  }
+
   let driveLink=document.getElementById("fi_driveLink").value;
   let fileName="";
   if(selectedFile){
@@ -1672,6 +2233,13 @@ async function submitReport(){
     days:parseInt(document.getElementById("fi_days").value)||0,
     result:document.getElementById("fi_result").value,
     suggest:document.getElementById("fi_suggest").value,
+    // Feature 3: Trường giao việc
+    assigner:document.getElementById("fi_assigner")?.value||"",
+    assignDate:document.getElementById("fi_assignDate")?.value||"",
+    deadline:document.getElementById("fi_deadline")?.value||"",
+    assignTask:document.getElementById("fi_assignTask")?.value||"",
+    // Feature 9: Approval
+    approvalStatus:"",approvalBy:"",approvalDate:"",approvalNote:"",
     week,month,quy:Math.ceil(month/3),year,driveLink,fileName,branch:userBranch};
   try{
     const res=await fetch(window.API_URL||API_URL,{method:"POST",body:JSON.stringify({secret:SECRET,action:"add",data:{...r}})});
@@ -1686,9 +2254,19 @@ async function submitReport(){
 }
 function resetForm(){
   ["fi_employee","fi_group","fi_job","fi_status"].forEach(id=>document.getElementById(id).value="");
-  ["fi_week","fi_month","fi_year","fi_volume","fi_value","fi_days","fi_quy"].forEach(id=>document.getElementById(id).value=id==="fi_year"?"2026":"");
+  // Feature 5: Xóa các trường nhưng GIỮ lại tuần/tháng/năm hiện tại
+  ["fi_volume","fi_value","fi_days"].forEach(id=>document.getElementById(id).value="");
   ["fi_start","fi_end","fi_result","fi_suggest","fi_driveLink"].forEach(id=>document.getElementById(id).value="");
+  // Feature 3: Xóa trường giao việc
+  ["fi_assigner","fi_assignDate","fi_deadline","fi_assignTask"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   document.getElementById("fi_maNV").value="";clearFile();
+  // Tự động điền lại ngày hiện tại (Feature 5)
+  autoFillFormDate();
+  // Reset fi_employee nếu user không bị lock
+  if(currentUser&&currentUser.nv){
+    const empSel=document.getElementById("fi_employee");
+    if(empSel){empSel.value=currentUser.nv;empSel.disabled=true;onEmployeeChange();}
+  }
 }
 
 // ════════════════════════════════════════════════
@@ -2175,7 +2753,7 @@ function switchTab(tab){
   document.querySelectorAll(".tab-btn")[tabs.indexOf(tab)].classList.add("active");
   if(tab==="manager"){renderManager();renderKsSlots();}
   if(tab==="detail")renderDetail();
-  if(tab==="settings"){loadSettings();loadConfigUI();}
+  if(tab==="settings"){loadSettings();loadConfigUI();renderCfgKpi();}
 }
 
 function clock(){document.getElementById("clock").textContent=new Date().toLocaleString("vi-VN",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});}
@@ -2199,10 +2777,15 @@ window.addEventListener("storage",function(ev){
 
 (function(){
   const n=new Date();
-  document.getElementById("fi_month").value=n.getMonth()+1;
-  document.getElementById("fi_week").value=getWeekNumber(n);
-  document.getElementById("fi_year").value=n.getFullYear();
-  document.getElementById("fi_quy").value=Math.ceil((n.getMonth()+1)/3);
+  const m=n.getMonth()+1, w=getWeekNumber(n), y=n.getFullYear();
+  document.getElementById("fi_month").value=m;
+  document.getElementById("fi_week").value=w;
+  document.getElementById("fi_year").value=y;
+  document.getElementById("fi_quy").value=Math.ceil(m/3);
+  // Set today as default start date and update period chip
+  const todayStr=n.toISOString().slice(0,10);
+  document.getElementById("fi_start").value=todayStr;
+  updatePeriodChip(n,w,y);
 })();
 
 // Load cài đặt từ localStorage
@@ -2288,7 +2871,7 @@ function renderOvDetail(){
       <td style="text-align:center;color:var(--muted);">${r.days||"—"}</td>
       <td style="font-size:11.5px;color:var(--muted);white-space:nowrap;">T${r.week}/T${r.month}/${r.year}</td>
       <td style="max-width:240px;font-size:11.5px;color:var(--muted2);">${r.result||"—"}</td>
-      <td><button onclick="openEditModal(${idx})" style="background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);color:#60a5fa;border-radius:6px;padding:4px 11px;cursor:pointer;font-size:11.5px;white-space:nowrap;font-weight:500;">✏️ Sửa</button></td>
+      <td>${(!currentUser||currentUser.role!=="manager")?`<button onclick="openEditModal(${idx})" style="background:rgba(79,156,249,0.12);border:1px solid rgba(79,156,249,0.3);color:#60a5fa;border-radius:6px;padding:4px 11px;cursor:pointer;font-size:11.5px;white-space:nowrap;font-weight:500;">✏️ Sửa</button>`:approvalBadge(r.approvalStatus||"")}</td>
     </tr>`;
   });
   document.getElementById("ovEmpDetailBody").innerHTML=rows||
@@ -2766,22 +3349,39 @@ function doLogout(){
   document.getElementById("loginPassword").value="";
   document.getElementById("loginError").textContent="";
   document.getElementById("userChip").style.display="none";
+  const notifWrap=document.getElementById("notifBellWrap");
+  if(notifWrap)notifWrap.style.display="none";
 }
 function applyRoleUI(){
   const tabs=document.querySelectorAll(".tab-btn");
   if(!currentUser)return;
   const mbrRow=document.getElementById("mBranchRow");
+  const mgrCard=document.getElementById("managerAssignFormCard");
+  const importCard=document.getElementById("formCardImport");
+  const reportCard=document.getElementById("formCardReport");
+  const assignedBanner=document.getElementById("assignedTasksBanner");
   if(currentUser.role==="user"){
-    if(tabs[3])tabs[3].style.display=""; // user thấy Góc quản lý để xem nhận xét
+    if(tabs[3])tabs[3].style.display="";
     if(tabs[4])tabs[4].style.display="none";
-    if(mbrRow)mbrRow.style.display="none"; // branch user không cần chọn chi nhánh
+    if(mbrRow)mbrRow.style.display="none";
+    if(mgrCard)mgrCard.style.display="none";
+    if(importCard)importCard.style.display="";
+    if(reportCard)reportCard.style.display="";
   }else if(currentUser.role==="manager"){
     if(tabs[3])tabs[3].style.display="";
     if(tabs[4])tabs[4].style.display="none";
     if(mbrRow)mbrRow.style.display="";
+    // Manager sees only the assign form in Form tab
+    if(mgrCard)mgrCard.style.display="";
+    if(importCard)importCard.style.display="none";
+    if(reportCard)reportCard.style.display="none";
+    if(assignedBanner)assignedBanner.style.display="none";
   }else{
     tabs.forEach(t=>t.style.display="");
     if(mbrRow)mbrRow.style.display="";
+    if(mgrCard)mgrCard.style.display="none";
+    if(importCard)importCard.style.display="";
+    if(reportCard)reportCard.style.display="";
   }
 }
 function onAfterLogin(){
@@ -2813,14 +3413,1046 @@ function onAfterLogin(){
   applyRoleUI();
   filteredData=[...getBaseData()];
   populateDropdowns();
+  // Feature 10: Hiện notification bell
+  updateNotifUI();
   // Nếu tài khoản gắn với nhân viên cụ thể → lock dropdown chọn NV trong form nhập
   if(currentUser.nv){
     const empSel=document.getElementById("fi_employee");
     if(empSel){empSel.value=currentUser.nv;empSel.disabled=true;onEmployeeChange();}
   }
   renderOverview();
+  renderAssignedTasksBanner();
+  if(currentUser.role==="manager")fmInitAssignForm();
   loadFromSheet();
 }
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 1: KPI MỤC TIÊU THEO VỊ TRÍ
+// ════════════════════════════════════════════════════════════════
+
+// Danh sách KPI mục tiêu mặc định theo vị trí
+let KPI_TARGETS = {
+  "Trưởng phòng": 95,
+  "Phó phòng": 90,
+  "Phó TP Kế toán": 90,
+  "Kế toán tổng hợp": 90,
+  "Kế toán thuế": 90,
+  "Kế toán công nợ": 85,
+  "Kế toán bán hàng": 85,
+  "Kế toán viên": 85,
+  "Kế toán giá thành": 85,
+  "Kế toán TSCĐ, DA": 85,
+  "Kế toán thanh toán": 85,
+  "Kế toán dự án": 85,
+  "Thủ quỹ": 85,
+  "default": 80
+};
+(function loadKpiTargets(){
+  try{const s=localStorage.getItem("cfg_kpi_targets");if(s){const t=JSON.parse(s);if(t&&typeof t==="object")KPI_TARGETS=t;}}catch(e){}
+})();
+
+// Lấy KPI mục tiêu cho một vị trí
+function getKpiTarget(vi_tri){
+  if(!vi_tri)return KPI_TARGETS["default"]||80;
+  // Exact match first
+  if(KPI_TARGETS[vi_tri]!=null)return KPI_TARGETS[vi_tri];
+  // Partial match
+  for(const key of Object.keys(KPI_TARGETS)){
+    if(key!=="default"&&vi_tri.toLowerCase().includes(key.toLowerCase()))return KPI_TARGETS[key];
+  }
+  return KPI_TARGETS["default"]||80;
+}
+
+// Tạo HTML hiển thị KPI target vs actual
+function kpiCompareHtml(actual, vi_tri){
+  const target=getKpiTarget(vi_tri);
+  const gap=actual-target;
+  const gapHtml=gap>=0
+    ?`<span class="kpi-gap-pos">+${gap}%</span>`
+    :`<span class="kpi-gap-neg">${gap}%</span>`;
+  const fillColor=actual>=target?"var(--success)":actual>=target-10?"var(--warning)":"var(--danger)";
+  const targetPct=Math.min(target,100);
+  return`<div style="display:flex;flex-direction:column;gap:4px;min-width:140px;">
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
+      <span style="color:var(--muted);">Mục tiêu: <b style="color:var(--warning);">${target}%</b></span>
+      ${gapHtml}
+    </div>
+    <div class="kpi-bar-wrap2">
+      <div class="kpi-bar-fill2" style="width:${actual}%;background:${fillColor};"></div>
+      <div class="kpi-bar-target-line" style="left:${targetPct}%;"></div>
+    </div>
+  </div>`;
+}
+
+// Render bảng KPI settings
+function renderCfgKpi(){
+  const tbody=document.getElementById("cfg-kpi-body");
+  if(!tbody)return;
+  const entries=Object.entries(KPI_TARGETS).filter(([k])=>k!=="default");
+  // Add default
+  const allEntries=[...entries,["default",KPI_TARGETS["default"]||80]];
+  tbody.innerHTML=allEntries.map(([k,v],i)=>`
+    <tr>
+      <td style="color:var(--muted);text-align:center;font-size:12px;">${i+1}</td>
+      <td style="font-weight:500;">${k==="default"?"<em style='color:var(--muted)'>Mặc định (tất cả vị trí)</em>":k}</td>
+      <td style="text-align:center;"><span style="font-size:15px;font-weight:700;color:var(--warning);">${v}%</span></td>
+      <td><button onclick="deleteKpiTarget('${k}')" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px;">${k==="default"?"↺ Đặt lại":"Xóa"}</button></td>
+    </tr>`).join('');
+}
+
+// Thêm / cập nhật KPI target
+function addKpiTarget(){
+  const vitri=document.getElementById("cfg-kpi-vitri").value.trim();
+  const target=parseInt(document.getElementById("cfg-kpi-target").value)||0;
+  if(!vitri){showToast("⚠️ Vui lòng nhập tên vị trí","#f59e0b");return;}
+  if(target<1||target>100){showToast("⚠️ KPI phải từ 1% đến 100%","#f59e0b");return;}
+  KPI_TARGETS[vitri]=target;
+  saveKpiTargets();
+  renderCfgKpi();
+  document.getElementById("cfg-kpi-vitri").value="";
+  document.getElementById("cfg-kpi-target").value="";
+  showToast(`✅ Đã đặt KPI ${target}% cho vị trí: ${vitri}`);
+}
+
+function deleteKpiTarget(key){
+  if(key==="default"){KPI_TARGETS["default"]=80;}else{delete KPI_TARGETS[key];}
+  saveKpiTargets();
+  renderCfgKpi();
+  showToast("✅ Đã cập nhật KPI");
+}
+
+function saveKpiTargets(){
+  try{localStorage.setItem("cfg_kpi_targets",JSON.stringify(KPI_TARGETS));}catch(e){}
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 4: CẢNH BÁO QUÁ HẠN DEADLINE
+// ════════════════════════════════════════════════════════════════
+
+// Kiểm tra một record có quá hạn hay không
+function isOverdue(r){
+  if(r.status==="Hoàn thành")return false;
+  // Ưu tiên field deadline riêng, fallback sang endDate
+  const deadline=r.deadline||(r.endDate&&r.endDate.split("T")[0])||(r.end>0?excelDateToYmd(r.end):"");
+  if(!deadline)return false;
+  return new Date().toISOString().slice(0,10)>deadline;
+}
+
+// Đếm số việc quá hạn trong tập dữ liệu
+function countOverdue(data){return data.filter(r=>isOverdue(r)).length;}
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 5: TỰ ĐỘNG CHỌN TUẦN/THÁNG/NĂM (giữ sau resetForm)
+// ════════════════════════════════════════════════════════════════
+
+function autoFillFormDate(){
+  const n=new Date();
+  const m=n.getMonth()+1, w=getWeekNumber(n), y=n.getFullYear();
+  document.getElementById("fi_month").value=m;
+  document.getElementById("fi_week").value=w;
+  document.getElementById("fi_year").value=y;
+  document.getElementById("fi_quy").value=Math.ceil(m/3);
+  const todayStr=n.toISOString().slice(0,10);
+  if(!document.getElementById("fi_start").value)document.getElementById("fi_start").value=todayStr;
+  updatePeriodChip(n,w,y);
+}
+
+function updatePeriodChip(date, week, year){
+  const chip=document.getElementById("fi_period_chip");
+  if(!chip)return;
+  const d=new Date(date);
+  const day=d.getDay()||7;
+  d.setDate(d.getDate()-day+1);
+  const mon=new Date(d);
+  const sun=new Date(d);sun.setDate(d.getDate()+6);
+  const fmt=dt=>`${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`;
+  chip.textContent=`📅 Tuần ${week} / T${new Date(date).getMonth()+1}/${year}  (${fmt(mon)} — ${fmt(sun)})`;
+}
+
+function autoDetectPeriod(dateStr){
+  if(!dateStr)return;
+  const d=new Date(dateStr);
+  const w=getWeekNumber(d);
+  const m=d.getMonth()+1;
+  const y=d.getFullYear();
+  document.getElementById("fi_week").value=w;
+  document.getElementById("fi_month").value=m;
+  document.getElementById("fi_year").value=y;
+  document.getElementById("fi_quy").value=Math.ceil(m/3);
+  updatePeriodChip(d,w,y);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 6: SAO CHÉP CÔNG VIỆC TUẦN TRƯỚC
+// ════════════════════════════════════════════════════════════════
+
+let _copyPrevData=[];
+
+function copyFromPrevWeek(){
+  const nv=document.getElementById("fi_employee").value;
+  if(!nv){showToast("⚠️ Vui lòng chọn nhân viên trước","#f59e0b");return;}
+  // Auto-detect: nguồn = tuần trước, đích = tuần này
+  const today=new Date();
+  const thisWeek=getWeekNumber(today), thisYear=today.getFullYear();
+  let prevWeek=thisWeek-1, prevYear=thisYear;
+  if(prevWeek<1){prevWeek=52;prevYear-=1;}
+  const prevData=allData.filter(r=>r.nv===nv&&r.week===prevWeek&&r.year===prevYear);
+  if(!prevData.length){showToast(`⚠️ Không tìm thấy CV tuần ${prevWeek}/${prevYear} của ${nv.split(" ").pop()}`,"#f59e0b");return;}
+  _copyPrevData=prevData;
+  // Build target week options
+  let weekOpts="";
+  for(let i=0;i<5;i++){
+    let tw=thisWeek+i, ty=thisYear;
+    if(tw>52){tw-=52;ty+=1;}
+    const lbl=i===0?`Tuần ${tw}/${ty} (tuần này)`:i===1?`Tuần ${tw}/${ty} (tuần sau)`:`Tuần ${tw}/${ty}`;
+    weekOpts+=`<option value="${tw}|${ty}"${i===1?" selected":""}>${lbl}</option>`;
+  }
+  const targetRow=document.getElementById("copyTargetWeekRow");
+  if(targetRow)targetRow.innerHTML=`
+    <label style="font-size:11px;font-weight:600;color:var(--muted2);">📅 Sao chép sang:</label>
+    <select id="copyTargetWeek" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px 9px;">${weekOpts}</select>
+  `;
+  document.getElementById("copyWeekModalSub").textContent=
+    `${nv} — Nguồn: Tuần ${prevWeek}/${prevYear} (${prevData.length} công việc)`;
+  let html="";
+  prevData.forEach((r,i)=>{
+    html+=`<div class="copy-job-item" id="cpItem-${i}">
+      <input type="checkbox" class="copy-job-check" data-idx="${i}" checked>
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:500;">${r.job}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px;">${r.group}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;color:var(--muted2);">KL:
+            <input type="number" class="copy-vol-input" data-idx="${i}" value="${r.volume||0}"
+              style="width:68px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:11px;padding:2px 6px;">
+          </label>
+          <label style="font-size:11px;display:flex;align-items:center;gap:4px;color:var(--muted2);">Giá trị:
+            <input type="text" class="copy-val-input" data-idx="${i}" value="${r.value||0}"
+              style="width:88px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:11px;padding:2px 6px;">
+          </label>
+        </div>
+      </div>
+      <span class="${r.status==='Hoàn thành'?'badge done':r.status==='Đang thực hiện'?'badge prog':'badge pending'}" style="font-size:10px;">${r.status}</span>
+    </div>`;
+  });
+  document.getElementById("copyWeekList").innerHTML=html;
+  document.getElementById("copyWeekSelectAll").checked=true;
+  document.getElementById("copyWeekModal").style.display="flex";
+}
+
+function toggleCopySelectAll(checked){
+  document.querySelectorAll(".copy-job-check:not([disabled])").forEach(cb=>cb.checked=checked);
+}
+
+function confirmCopyWeek(){
+  const targetVal=document.getElementById("copyTargetWeek")?.value||"";
+  let curWeek, curYear;
+  if(targetVal&&targetVal.includes("|")){
+    const p=targetVal.split("|");curWeek=parseInt(p[0]);curYear=parseInt(p[1]);
+  }else{curWeek=getWeekNumber(new Date());curYear=new Date().getFullYear();}
+  const checks=document.querySelectorAll(".copy-job-check:checked:not([disabled])");
+  if(!checks.length){showToast("⚠️ Không có công việc nào được chọn","#f59e0b");return;}
+  let copied=0;
+  checks.forEach(cb=>{
+    const idx=parseInt(cb.dataset.idx);
+    const src=_copyPrevData[idx];
+    if(!src)return;
+    const volInput=document.querySelector(`.copy-vol-input[data-idx="${idx}"]`);
+    const valInput=document.querySelector(`.copy-val-input[data-idx="${idx}"]`);
+    const volume=volInput?parseFloat(volInput.value)||0:0;
+    const value=valInput?parseFloat((valInput.value||"").replace(/[^0-9.]/g,""))||0:0;
+    // Tính tháng/quý từ tuần đích
+    const approxDate=new Date(curYear,0,1+(curWeek-1)*7+3);
+    const newMonth=approxDate.getMonth()+1;
+    const newQuy=Math.ceil(newMonth/3);
+    const newR={...src,week:curWeek,year:curYear,month:newMonth,quy:newQuy,_uid:++_uidSeq,
+      volume,value,status:"Đang thực hiện",startDate:"",endDate:"",days:0,
+      result:"",suggest:"",id:"",fromSheet:false,klEval:"",
+      approvalStatus:"",approvalBy:"",approvalDate:"",approvalNote:""};
+    allData.push(newR);
+    copied++;
+  });
+  filteredData=[...getBaseData()];
+  document.getElementById("copyWeekModal").style.display="none";
+  renderOverview();renderDetail();
+  showToast(`✅ Đã sao chép ${copied} công việc sang Tuần ${curWeek}/${curYear}. Vui lòng chỉnh sửa trước khi lưu.`);
+  switchTab("overview");
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 7: THỐNG KÊ TIẾN ĐỘ NỘP BÁO CÁO
+// ════════════════════════════════════════════════════════════════
+
+function getSubmissionStatus(week, month, year){
+  const submittedSet=new Set();
+  const baseD=getBaseData();
+  baseD.forEach(r=>{
+    const weekMatch=week?r.week===week&&r.year===year:true;
+    const monthMatch=month?r.month===month&&r.year===year:true;
+    if((week?weekMatch:monthMatch))submittedSet.add(r.nv);
+  });
+  const allEmpNames=EMPLOYEES.map(e=>e.name);
+  return{
+    submitted:[...submittedSet].filter(n=>allEmpNames.includes(n)),
+    notSubmitted:allEmpNames.filter(n=>!submittedSet.has(n)),
+    total:allEmpNames.length,
+    count:allEmpNames.filter(n=>submittedSet.has(n)).length
+  };
+}
+
+function renderSubTracker(week, month, year){
+  const el=document.getElementById("subTracker");
+  if(!el)return;
+  // Chỉ tính nhân viên có acc role=user
+  const userEmpNames=new Set();
+  ACCOUNTS.filter(a=>a.role==="user").forEach(a=>{
+    if(a.nv){userEmpNames.add(a.nv);}
+    else if(a.branch){EMPLOYEES.filter(e=>e.branch===a.branch).forEach(e=>userEmpNames.add(e.name));}
+  });
+  // Tính submitted
+  const submittedSet=new Set();
+  getBaseData().forEach(r=>{
+    const wOk=week?(r.week===week&&r.year===year):true;
+    const mOk=month?(r.month===month&&r.year===year):true;
+    if(week?wOk:mOk)submittedSet.add(r.nv);
+  });
+  // Nhóm theo chi nhánh
+  const branchMap={};
+  EMPLOYEES.filter(e=>userEmpNames.has(e.name)).forEach(emp=>{
+    const b=emp.branch||"Hội sở";
+    if(!branchMap[b])branchMap[b]=[];
+    branchMap[b].push(emp);
+  });
+  let total=0,submitted=0;
+  Object.values(branchMap).forEach(emps=>{
+    total+=emps.length;
+    submitted+=emps.filter(e=>submittedSet.has(e.name)).length;
+  });
+  const pct=total?Math.round(submitted/total*100):0;
+  document.getElementById("subTrackerCount").textContent=`${submitted} / ${total} nhân viên`;
+  document.getElementById("subBarInner").style.width=pct+"%";
+  document.getElementById("subTrackerPct").textContent=pct+"%";
+  const names=document.getElementById("subTrackerNames");
+  if(!Object.keys(branchMap).length){names.innerHTML='<span style="font-size:11px;color:var(--muted);">Chưa có tài khoản nhân viên nào</span>';return;}
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;">';
+  Object.entries(branchMap).forEach(([branch,emps])=>{
+    const done=emps.filter(e=>submittedSet.has(e.name));
+    const nd=emps.filter(e=>!submittedSet.has(e.name));
+    const c=done.length===emps.length?'#4ade80':nd.length===emps.length?'#f87171':'#fbbf24';
+    html+=`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--border);">
+        <span style="font-size:10px;font-weight:700;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:85px;" title="${branch}">${branch}</span>
+        <span style="font-size:11px;font-weight:700;color:${c};">${done.length}/${emps.length}</span>
+      </div>
+      ${emps.map(e=>{
+        const ok=submittedSet.has(e.name);
+        return`<div style="display:flex;align-items:center;gap:5px;font-size:11px;padding:2px 0;color:${ok?'var(--text)':'var(--muted);'}">
+          <span style="width:6px;height:6px;border-radius:50%;background:${ok?'#4ade80':'#f87171'};flex-shrink:0;display:inline-block;"></span>
+          ${e.name.split(' ').slice(-2).join(' ')}
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+  html+='</div>';
+  names.innerHTML=html;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  GIAO VIỆC TỪ QUẢN LÝ → NHÂN VIÊN
+// ════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════
+//  FORM TAB: GIAO VIỆC (Manager) — fm_ prefix
+// ════════════════════════════════════════════════════════════════
+
+function fmInitAssignForm(){
+  const brSel=document.getElementById("fm_branch");
+  if(!brSel)return;
+  // Tìm các chi nhánh có tài khoản nhân viên (user role)
+  const userBranches=new Set();
+  ACCOUNTS.filter(a=>a.role==="user").forEach(a=>{if(a.branch)userBranches.add(a.branch);});
+  brSel.innerHTML='<option value="">— Chọn chi nhánh —</option>';
+  BRANCHES.filter(b=>userBranches.has(b)).forEach(b=>brSel.innerHTML+=`<option value="${b}">${b}</option>`);
+  // Reset employee list
+  const nvSel=document.getElementById("fm_nv");
+  if(nvSel)nvSel.innerHTML='<option value="">— Chọn chi nhánh trước —</option>';
+  const grpSel=document.getElementById("fm_group");
+  if(grpSel){grpSel.innerHTML='<option value="">— Chọn nhóm —</option>';GROUPS.forEach(g=>grpSel.innerHTML+=`<option value="${g}">${g}</option>`);}
+  const byEl=document.getElementById("fm_by");
+  if(byEl)byEl.value=currentUser?.display||currentUser?.username||"";
+  const dateEl=document.getElementById("fm_date");
+  if(dateEl)dateEl.value=new Date().toISOString().slice(0,10);
+  fmRenderAssignedList();
+}
+
+function fmUpdateNvByBranch(){
+  const branch=document.getElementById("fm_branch")?.value||"";
+  const nvSel=document.getElementById("fm_nv");
+  if(!nvSel)return;
+  if(!branch){nvSel.innerHTML='<option value="">— Chọn chi nhánh trước —</option>';return;}
+  // Lấy NV trong chi nhánh có acc user
+  const userEmpNames=new Set();
+  ACCOUNTS.filter(a=>a.role==="user"&&a.branch===branch).forEach(a=>{
+    if(a.nv)userEmpNames.add(a.nv);
+    else EMPLOYEES.filter(e=>e.branch===branch).forEach(e=>userEmpNames.add(e.name));
+  });
+  const emps=EMPLOYEES.filter(e=>e.branch===branch&&(userEmpNames.size===0||userEmpNames.has(e.name)));
+  nvSel.innerHTML='<option value="">— Chọn nhân viên —</option>';
+  emps.forEach(e=>nvSel.innerHTML+=`<option value="${e.name}">${e.name}${e.vi_tri?' — '+e.vi_tri:''}</option>`);
+}
+
+function fmUpdateJobList(){
+  const g=document.getElementById("fm_group")?.value||"";
+  const sel=document.getElementById("fm_job");
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Chọn công việc —</option>';
+  if(g&&JOB_CATALOG[g])JOB_CATALOG[g].forEach(j=>sel.innerHTML+=`<option>${j}</option>`);
+}
+
+function fmUpdateWeekDisplay(){
+  const dl=document.getElementById("fm_deadline")?.value;
+  const el=document.getElementById("fm_week_display");
+  if(!el)return;
+  if(!dl){el.textContent="— Chọn deadline";return;}
+  const d=new Date(dl);
+  el.textContent=`Tuần ${getWeekNumber(d)} / T${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
+function fmDoAssign(){
+  const nv=document.getElementById("fm_nv")?.value;
+  const g=document.getElementById("fm_group")?.value;
+  const job=document.getElementById("fm_job")?.value;
+  const dl=document.getElementById("fm_deadline")?.value;
+  if(!nv||!g||!job||!dl){showToast("⚠️ Điền đủ: Nhân viên, Nhóm, Công việc, Deadline","#f59e0b");return;}
+  const dlDate=new Date(dl);
+  const week=getWeekNumber(dlDate),month=dlDate.getMonth()+1,year=dlDate.getFullYear();
+  const emp=EMPLOYEES.find(e=>e.name===nv);
+  const assigned={
+    _uid:++_uidSeq,nv,group:g,job,status:"Chưa hoàn thành",volume:0,value:0,
+    week,month,year,quy:Math.ceil(month/3),startDate:"",endDate:"",days:0,
+    result:"",suggest:"",deadline:dl,
+    assigner:document.getElementById("fm_by")?.value||currentUser?.display||"",
+    assignDate:document.getElementById("fm_date")?.value||"",
+    assignTask:document.getElementById("fm_note")?.value||"",
+    isAssigned:true,assignedBy:currentUser?.username||"",
+    branch:emp?.branch||"",fromSheet:false,
+    approvalStatus:"",approvalBy:"",approvalDate:"",approvalNote:""
+  };
+  allData.push(assigned);filteredData=[...getBaseData()];
+  saveAssignedTasks();
+  const notifs=JSON.parse(localStorage.getItem("kt_notifications")||"[]");
+  notifs.unshift({id:Date.now(),type:"assigned",
+    msg:`📋 ${assigned.assigner} giao việc: "${job}" (${g}) — Deadline: ${dl}`,
+    targetUser:nv,date:new Date().toLocaleString("vi-VN"),read:false});
+  localStorage.setItem("kt_notifications",JSON.stringify(notifs));
+  showToast(`✅ Đã giao việc "${job}" cho ${nv.split(" ").pop()}`);
+  fmResetForm();fmRenderAssignedList();
+}
+
+function fmResetForm(){
+  ["fm_branch","fm_group"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  const nvSel=document.getElementById("fm_nv");if(nvSel)nvSel.innerHTML='<option value="">— Chọn chi nhánh trước —</option>';
+  const fmJob=document.getElementById("fm_job");if(fmJob)fmJob.innerHTML='<option value="">— Chọn công việc —</option>';
+  const fmDl=document.getElementById("fm_deadline");if(fmDl)fmDl.value="";
+  const fmNote=document.getElementById("fm_note");if(fmNote)fmNote.value="";
+  const fmWd=document.getElementById("fm_week_display");if(fmWd)fmWd.textContent="— Chọn deadline";
+}
+
+function fmRenderAssignedList(){
+  const el=document.getElementById("fm_assignedList");
+  if(!el)return;
+  const tasks=getBaseData().filter(r=>r.isAssigned).sort((a,b)=>new Date(b.assignDate||0)-new Date(a.assignDate||0));
+  if(!tasks.length){el.style.display="none";return;}
+  el.style.display="block";
+  let html=`<div style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Việc đã giao gần đây (${tasks.length})</div>
+  <div style="display:flex;flex-direction:column;gap:5px;">`;
+  tasks.slice(0,15).forEach(r=>{
+    const ov=isOverdue(r);
+    html+=`<div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid ${ov?'rgba(239,68,68,.3)':'var(--border)'};border-radius:7px;padding:7px 12px;flex-wrap:wrap;">
+      <span style="font-size:11px;font-weight:600;min-width:80px;">${r.nv.split(" ").slice(-2).join(" ")}</span>
+      <span style="flex:1;font-size:12px;">${r.job}</span>
+      <span style="font-size:10px;color:var(--muted);">DL: ${r.deadline||"—"}</span>
+      ${statusBadge(r.status)}${ov?'<span style="font-size:10px;font-weight:700;color:var(--danger);">⚠️</span>':""}
+    </div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function toggleAssignForm(){
+  const area=document.getElementById("assignFormArea");
+  if(!area)return;
+  const visible=area.style.display!=="none";
+  area.style.display=visible?"none":"block";
+  if(!visible){
+    // Populate chi nhánh selector (chỉ branch có user acc)
+    const brSel=document.getElementById("asgn_branch");
+    const userBranches=new Set();
+    ACCOUNTS.filter(a=>a.role==="user").forEach(a=>{if(a.branch)userBranches.add(a.branch);});
+    brSel.innerHTML='<option value="">— Chọn chi nhánh —</option>';
+    BRANCHES.filter(b=>userBranches.has(b)).forEach(b=>brSel.innerHTML+=`<option value="${b}">${b}</option>`);
+    // Reset employee
+    const nvSel=document.getElementById("asgn_nv");
+    nvSel.innerHTML='<option value="">— Chọn chi nhánh trước —</option>';
+    // Populate group selector
+    const grpSel=document.getElementById("asgn_group");
+    grpSel.innerHTML='<option value="">— Chọn nhóm —</option>';
+    GROUPS.forEach(g=>grpSel.innerHTML+=`<option value="${g}">${g}</option>`);
+    document.getElementById("asgn_by").value=currentUser?.display||currentUser?.username||"";
+    document.getElementById("asgn_date").value=new Date().toISOString().slice(0,10);
+    document.getElementById("asgn_job").innerHTML='<option value="">— Chọn công việc —</option>';
+    document.getElementById("asgn_week_display").textContent="— Chọn deadline";
+    document.getElementById("asgn_deadline").value="";
+    document.getElementById("asgn_note").value="";
+  }
+}
+
+function asgnUpdateNvByBranch(){
+  const branch=document.getElementById("asgn_branch")?.value||"";
+  const nvSel=document.getElementById("asgn_nv");
+  if(!nvSel)return;
+  if(!branch){nvSel.innerHTML='<option value="">— Chọn chi nhánh trước —</option>';return;}
+  const userEmpNames=new Set();
+  ACCOUNTS.filter(a=>a.role==="user"&&a.branch===branch).forEach(a=>{
+    if(a.nv)userEmpNames.add(a.nv);
+    else EMPLOYEES.filter(e=>e.branch===branch).forEach(e=>userEmpNames.add(e.name));
+  });
+  const emps=EMPLOYEES.filter(e=>e.branch===branch&&(userEmpNames.size===0||userEmpNames.has(e.name)));
+  nvSel.innerHTML='<option value="">— Chọn nhân viên —</option>';
+  emps.forEach(e=>nvSel.innerHTML+=`<option value="${e.name}">${e.name}${e.vi_tri?' — '+e.vi_tri:''}</option>`);
+}
+
+function updateAsgnJobList(){
+  const g=document.getElementById("asgn_group")?.value||"";
+  const sel=document.getElementById("asgn_job");
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Chọn công việc —</option>';
+  if(g&&JOB_CATALOG[g])JOB_CATALOG[g].forEach(j=>sel.innerHTML+=`<option>${j}</option>`);
+}
+
+function updateAsgnWeekDisplay(){
+  const dl=document.getElementById("asgn_deadline")?.value;
+  const el=document.getElementById("asgn_week_display");
+  if(!el)return;
+  if(!dl){el.textContent="— Chọn deadline";return;}
+  const d=new Date(dl);
+  el.textContent=`Tuần ${getWeekNumber(d)} / T${d.getMonth()+1}/${d.getFullYear()}`;
+}
+
+function doAssignTask(){
+  const nv=document.getElementById("asgn_nv")?.value;
+  const g=document.getElementById("asgn_group")?.value;
+  const job=document.getElementById("asgn_job")?.value;
+  const dl=document.getElementById("asgn_deadline")?.value;
+  if(!nv||!g||!job||!dl){showToast("⚠️ Vui lòng điền đủ: Nhân viên, Nhóm CV, Công việc, Deadline","#f59e0b");return;}
+  const dlDate=new Date(dl);
+  const week=getWeekNumber(dlDate),month=dlDate.getMonth()+1,year=dlDate.getFullYear();
+  const emp=EMPLOYEES.find(e=>e.name===nv);
+  const assigned={
+    _uid:++_uidSeq,nv,group:g,job,status:"Chưa hoàn thành",volume:0,value:0,
+    week,month,year,quy:Math.ceil(month/3),startDate:"",endDate:"",days:0,
+    result:"",suggest:"",deadline:dl,
+    assigner:document.getElementById("asgn_by")?.value||currentUser?.display||"",
+    assignDate:document.getElementById("asgn_date")?.value||"",
+    assignTask:document.getElementById("asgn_note")?.value||"",
+    isAssigned:true,assignedBy:currentUser?.username||"",
+    branch:emp?.branch||"",fromSheet:false,
+    approvalStatus:"",approvalBy:"",approvalDate:"",approvalNote:""
+  };
+  allData.push(assigned);
+  filteredData=[...getBaseData()];
+  saveAssignedTasks();
+  // Gửi notification cho nhân viên
+  const notifs=JSON.parse(localStorage.getItem("kt_notifications")||"[]");
+  notifs.unshift({
+    id:Date.now(),type:"assigned",
+    msg:`📋 ${assigned.assigner} giao việc: "${job}" (${g}) — Deadline: ${dl}`,
+    targetUser:nv,
+    date:new Date().toLocaleString("vi-VN"),read:false
+  });
+  localStorage.setItem("kt_notifications",JSON.stringify(notifs));
+  showToast(`✅ Đã giao việc "${job}" cho ${nv.split(" ").pop()}`);
+  document.getElementById("assignFormArea").style.display="none";
+  renderManager();
+}
+
+function renderAssignedList(){
+  const el=document.getElementById("assignedList");
+  if(!el)return;
+  const tasks=getBaseData().filter(r=>r.isAssigned).sort((a,b)=>new Date(a.deadline||0)-new Date(b.deadline||0));
+  if(!tasks.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:10px 0;">Chưa có việc nào được giao.</div>';return;}
+  let html=`<div style="margin-top:6px;font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Danh sách việc đã giao (${tasks.length})</div>
+  <div style="display:flex;flex-direction:column;gap:5px;">`;
+  tasks.slice(0,30).forEach(r=>{
+    const ov=isOverdue(r);
+    html+=`<div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid ${ov?'rgba(239,68,68,.3)':'var(--border)'};border-radius:7px;padding:7px 12px;flex-wrap:wrap;">
+      <span style="font-size:11px;font-weight:600;min-width:80px;">${r.nv.split(" ").slice(-2).join(" ")}</span>
+      <span style="flex:1;font-size:12px;">${r.job}</span>
+      <span style="font-size:10px;color:var(--muted);">DL: ${r.deadline||"—"}</span>
+      ${statusBadge(r.status)}
+      ${ov?'<span style="font-size:10px;font-weight:700;color:var(--danger);">⚠️ QUÁ HẠN</span>':""}
+    </div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function renderAssignedTasksBanner(){
+  const banner=document.getElementById("assignedTasksBanner");
+  const listEl=document.getElementById("assignedTasksList");
+  const countEl=document.getElementById("assignedTasksCount");
+  if(!banner||!currentUser)return;
+  if(currentUser.role!=="user"){banner.style.display="none";return;}
+  const tasks=allData.filter(r=>r.isAssigned&&r.nv===currentUser.nv&&r.status==="Chưa hoàn thành");
+  if(!tasks.length){banner.style.display="none";return;}
+  countEl.textContent=`${tasks.length} việc chưa hoàn thành`;
+  let html="";
+  tasks.forEach(r=>{
+    const ov=isOverdue(r);
+    html+=`<div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid ${ov?'rgba(239,68,68,.4)':'rgba(79,156,249,.2)'};border-radius:7px;padding:7px 12px;flex-wrap:wrap;">
+      <span style="font-size:13px;">📋</span>
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:600;">${r.job} <span style="font-size:10px;color:var(--muted);">(${r.group})</span></div>
+        <div style="font-size:11px;color:var(--muted);">Giao bởi: ${r.assigner||"—"} — Deadline: ${r.deadline||"—"} ${r.assignTask?'<span style="color:var(--muted2);">| '+r.assignTask+'</span>':''}</div>
+      </div>
+      ${ov?'<span style="font-size:11px;font-weight:700;color:var(--danger);">⚠️ QUÁ HẠN</span>':""}
+      <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="prefillAssignedTask(${r._uid})">✏️ Báo cáo</button>
+    </div>`;
+  });
+  listEl.innerHTML=html;
+  banner.style.display="block";
+}
+
+function prefillAssignedTask(uid){
+  const r=allData.find(x=>x._uid===uid);
+  if(!r)return;
+  switchTab("form");
+  // Pre-fill form fields
+  setTimeout(()=>{
+    const nvSel=document.getElementById("fi_employee");
+    if(nvSel){nvSel.value=r.nv;onEmployeeChange();}
+    setTimeout(()=>{
+      const grpSel=document.getElementById("fi_group");
+      if(grpSel){grpSel.value=r.group;updateJobList();}
+      setTimeout(()=>{
+        const jobSel=document.getElementById("fi_job");
+        if(jobSel)jobSel.value=r.job;
+        if(r.deadline){
+          document.getElementById("fi_start").value=r.deadline;
+          autoDetectPeriod(r.deadline);
+        }
+        document.getElementById("fi_status").value=r.status;
+        if(r.deadline)document.getElementById("fi_deadline").value=r.deadline;
+        if(r.assigner)document.getElementById("fi_assigner").value=r.assigner;
+        if(r.assignDate)document.getElementById("fi_assignDate").value=r.assignDate;
+        if(r.assignTask)document.getElementById("fi_assignTask").value=r.assignTask;
+      },100);
+    },100);
+  },150);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 8: BIỂU ĐỒ THEO THÁNG
+// ════════════════════════════════════════════════════════════════
+
+let _monthPeriod=3;
+let chartMonthTask=null, chartMonthValue=null;
+
+function setMonthPeriod(n,btn){
+  _monthPeriod=n;
+  document.querySelectorAll(".period-tab").forEach(b=>b.classList.remove("active"));
+  if(btn)btn.classList.add("active");
+  renderMonthCharts();
+}
+
+function renderMonthCharts(){
+  const now=new Date();
+  const labels=[], taskData=[], doneData=[], valueData=[];
+  for(let i=_monthPeriod-1;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const mo=d.getMonth()+1, yr=d.getFullYear();
+    const slice=allData.filter(r=>r.month===mo&&r.year===yr);
+    labels.push(`T${mo}/${String(yr).slice(2)}`);
+    taskData.push(slice.length);
+    doneData.push(slice.filter(r=>r.status==="Hoàn thành").length);
+    valueData.push(slice.reduce((a,r)=>a+(r.value||0),0)/1e9); // tỷ đồng
+  }
+  const tickColor="#7b8199";
+  const gridColor="rgba(255,255,255,.04)";
+  // Chart tasks
+  if(chartMonthTask)chartMonthTask.destroy();
+  const ctx1=document.getElementById("chartMonthTask");
+  if(ctx1)chartMonthTask=new Chart(ctx1,{type:"bar",data:{labels,datasets:[
+    {label:"Tổng CV",data:taskData,backgroundColor:"rgba(79,156,249,.5)",borderRadius:4,borderSkipped:false},
+    {label:"Hoàn thành",data:doneData,backgroundColor:"rgba(34,197,94,.7)",borderRadius:4,borderSkipped:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:tickColor,font:{size:10}}}},
+    scales:{x:{ticks:{color:tickColor,font:{size:10}},grid:{display:false}},y:{ticks:{color:tickColor,stepSize:1},grid:{color:gridColor}}}}});
+  // Chart value
+  if(chartMonthValue)chartMonthValue.destroy();
+  const ctx2=document.getElementById("chartMonthValue");
+  if(ctx2)chartMonthValue=new Chart(ctx2,{type:"line",data:{labels,datasets:[
+    {label:"Giá trị (Tỷ)",data:valueData,borderColor:"#2dd4bf",backgroundColor:"rgba(45,212,191,.12)",fill:true,tension:.4,pointRadius:4,pointBackgroundColor:"#2dd4bf"}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:tickColor,font:{size:10}}}},
+    scales:{x:{ticks:{color:tickColor,font:{size:10}},grid:{display:false}},y:{ticks:{color:tickColor,callback:v=>v+"B"},grid:{color:gridColor}}}}});
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 9: PHÊ DUYỆT BÁO CÁO
+// ════════════════════════════════════════════════════════════════
+
+function approvalBadge(status){
+  if(status==="approved")return'<span class="badge apv-approved">✅ Đã duyệt</span>';
+  if(status==="rejected")return'<span class="badge apv-rejected">❌ Từ chối</span>';
+  if(status==="revision")return'<span class="badge apv-revision">🔄 Cần bổ sung</span>';
+  if(status==="pending")return'<span class="badge apv-pending">⏳ Chờ duyệt</span>';
+  return'<span class="badge none">—</span>';
+}
+
+// Render bảng phê duyệt trong Manager tab
+function renderApproval(){
+  const tbody=document.getElementById("approvalTable");
+  if(!tbody)return;
+  const statusFlt=document.getElementById("apvStatusFilter")?.value||"";
+  // Chỉ hiện khi manager (không phải admin)
+  if(!currentUser||currentUser.role!=="manager")return;
+  // Lấy data đang lọc từ manager filter
+  const mEmp=document.getElementById("mEmployee")?.value||"";
+  const mMo=parseInt(document.getElementById("mMonth")?.value)||null;
+  let apvData=getBaseData().filter(r=>{
+    if(mEmp&&r.nv!==mEmp)return false;
+    if(mMo&&r.month!==mMo)return false;
+    return true;
+  }).filter(r=>{
+    if(!statusFlt)return r.approvalStatus!==undefined||r.status;
+    return r.approvalStatus===statusFlt;
+  });
+  if(!apvData.length){tbody.innerHTML='<tr><td colspan="10" class="empty">Không có dữ liệu phê duyệt</td></tr>';return;}
+  let html="";
+  apvData.slice(0,100).forEach(r=>{
+    const gi=GROUPS.indexOf(r.group);
+    const canApprove=currentUser.role==="manager";
+    const apvStatus=r.approvalStatus||"";
+    const btns=canApprove&&apvStatus!=="approved"
+      ?`<div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button onclick="openApvModal(${r._uid},'approved')" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#4ade80;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:10px;font-weight:600;white-space:nowrap;">✅ Duyệt</button>
+          <button onclick="openApvModal(${r._uid},'revision')" style="background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.3);color:#a78bfa;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:10px;font-weight:600;white-space:nowrap;">🔄 Bổ sung</button>
+          <button onclick="openApvModal(${r._uid},'rejected')" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:10px;font-weight:600;white-space:nowrap;">❌ Từ chối</button>
+        </div>`:"";
+    html+=`<tr>
+      <td style="font-weight:500;white-space:nowrap;">${r.nv.split(" ").slice(-2).join(" ")}</td>
+      <td style="font-size:12px;max-width:180px;">${r.job}</td>
+      <td><span class="grp-tag grp-${gi<0?0:gi}" style="font-size:10px;">${r.group}</span></td>
+      <td style="font-size:11px;color:var(--muted);text-align:center;">T${r.week}/T${r.month}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${approvalBadge(apvStatus)}</td>
+      <td style="font-size:11px;color:var(--muted2);">${r.approvalBy||"—"}</td>
+      <td style="font-size:11px;color:var(--muted);white-space:nowrap;">${r.approvalDate||"—"}</td>
+      <td style="font-size:11px;color:var(--muted2);max-width:150px;">${r.approvalNote||"—"}</td>
+      <td>${btns}</td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+function openApvModal(uid, action){
+  const titles={approved:"✅ Phê duyệt công việc",rejected:"❌ Từ chối công việc",revision:"🔄 Yêu cầu bổ sung thông tin"};
+  document.getElementById("apvModalUid").value=uid;
+  document.getElementById("apvModalAction").value=action;
+  document.getElementById("apvModalTitle").textContent=titles[action]||"Phê duyệt";
+  document.getElementById("apvNoteInput").value="";
+  const confirmBtn=document.getElementById("apvModalConfirm");
+  if(action==="approved")confirmBtn.className="btn btn-success";
+  else if(action==="rejected")confirmBtn.className="btn btn-danger";
+  else confirmBtn.className="btn btn-primary";
+  document.getElementById("apvNoteModal").style.display="flex";
+}
+
+function closeApvModal(){document.getElementById("apvNoteModal").style.display="none";}
+
+function confirmApproval(){
+  const uid=parseInt(document.getElementById("apvModalUid").value);
+  const action=document.getElementById("apvModalAction").value;
+  const note=document.getElementById("apvNoteInput").value.trim();
+  const r=allData.find(x=>x._uid===uid);
+  if(!r){showToast("❌ Không tìm thấy công việc","#ef4444");return;}
+  r.approvalStatus=action;
+  r.approvalBy=currentUser.display;
+  r.approvalDate=new Date().toLocaleDateString("vi-VN");
+  r.approvalNote=note;
+  saveApprovals();
+  // Thêm thông báo cho nhân viên (Feature 10)
+  const msgs={approved:"đã được PHÊ DUYỆT",rejected:"đã bị TỪ CHỐI",revision:"cần BỔ SUNG thêm thông tin"};
+  addNotification(
+    `Báo cáo của bạn ${msgs[action]||"được cập nhật"}`,
+    `${r.job} (T${r.week}/T${r.month}) — ${note||"Không có ghi chú"}`,
+    action
+  );
+  closeApvModal();
+  renderApproval();
+  showToast(`✅ Đã ${action==="approved"?"phê duyệt":action==="rejected"?"từ chối":"yêu cầu bổ sung"}: ${r.job}`);
+}
+
+// Nhân viên gửi báo cáo lên chờ duyệt
+function submitForApproval(uid){
+  const r=allData.find(x=>x._uid===uid);
+  if(!r)return;
+  r.approvalStatus="pending";
+  renderApproval();
+  addNotification("Báo cáo đã gửi chờ duyệt",`${r.job} (T${r.week}/T${r.month}) đã được gửi lên quản lý.`,"pending");
+  showToast("✅ Đã gửi báo cáo chờ phê duyệt");
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 10: THÔNG BÁO NỘI BỘ (IN-APP NOTIFICATIONS)
+// ════════════════════════════════════════════════════════════════
+
+let notifications=[];
+(function loadNotifications(){
+  try{const s=localStorage.getItem("kt_notifications");if(s)notifications=JSON.parse(s);}catch(e){}
+})();
+
+function saveNotifications(){
+  try{localStorage.setItem("kt_notifications",JSON.stringify(notifications.slice(0,50)));}catch(e){}
+}
+
+function addNotification(title, body, type){
+  notifications.unshift({title,body,type:type||"info",time:new Date().toLocaleString("vi-VN"),read:false});
+  saveNotifications();
+  updateNotifUI();
+}
+
+function updateNotifUI(){
+  const bellWrap=document.getElementById("notifBellWrap");
+  if(!bellWrap)return;
+  bellWrap.style.display=currentUser?"inline-flex":"none";
+  const unread=notifications.filter(n=>!n.read).length;
+  const dot=document.getElementById("notifCountDot");
+  if(dot){dot.style.display=unread?"flex":"none";dot.textContent=unread>9?"9+":unread;}
+  renderNotifList();
+}
+
+function renderNotifList(){
+  const list=document.getElementById("notifList");
+  if(!list)return;
+  if(!notifications.length){list.innerHTML='<div class="empty" style="padding:20px;">Không có thông báo</div>';return;}
+  const typeIcon={approved:"✅",rejected:"❌",revision:"🔄",pending:"⏳",info:"💬"};
+  list.innerHTML=notifications.slice(0,20).map((n,i)=>`
+    <div class="notif-item ${n.read?'':'unread'}" onclick="readNotif(${i})">
+      <div class="notif-item-title">${typeIcon[n.type]||"💬"} ${n.title}</div>
+      <div class="notif-item-body">${n.body}</div>
+      <div class="notif-item-time">${n.time}</div>
+    </div>`).join('');
+}
+
+function readNotif(i){notifications[i].read=true;saveNotifications();updateNotifUI();}
+
+function markAllRead(e){
+  if(e)e.stopPropagation();
+  notifications.forEach(n=>n.read=true);
+  saveNotifications();
+  updateNotifUI();
+}
+
+function toggleNotifPanel(e){
+  e.stopPropagation();
+  const panel=document.getElementById("notifPanel");
+  if(!panel)return;
+  const open=panel.classList.toggle("open");
+  if(open){renderNotifList();}
+}
+
+// Đóng notification panel khi click ra ngoài
+document.addEventListener("click",function(e){
+  const wrap=document.getElementById("notifBellWrap");
+  const panel=document.getElementById("notifPanel");
+  if(panel&&wrap&&!wrap.contains(e.target))panel.classList.remove("open");
+});
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 11: AI TỔNG HỢP BÁO CÁO
+// ════════════════════════════════════════════════════════════════
+
+function openAIReport(){
+  // Lấy data theo filter hiện tại của Manager tab
+  const mEmp=document.getElementById("mEmployee")?.value||"";
+  const mFr=document.getElementById("mFrom")?.value||"";
+  const mTo2=document.getElementById("mTo")?.value||"";
+  const mMo=parseInt(document.getElementById("mMonth")?.value)||null;
+  const mWk=parseInt(document.getElementById("mWeek")?.value)||null;
+  let data=getBaseData().filter(r=>{
+    if(mEmp&&r.nv!==mEmp)return false;
+    if(mMo&&r.month!==mMo)return false;
+    if(mWk&&r.week!==mWk)return false;
+    if(mFr||mTo2){const rd=getRowDate(r);if(rd){if(mFr&&rd<mFr)return false;if(mTo2&&rd>mTo2)return false;}}
+    return true;
+  });
+  const content=generateAIReport(data, {mEmp,mMo,mWk,mFr,mTo2});
+  document.getElementById("aiReportContent").innerHTML=content;
+  document.getElementById("aiReportTime").textContent=`Xuất lúc: ${new Date().toLocaleString("vi-VN")} · ${data.length} công việc trong bộ lọc`;
+  document.getElementById("aiReportModal").style.display="flex";
+}
+
+function generateAIReport(data, filters){
+  if(!data.length)return'<div class="empty">Không có dữ liệu để phân tích.</div>';
+  const stats=calcEmployeeStats(data);
+  const total=data.length;
+  const done=data.filter(r=>r.status==="Hoàn thành").length;
+  const prog=data.filter(r=>r.status==="Đang thực hiện").length;
+  const notdone=total-done-prog;
+  const pct=total?Math.round(done/total*100):0;
+  const totalVal=data.reduce((a,r)=>a+(r.value||0),0);
+  const overdueList=data.filter(r=>isOverdue(r));
+  const overduePct=total?Math.round(overdueList.length/total*100):0;
+  // Phân kỳ
+  const filterDesc=filters.mEmp?`Nhân viên: ${filters.mEmp}`:filters.mWk?`Tuần ${filters.mWk}`:filters.mMo?`Tháng ${filters.mMo}`:"Toàn bộ";
+  // Top performers (KPI đạt/vượt)
+  const topPerf=stats.filter(s=>{const kpi=getKpiTarget(s.vi_tri);const a=s.total?Math.round(s.done/s.total*100):0;return a>=kpi;}).sort((a,b)=>(b.done/b.total||0)-(a.done/a.total||0));
+  const lowPerf=stats.filter(s=>{const kpi=getKpiTarget(s.vi_tri);const a=s.total?Math.round(s.done/s.total*100):0;return a<kpi;}).sort((a,b)=>(a.done/a.total||0)-(b.done/b.total||0));
+  // Nhóm CV nhiều nhất
+  const grpMap={};data.forEach(r=>grpMap[r.group]=(grpMap[r.group]||0)+1);
+  const topGroups=Object.entries(grpMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  // Công việc đang thực hiện
+  const progList=data.filter(r=>r.status==="Đang thực hiện").slice(0,5);
+
+  const pctColor=pct>=80?"#4ade80":pct>=60?"#fbbf24":"#f87171";
+  const valBg=`background:rgba(45,212,191,.06);border:1px solid rgba(45,212,191,.2);`;
+  const secStyle=`margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);`;
+
+  return`
+<div style="${secStyle}">
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--accent);">📋 1. TỔNG QUAN PHÒNG BAN</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px;">
+    ${[
+      ["Tổng công việc",total,"var(--accent)"],
+      ["Hoàn thành",done+` (${pct}%)`,pctColor],
+      ["Đang thực hiện",prog,"#60a5fa"],
+      ["Chưa hoàn thành",notdone,"#f87171"],
+      ["Quá hạn",overdueList.length,overdueList.length?"#f87171":"#4ade80"],
+      ["Nhân viên",stats.length,"#a78bfa"]
+    ].map(([l,v,c])=>`<div style="text-align:center;padding:8px;background:var(--card);border-radius:8px;border:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${l}</div>
+      <div style="font-size:16px;font-weight:700;color:${c};">${v}</div>
+    </div>`).join("")}
+  </div>
+  <div style="font-size:12px;color:var(--muted2);line-height:1.7;">
+    • Tổng giá trị đã xử lý: <b style="color:#2dd4bf;">${fmtVal(totalVal)}</b><br>
+    • Bộ lọc: <b>${filterDesc}</b><br>
+    • Tỷ lệ KPI chung: <b style="color:${pctColor};">${pct}%</b> (${done}/${total} công việc hoàn thành)
+    ${overduePct>0?`<br>• <span style="color:#f87171;">⚠️ ${overdueList.length} công việc quá hạn (${overduePct}% tổng số)</span>`:""}
+  </div>
+</div>
+
+${topPerf.length?`<div style="${secStyle}">
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--success);">⭐ 2. NHÂN VIÊN NỔI BẬT (đạt / vượt KPI)</div>
+  ${topPerf.slice(0,3).map((s,i)=>{
+    const p=s.total?Math.round(s.done/s.total*100):0;
+    const target=getKpiTarget(s.vi_tri);
+    return`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;padding:8px 12px;background:rgba(34,197,94,.06);border-radius:8px;border:1px solid rgba(34,197,94,.15);">
+      <span style="font-size:18px;">${["🥇","🥈","🥉"][i]||"⭐"}</span>
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:13px;">${s.name}</div>
+        <div style="font-size:11px;color:var(--muted);">${s.vi_tri} — ${s.total} CV, ${fmtVal(s.totalValue)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:15px;font-weight:700;color:#4ade80;">${p}%</div>
+        <div style="font-size:10px;color:var(--muted);">Mục tiêu: ${target}%</div>
+      </div>
+    </div>`;}).join("")}
+</div>`:""}
+
+${lowPerf.length?`<div style="${secStyle}">
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--warning);">⚠️ 3. NHÂN VIÊN CẦN CẢI THIỆN (chưa đạt KPI)</div>
+  ${lowPerf.slice(0,5).map(s=>{
+    const p=s.total?Math.round(s.done/s.total*100):0;
+    const target=getKpiTarget(s.vi_tri);
+    const gap=p-target;
+    return`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;padding:8px 12px;background:rgba(239,68,68,.04);border-radius:8px;border:1px solid rgba(239,68,68,.15);">
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:13px;">${s.name}</div>
+        <div style="font-size:11px;color:var(--muted);">${s.vi_tri} — ${s.done}/${s.total} CV hoàn thành</div>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:#f87171;">${p}% <span style="font-size:10px;">(thiếu ${Math.abs(gap)}%)</span></span>
+    </div>`;}).join("")}
+</div>`:""}
+
+${progList.length?`<div style="${secStyle}">
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#60a5fa;">🔄 4. CÔNG VIỆC ĐANG TRIỂN KHAI</div>
+  ${progList.map(r=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:7px 10px;background:rgba(59,130,246,.06);border-radius:7px;">
+    <span style="font-size:11px;color:var(--muted);min-width:60px;white-space:nowrap;">${r.nv.split(" ").pop()}</span>
+    <span style="flex:1;font-size:12px;">${r.job}</span>
+    <span style="font-size:10px;color:var(--muted);">${r.group}</span>
+  </div>`).join("")}
+  ${prog>5?`<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:4px;">... và ${prog-5} công việc đang thực hiện khác</div>`:""}
+</div>`:""}
+
+${overdueList.length?`<div style="${secStyle}border-color:rgba(239,68,68,.3);">
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#f87171;">🚨 5. CÔNG VIỆC QUÁ HẠN — CẦN XỬ LÝ NGAY</div>
+  ${overdueList.slice(0,5).map(r=>{
+    const deadline=r.deadline||r.endDate||(r.end>0?excelDateToYmd(r.end):"");
+    return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:7px 10px;background:rgba(239,68,68,.07);border-radius:7px;border:1px solid rgba(239,68,68,.2);">
+      <span class="overdue-badge">QUÁ HẠN</span>
+      <span style="font-size:11px;color:var(--muted);min-width:60px;white-space:nowrap;">${r.nv.split(" ").pop()}</span>
+      <span style="flex:1;font-size:12px;">${r.job}</span>
+      <span style="font-size:11px;color:#f87171;">${deadline?`HẠN: ${fmtDate(deadline)}`:""}</span>
+    </div>`;}).join("")}
+  ${overdueList.length>5?`<div style="font-size:11px;color:#f87171;margin-top:4px;">⚠️ Còn ${overdueList.length-5} công việc quá hạn khác</div>`:""}
+</div>`:""}
+
+<div style="${secStyle}background:rgba(167,139,250,.06);border-color:rgba(167,139,250,.25);">
+  <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#a78bfa;">💡 6. ĐỀ XUẤT CỦA AI</div>
+  <div style="font-size:12px;color:var(--muted2);line-height:1.8;">
+    ${pct>=90?`<p>✅ <b>Hiệu suất xuất sắc:</b> Phòng đạt ${pct}% hoàn thành, vượt mức kỳ vọng. Tiếp tục duy trì tiêu chuẩn này.</p>`:
+    pct>=70?`<p>📊 <b>Hiệu suất khá tốt:</b> Tỷ lệ hoàn thành ${pct}%, còn ${100-pct}% dư địa cải thiện. Chú trọng các công việc đang thực hiện dang dở.</p>`:
+    `<p>⚠️ <b>Hiệu suất cần cải thiện:</b> Tỷ lệ hoàn thành chỉ đạt ${pct}%. Cần họp đánh giá và hỗ trợ nhân viên kịp thời.</p>`}
+    ${overdueList.length?`<p>🚨 <b>Ưu tiên xử lý quá hạn:</b> ${overdueList.length} công việc quá hạn cần được giải quyết ngay. Giao trách nhiệm cụ thể cho từng người.</p>`:""}
+    ${lowPerf.length?`<p>📋 <b>Hỗ trợ nhân viên yếu:</b> ${lowPerf.map(s=>s.name.split(" ").pop()).join(", ")} chưa đạt KPI. Nên tìm hiểu nguyên nhân và có kế hoạch hỗ trợ.</p>`:""}
+    ${topGroups.length?`<p>📂 <b>Nhóm CV tập trung nhiều nhất:</b> ${topGroups.map(([g,c])=>`${g} (${c} CV)`).join(" → ")}. Kiểm tra phân bổ nguồn lực hợp lý.</p>`:""}
+    ${totalVal>0?`<p>💰 <b>Tổng giá trị đã xử lý:</b> ${fmtVal(totalVal)} — Con số này phản ánh quy mô công việc kỳ kế toán.</p>`:""}
+  </div>
+</div>
+<div style="font-size:10px;color:var(--muted);text-align:center;padding-top:8px;border-top:1px solid var(--border);">
+  Báo cáo tự động · ${new Date().toLocaleString("vi-VN")} · Hệ thống Báo cáo Phòng Kế toán
+</div>`;
+}
+
+// Copy nội dung AI report
+function copyAIReport(){
+  const el=document.getElementById("aiReportContent");
+  const text=el?el.innerText:"";
+  navigator.clipboard.writeText(text).then(()=>showToast("✅ Đã copy nội dung báo cáo")).catch(()=>showToast("⚠️ Không copy được","#f59e0b"));
+}
+
+// In / PDF
+function printAIReport(){
+  const content=document.getElementById("aiReportContent")?.innerHTML||"";
+  const w=window.open("","_blank");
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Báo Cáo AI</title>
+    <style>body{font-family:Arial,sans-serif;padding:30px;color:#111;line-height:1.6;font-size:13px;}
+    table{border-collapse:collapse;width:100%;} td,th{border:1px solid #ddd;padding:6px 10px;}
+    @media print{body{padding:15px;}}</style></head><body>${content}</body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FEATURE 2: CHỐNG NHẬP TRÙNG — hàm kiểm tra trùng
+// ════════════════════════════════════════════════════════════════
+
+// Tìm bản ghi trùng (nv + week + year + group + job)
+function findDuplicate(nv, week, year, group, job){
+  return allData.find(r=>r.nv===nv&&r.week===week&&r.year===year&&r.group===group&&r.job===job);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  KPI SETTINGS — render khi vào Settings tab
+// ════════════════════════════════════════════════════════════════
+
+const _origLoadConfigUI=loadConfigUI;
+// Override để thêm KPI render (không phá function cũ)
+loadConfigUI=function(){
+  _origLoadConfigUI();
+  renderCfgKpi();
+};
+
 // Kiểm tra session khi tải trang
 (function initAuth(){
   try{
