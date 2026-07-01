@@ -1333,4 +1333,721 @@ async function viewActual(main){
   for(const l of lines){const a=await getLineActual(l.id);const cat=await dbGet('work_catalog',l.workCode);
     const pct=a?num(a.completionPct):0;
     const overdue=l.deadline&&a&&a.status!=='approved'&&new Date(l.deadline)<new Date()&&!a.actualEndDate || (l.deadline&&!a&&new Date(l.deadline)<new Date());
-    const st=a?a.status:'no
+    const st=a?a.status:'not_started';
+    const prio=l.priority||(num(l.weight)>=20?'Cao':num(l.weight)>=10?'TB':'Thấp');
+    rows.push({l,a,cat,pct,overdue:!!overdue,st,prio,group:cat?cat.group:'',d:{line:l,actual:a,cat,overdue:!!overdue}});}
+  const isDone=r=>r.st==='done'||r.st==='approved';
+  const isDoing=r=>!r.overdue&&(r.st==='in_progress'||r.st==='submitted');
+  const isWait=r=>!r.overdue&&(r.st==='not_started'||r.st==='draft'||!r.a);
+  const cnt={all:rows.length,doing:rows.filter(isDoing).length,wait:rows.filter(isWait).length,done:rows.filter(isDone).length,over:rows.filter(r=>r.overdue).length};
+  const tab=window._actualTab||'all';
+  const shown=rows.filter(r=>tab==='all'||(tab==='doing'&&isDoing(r))||(tab==='wait'&&isWait(r))||(tab==='done'&&isDone(r))||(tab==='over'&&r.overdue));
+  const tabBtn=(k,l)=>`<div class="tab ${tab===k?'active':''}" onclick="setActualTab('${k}')">${l}<span class="ct">${cnt[k]}</span></div>`;
+  let body='';
+  shown.forEach((r,i)=>{
+    body+=`<tr><td>${i+1}</td>
+      <td><b style="color:var(--c-primary)">${esc(r.cat.name)}</b> ${r.prio==='Cao'?'<span style="color:#f5b50a">★</span>':''}<div style="font-size:11px;color:var(--c-text2)">${esc(r.l.workCode)}</div></td>
+      <td>${esc(gname(r.group))}</td>
+      <td style="${r.overdue?'color:var(--c-red);font-weight:600':''}">${fmtDate(r.l.deadline)}</td>
+      <td>${statusPill(r.d)}</td>
+      <td>${prioTag(r.prio)}</td>
+      <td>${progressBar(r.pct)}</td>
+      <td><span class="av-sm">${esc(avInitials(STATE.user.name))}</span>${esc(STATE.user.name.split(' ').slice(-1)[0])}</td>
+      <td style="text-align:right"><button class="btn ghost sm" onclick="editLine('${h.id}','${r.l.id}')">Cập nhật</button></td></tr>`;});
+  main.innerHTML=`<div class="page-head"><div><h1>Công việc của tôi</h1>
+    <div class="sub">Cập nhật báo cáo thực hiện · chỉ tiêu nghiệp vụ · minh chứng — ${esc(period.label)}</div></div></div>
+    <div class="tabs counts">${tabBtn('all','Tất cả')}${tabBtn('doing','Đang thực hiện')}${tabBtn('wait','Chờ thực hiện')}${tabBtn('done','Hoàn thành')}${tabBtn('over','Quá hạn')}</div>
+    <div class="toolbar"><div class="grow"></div>
+      <button class="btn neutral sm" onclick="toast('Bộ lọc — demo')">⛃ Bộ lọc</button>
+      <button class="btn neutral sm" onclick="toast('Sắp xếp — demo')">↕ Sắp xếp</button>
+      <button class="btn sm" onclick="addLine('${h.id}')">＋ Thêm đầu việc</button></div>
+    <div class="card soft"><div class="card-b" style="padding:0">
+    ${shown.length?`<table class="grid"><thead><tr><th>STT</th><th>Tên công việc</th><th>Nhóm</th><th>Kỳ hạn</th><th>Trạng thái</th><th>Ưu tiên</th><th>Tiến độ</th><th>Người thực hiện</th><th></th></tr></thead><tbody>${body}</tbody></table>`
+      :'<div class="empty"><div class="e-ic">📝</div>'+(rows.length?'Không có công việc trong mục này.':'Chưa có đầu việc. Hãy lập kế hoạch OKR hoặc bấm “Thêm đầu việc”.')+'</div>'}
+    </div></div>`;
+}
+function setActualTab(t){window._actualTab=t;viewActual($('#main'));}
+
+/* ================== VIEW: ASSIGN (giao việc) ================== */
+async function viewAssign(main){
+  const emps=(await dbAll('employees')).filter(e=>e.active&&can.inScope(e.branch)&&e.code!==STATE.user.empCode);
+  const tasks=(await dbAll('assigned_tasks')).filter(t=>can.inScope(t.branch)).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  let rows=tasks.map(t=>`<tr><td><b>${esc(t.title)}</b><div style="font-size:11px;color:var(--c-text2)">${esc(t.workName||'')}</div></td>
+    <td>${esc(t.empName)}</td><td>${fmtDate(t.deadline)}</td><td class="num">${t.weight}%</td>
+    <td><span class="badge ${t.priority==='Cao'?'r':'a'}">${esc(t.priority)}</span></td><td>${stBadge(t.status)}</td></tr>`).join('');
+  main.innerHTML=`<div class="page-head"><div><h1>Giao việc / OKR chỉ định</h1>
+    <div class="sub">Quản lý giao đầu việc bắt buộc, hệ thống gắn vào OKR kỳ của nhân viên (đủ 4 lớp dữ liệu).</div></div>
+    <button class="btn" onclick="newAssign()">+ Giao việc mới</button></div>
+    <div class="card"><div class="card-h">Danh sách công việc đã giao (${tasks.length})</div><div class="card-b" style="padding:0">
+    ${tasks.length?`<table class="grid"><thead><tr><th>Tiêu đề</th><th>Nhân viên</th><th>Hạn</th><th>Trọng số</th><th>Ưu tiên</th><th>Trạng thái</th></tr></thead><tbody>${rows}</tbody></table>`
+      :'<div class="empty"><div class="e-ic">⇲</div>Chưa giao việc nào.</div>'}</div></div>`;
+  window._assignEmps=emps;
+}
+async function newAssign(){
+  const emps=window._assignEmps; const catalog=await dbAll('work_catalog');
+  const eopt=emps.map(e=>`<option value="${e.code}">${esc(e.name)} — ${esc(e.title)}</option>`).join('');
+  const copt=catalog.map(c=>`<option value="${c.code}">${esc(c.name)}</option>`).join('');
+  openModal('Giao việc mới',`
+    <div class="grid2">
+      <div class="field"><label>Nhân viên nhận <span class="req">*</span></label><select id="as-emp">${eopt}</select></div>
+      <div class="field"><label>Loại công việc</label><select id="as-work">${copt}</select></div>
+    </div>
+    <div class="field"><label>Tiêu đề giao việc <span class="req">*</span></label><input id="as-title"></div>
+    <div class="field"><label>Ghi chú giao việc</label><textarea id="as-note"></textarea></div>
+    <div class="grid3">
+      <div class="field"><label>Hạn hoàn thành</label><input id="as-deadline" type="date"></div>
+      <div class="field"><label>Ưu tiên</label><select id="as-prio"><option>Cao</option><option selected>TB</option><option>Thấp</option></select></div>
+      <div class="field"><label>Trọng số (%)</label><input id="as-weight" type="number" value="10"></div>
+    </div>`,
+    `<button class="btn neutral" onclick="closeModal()">Hủy</button><button class="btn" onclick="saveAssign()">Giao việc</button>`);
+}
+async function saveAssign(){
+  const empCode=$('#as-emp').value; const title=$('#as-title').value.trim();
+  if(!title){toast('Nhập tiêu đề','err');return;}
+  const emp=await dbGet('employees',empCode); const cat=await dbGet('work_catalog',$('#as-work').value);
+  // tạo OKR draft cho nhân viên nếu chưa có, gắn line chỉ định
+  const okr=await getOrCreateOKR(empCode,STATE.periodId);
+  const ls=await getLines(okr.id);
+  const line={id:uid('line'),okrId:okr.id,workCode:cat.code,workName:cat.name,
+    objective:title,expectedResult:$('#as-note').value,deadline:$('#as-deadline').value,
+    priority:$('#as-prio').value,weight:num($('#as-weight').value),assigned:true,order:ls.length};
+  await dbPut('okr_lines',line);
+  const task={id:uid('task'),assignerCode:STATE.user.empCode,assignerName:STATE.user.name,
+    empCode,empName:emp.name,branch:emp.branch,periodId:STATE.periodId,workCode:cat.code,workName:cat.name,
+    title,note:$('#as-note').value,deadline:$('#as-deadline').value,priority:$('#as-prio').value,
+    weight:num($('#as-weight').value),status:'submitted',linkedLineId:line.id,createdAt:new Date().toISOString()};
+  await dbPut('assigned_tasks',task);
+  await audit('assigned_task',task.id,'create',null,null,`Giao "${title}" cho ${emp.name}`);
+  closeModal(); toast('Đã giao việc và gắn vào OKR của nhân viên','ok'); routeRender();
+}
+
+/* ================== VIEW: APPROVAL ================== */
+async function viewApproval(main){
+  const headers=(await dbAll('okr_headers')).filter(h=>can.inScope(h.branch)&&h.periodId===STATE.periodId);
+  const emps=await dbAll('employees');
+  let rows='';
+  for(const h of headers){const emp=emps.find(e=>e.code===h.empCode); const lines=await getLines(h.id);
+    let done=0; for(const l of lines){const a=await getLineActual(l.id);if(a&&a.status==='done')done++;}
+    rows+=`<tr><td><b>${esc(emp?emp.name:h.empCode)}</b><div style="font-size:11px;color:var(--c-text2)">${esc(emp?emp.title:'')}</div></td>
+      <td class="num">${lines.length}</td><td class="num">${done}/${lines.length}</td>
+      <td>${stBadge(h.status)}</td>
+      <td style="text-align:right"><button class="btn ghost sm" onclick="reviewOKR('${h.id}')">Xem xét</button></td></tr>`;}
+  main.innerHTML=`<div class="page-head"><div><h1>Phê duyệt – Trả sửa – Khóa kỳ</h1>
+    <div class="sub">Duyệt OKR & actual, nhận xét từng đầu việc, chấm điểm bổ sung, khóa/mở kỳ.</div></div></div>
+    <div class="card"><div class="card-h">OKR trong kỳ thuộc phạm vi quản lý (${headers.length})</div><div class="card-b" style="padding:0">
+    ${headers.length?`<table class="grid"><thead><tr><th>Nhân viên</th><th>Số đầu việc</th><th>Hoàn thành</th><th>Trạng thái</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      :'<div class="empty"><div class="e-ic">✓</div>Chưa có OKR nào trong kỳ.</div>'}</div></div>`;
+}
+async function reviewOKR(okrId){
+  const h=await dbGet('okr_headers',okrId); const lines=await getLines(okrId);
+  let rows='';
+  for(const l of lines){const cat=await dbGet('work_catalog',l.workCode);const a=await getLineActual(l.id);
+    const metricsArr=(await getLineMetrics(l.id)).map(x=>({code:x.code,value:x.value}));
+    const k=computeLineKPI(cat,l,a,metricsArr);
+    rows+=`<tr><td>${esc(cat.name)}</td><td class="num">${l.weight}%</td><td>${a?stBadge(a.status):'—'}</td>
+      <td class="num"><span class="badge ${gradeBadge(k.final)}">${k.final}</span></td>
+      <td style="text-align:right">${a&&a.status==='done'?`<button class="btn ghost sm" onclick="approveActual('${okrId}','${l.id}','approve')">Duyệt</button>
+        <button class="btn danger sm" onclick="approveActual('${okrId}','${l.id}','return')">Trả sửa</button>`:'<span style="font-size:11px;color:var(--c-text2)">Chưa nộp</span>'}</td></tr>`;}
+  const okrScore=await calcOKRScore(okrId);
+  openModal('Xem xét OKR — '+esc(h.empName),`
+    <div class="kpi-grid" style="margin-bottom:14px">
+      <div class="kpi-tile b-blue"><div class="k-bar"></div><div class="k-label">Số đầu việc</div><div class="k-val">${lines.length}</div></div>
+      <div class="kpi-tile b-green"><div class="k-bar"></div><div class="k-label">KPI OKR (theo trọng số)</div><div class="k-val">${okrScore}</div><div class="k-sub">${kpiGrade(okrScore)}</div></div>
+    </div>
+    <table class="grid"><thead><tr><th>Công việc</th><th>Trọng số</th><th>Actual</th><th>KPI</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="field" style="margin-top:16px"><label>Nhận xét quản lý cho OKR</label><textarea id="mgr-comment">${esc(h.managerComment||'')}</textarea></div>`,
+    `<button class="btn neutral" onclick="closeModal()">Đóng</button>
+     ${h.status==='submitted'?`<button class="btn" onclick="approveOKRPlan('${okrId}')">Duyệt kế hoạch OKR</button>`:''}
+     <button class="btn ghost" onclick="saveMgrComment('${okrId}')">Lưu nhận xét</button>
+     ${h.locked?`<button class="btn neutral" onclick="lockPeriodOKR('${okrId}',false)">Mở khóa</button>`:`<button class="btn neutral" onclick="lockPeriodOKR('${okrId}',true)">🔒 Khóa kỳ & chốt KPI</button>`}`);
+}
+async function calcOKRScore(okrId){
+  const lines=await getLines(okrId); let tw=0,acc=0;
+  for(const l of lines){const cat=await dbGet('work_catalog',l.workCode);const a=await getLineActual(l.id);
+    const metricsArr=(await getLineMetrics(l.id)).map(x=>({code:x.code,value:x.value}));
+    const k=computeLineKPI(cat,l,a,metricsArr); const w=num(l.weight); tw+=w; acc+=k.final*w;}
+  return tw>0?+(acc/tw).toFixed(1):0;
+}
+async function approveActual(okrId,lineId,act){
+  const a=await getLineActual(lineId); if(!a)return;
+  a.status= act==='approve'?'approved':'returned'; await dbPut('okr_line_actuals',a);
+  await dbPut('approvals',{id:uid('apr'),objectType:'actual',objectId:lineId,status:a.status,
+    approver:STATE.user.empCode,approvedAt:new Date().toISOString()});
+  await audit('actual',lineId,act==='approve'?'approve':'return');
+  toast(act==='approve'?'Đã duyệt actual':'Đã trả sửa','ok'); reviewOKR(okrId);
+}
+async function approveOKRPlan(okrId){const h=await dbGet('okr_headers',okrId);h.status='approved';h.approveDate=new Date().toISOString();h.approver=STATE.user.empCode;await dbPut('okr_headers',h);await audit('okr',okrId,'approve_plan');toast('Đã duyệt kế hoạch OKR','ok');closeModal();routeRender();}
+async function saveMgrComment(okrId){const h=await dbGet('okr_headers',okrId);h.managerComment=$('#mgr-comment').value;await dbPut('okr_headers',h);await audit('okr',okrId,'comment');toast('Đã lưu nhận xét','ok');}
+async function lockPeriodOKR(okrId,lock){
+  const h=await dbGet('okr_headers',okrId); h.locked=lock; h.status=lock?'locked':'approved';
+  if(lock){const score=await calcOKRScore(okrId); h.totalScore=score;
+    await dbPut('kpi_results',{id:uid('kpi'),empCode:h.empCode,branch:h.branch,periodId:h.periodId,okrId,
+      finalScore:score,grade:kpiGrade(score),calcAt:new Date().toISOString()});}
+  await dbPut('okr_headers',h); await audit('okr',okrId,lock?'lock':'unlock');
+  toast(lock?'Đã khóa kỳ & chốt KPI':'Đã mở khóa','ok'); closeModal(); routeRender();
+}
+
+/* ================== AGGREGATION FOR DASHBOARD/KPI ================== */
+async function gatherPeriodData(periodId){
+  const headers=(await dbAll('okr_headers')).filter(h=>h.periodId===periodId&&can.inScope(h.branch));
+  const out=[];
+  for(const h of headers){const lines=await getLines(h.id);
+    for(const l of lines){const cat=await dbGet('work_catalog',l.workCode);const a=await getLineActual(l.id);
+      const metrics=await getLineMetrics(l.id); const mArr=metrics.map(x=>({code:x.code,value:x.value}));
+      const k=computeLineKPI(cat,l,a,mArr);
+      const overdue = l.deadline && a && a.status!=='approved' && new Date(l.deadline)<new Date() && (!a.actualEndDate);
+      out.push({header:h,line:l,cat,actual:a,metrics,kpi:k,overdue:!!overdue});}}
+  return out;
+}
+function sumMetricByRole(data,role){let s=0;data.forEach(d=>{const def=d.cat.metrics.find(x=>x.role===role);if(def){const mv=d.metrics.find(x=>x.code===def.code);if(mv)s+=num(mv.value);}});return s;}
+
+/* ================== VIEW: DASHBOARD ================== */
+async function viewDashboard(main){
+  const period=await dbGet('periods',STATE.periodId);
+  const data=await gatherPeriodData(STATE.periodId);
+  const scope = can.manage()?data:data.filter(d=>d.header.empCode===STATE.user.empCode);
+  // previous period for trend
+  const periods=(await dbAll('periods')).sort((a,b)=>a.id.localeCompare(b.id));
+  const idx=periods.findIndex(p=>p.id===STATE.periodId);
+  let prevScope=[];
+  if(idx>0){const pd=await gatherPeriodData(periods[idx-1].id);prevScope=can.manage()?pd:pd.filter(d=>d.header.empCode===STATE.user.empCode);}
+
+  const isDone=d=>d.actual&&(d.actual.status==='done'||d.actual.status==='approved');
+  const isDoing=d=>!d.overdue&&d.actual&&(d.actual.status==='in_progress'||d.actual.status==='submitted');
+  const isNew=d=>!d.actual||d.actual.status==='not_started'||d.actual.status==='draft';
+  const total=scope.length, done=scope.filter(isDone).length, overdue=scope.filter(d=>d.overdue).length;
+  const doing=scope.filter(isDoing).length, notStarted=scope.filter(isNew).length;
+  const avgKpi=scope.length?+(scope.reduce((s,d)=>s+d.kpi.final,0)/scope.length).toFixed(0):0;
+  // trends
+  const pT=prevScope.length, pDone=prevScope.filter(isDone).length, pOver=prevScope.filter(d=>d.overdue).length;
+  const pDoing=prevScope.filter(isDoing).length;
+  const pAvg=prevScope.length?prevScope.reduce((s,d)=>s+d.kpi.final,0)/prevScope.length:0;
+  const pct=(cur,prev)=>{if(!prev)return null;return Math.round((cur-prev)/prev*100);};
+  const trend=(v,inverse)=>{if(v===null)return '<span class="s-trend" style="color:var(--c-text2)">— kỳ trước</span>';
+    const good=inverse? v<=0 : v>=0; const cls=good?'s-up':'s-down'; const arr=v>=0?'▲':'▼';
+    return `<span class="s-trend ${cls}"><b>${arr} ${v>=0?'+':''}${v}%</b> so với kỳ trước</span>`;};
+
+  main.innerHTML=`<div class="page-head"><div><h1>Tổng quan</h1>
+    <div class="sub">${can.manage()?'Phạm vi quản lý':'Cá nhân'} · ${esc(period.label)} · ${esc(STATE.user.branchName)}</div></div></div>
+    <div class="stat-grid">
+      <div class="stat"><div class="s-top"><span class="s-label">Tổng công việc</span><span class="s-ic ic-blue">🗂️</span></div><div class="s-val">${total}</div>${trend(pct(total,pT))}</div>
+      <div class="stat"><div class="s-top"><span class="s-label">Đã hoàn thành</span><span class="s-ic ic-green">✓</span></div><div class="s-val">${done}</div>${trend(pct(done,pDone))}</div>
+      <div class="stat"><div class="s-top"><span class="s-label">Đang thực hiện</span><span class="s-ic ic-amber">⏳</span></div><div class="s-val">${doing}</div>${trend(pct(doing,pDoing))}</div>
+      <div class="stat"><div class="s-top"><span class="s-label">Quá hạn</span><span class="s-ic ic-red">⚠️</span></div><div class="s-val">${overdue}</div>${trend(pct(overdue,pOver),true)}</div>
+      <div class="stat"><div class="s-top"><span class="s-label">Hiệu suất ${can.manage()?'trung bình':'cá nhân'}</span><span class="s-ic ic-violet">📈</span></div><div class="s-val">${avgKpi}%</div>${trend(pAvg?Math.round((avgKpi-pAvg)/pAvg*100):null)}</div>
+    </div>
+    <div class="dash-2">
+      <div class="card soft"><div class="card-h">Tiến độ công việc trong kỳ <span class="link" onclick="go('kpi')">Chi tiết</span></div>
+        <div class="card-b"><div class="chart-wrap" style="height:260px"><canvas id="ch-prog"></canvas></div></div></div>
+      <div class="card soft"><div class="card-h">Phân bổ công việc</div>
+        <div class="card-b"><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+          <div style="width:170px;height:170px;flex-shrink:0"><canvas id="ch-dist"></canvas></div>
+          <div style="flex:1;min-width:170px">
+            ${legendRow('var(--c-green)','Hoàn thành',done,total)}
+            ${legendRow('var(--c-primary)','Đang thực hiện',doing,total)}
+            ${legendRow('var(--c-amber)','Chưa bắt đầu',notStarted,total)}
+            ${legendRow('var(--c-red)','Quá hạn',overdue,total)}
+          </div></div></div></div>
+    </div>
+    <div class="dash-2b">
+      <div class="card soft"><div class="card-h">Công việc cần xử lý <span class="link" onclick="go('actual')">Xem tất cả</span></div>
+        <div class="card-b">${renderNeedList(scope)}</div></div>
+      <div class="card soft"><div class="card-h">Hoạt động gần đây <span class="link" onclick="go('master')">Xem tất cả</span></div>
+        <div class="card-b" id="dash-activity">Đang tải…</div></div>
+    </div>
+    <div class="card soft"><div class="card-h">⚠️ Cảnh báo tài chính – rủi ro</div><div class="card-b" style="padding:0">${renderRiskTable(scope)}</div></div>`;
+  drawDashCharts(scope);
+  renderActivity();
+}
+function legendRow(color,label,v,total){const p=total?Math.round(v/total*100):0;
+  return `<div class="legend-row"><div class="lg-l"><span class="lg-dot" style="background:${color}"></span>${label}</div><div><span class="lg-v">${v}</span><span class="lg-pct">${p}%</span></div></div>`;}
+
+function renderNeedList(scope){
+  const items=scope.filter(d=>d.overdue||(d.actual&&d.actual.status==='submitted')||(d.line&&d.line.deadline&&((new Date(d.line.deadline)-Date.now())/86400000<=3)&&!isDoneState(d)))
+    .sort((a,b)=>{const da=a.line.deadline?new Date(a.line.deadline):9e15;const db=b.line.deadline?new Date(b.line.deadline):9e15;return da-db;}).slice(0,5);
+  if(!items.length)return '<div class="empty" style="padding:24px"><div class="e-ic">✓</div>Không có việc cần xử lý gấp.</div>';
+  return items.map(d=>`<div class="tneed"><div><div class="tn-name">${esc(d.cat.name)}</div>
+    <div class="tn-due">Kỳ hạn: <b>${fmtDate(d.line.deadline)}</b></div></div>${statusPill(d)}</div>`).join('');
+}
+function isDoneState(d){return d.actual&&(d.actual.status==='done'||d.actual.status==='approved');}
+
+async function renderActivity(){
+  const box=$('#dash-activity'); if(!box)return;
+  const logs=(await dbAll('audit_log')).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,6);
+  if(!logs.length){box.innerHTML='<div class="empty" style="padding:24px"><div class="e-ic">🕓</div>Chưa có hoạt động.</div>';return;}
+  const actTx={create:'đã tạo mới',update:'đã cập nhật',delete:'đã xóa',login:'đăng nhập hệ thống',
+    lock:'đã khóa kỳ',unlock:'đã mở kỳ',submit:'đã nộp',approve:'đã duyệt',return:'đã trả sửa'};
+  const objTx={work_catalog:'công việc',branch:'chi nhánh',employee:'nhân viên',account:'tài khoản',period:'kỳ báo cáo',okr:'OKR',actual:'báo cáo',account_login:''};
+  box.innerHTML=logs.map(l=>`<div class="activity"><div class="a-av">${esc(avInitials(l.byName))}</div>
+    <div><div class="a-tx"><b>${esc(l.byName)}</b> ${esc(actTx[l.action]||l.action)} ${esc(objTx[l.objectType]||l.objectType)}${l.after?' "'+esc(l.after)+'"':''}</div>
+    <div class="a-tm">${timeAgo(l.at)}</div></div></div>`).join('');
+}
+
+function renderRiskTable(scope){
+  const risks=[];
+  scope.forEach(d=>{
+    if(d.overdue)risks.push({t:'Quá hạn',w:d.cat.name,e:d.header.empName,sev:'over',note:'Hạn '+fmtDate(d.line.deadline)});
+    if(d.actual&&d.actual.status==='returned')risks.push({t:'Trả sửa',w:d.cat.name,e:d.header.empName,sev:'wait',note:'Báo cáo bị trả lại'});
+    const blocked=sumMetricByRole([d],'blocked');
+    if(blocked>0)risks.push({t:'Treo/tồn đọng',w:d.cat.name,e:d.header.empName,sev:'wait',note:fmtNum(blocked)+' case/giá trị treo'});
+    if(d.kpi.final<60)risks.push({t:'KPI thấp',w:d.cat.name,e:d.header.empName,sev:'over',note:'KPI '+d.kpi.final+' ('+d.kpi.grade+')'});
+  });
+  if(!risks.length)return '<div class="empty"><div class="e-ic">✓</div>Không có cảnh báo rủi ro trong kỳ.</div>';
+  return `<table class="grid"><thead><tr><th>Loại rủi ro</th><th>Công việc</th><th>Nhân viên</th><th>Chi tiết</th></tr></thead><tbody>
+    ${risks.slice(0,30).map(r=>`<tr><td><span class="pill ${r.sev}">${r.t}</span></td><td>${esc(r.w)}</td><td>${esc(r.e)}</td><td>${esc(r.note)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+let _charts=[];
+function drawDashCharts(scope){
+  _charts.forEach(c=>{try{c.destroy()}catch(e){}}); _charts=[];
+  const C={blue:'#0a6ed1',green:'#107e3e',amber:'#e8590c',red:'#bb0000',grey:'#c7d0da'};
+  // progress line: cumulative done (by actualEndDate weekday) vs planned ramp
+  const days=['T2','T3','T4','T5','T6','T7','CN'];
+  const total=scope.length;
+  const doneByDay=[0,0,0,0,0,0,0];
+  scope.forEach(d=>{if(isDoneState(d)&&d.actual&&d.actual.actualEndDate){const wd=(new Date(d.actual.actualEndDate).getDay()+6)%7;doneByDay[wd]++;}});
+  let anyDated=doneByDay.some(x=>x>0);
+  const doneCum=[];let acc=0;
+  if(anyDated){doneByDay.forEach(v=>{acc+=v;doneCum.push(total?Math.round(acc/total*100):0);});}
+  else{const dr=scope.filter(isDoneState).length;for(let i=0;i<7;i++)doneCum.push(total?Math.round(dr/total*100*((i+1)/7)):0);}
+  const planned=days.map((_,i)=>Math.round((i+1)/7*100));
+  if($('#ch-prog'))_charts.push(new Chart($('#ch-prog'),{type:'line',
+    data:{labels:days,datasets:[
+      {label:'Hoàn thành',data:doneCum,borderColor:C.blue,backgroundColor:'rgba(10,110,209,.10)',fill:true,tension:.4,borderWidth:2.5,pointRadius:3,pointBackgroundColor:C.blue},
+      {label:'Kế hoạch',data:planned,borderColor:C.grey,borderDash:[6,5],fill:false,tension:.4,borderWidth:2,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,scales:{y:{max:100,beginAtZero:true,ticks:{callback:v=>v+'%'}}},
+      plugins:{legend:{position:'top',align:'end',labels:{boxWidth:14,usePointStyle:true}}}}}));
+  // distribution doughnut
+  const done=scope.filter(isDoneState).length;
+  const doing=scope.filter(d=>!d.overdue&&d.actual&&(d.actual.status==='in_progress'||d.actual.status==='submitted')).length;
+  const ns=scope.filter(d=>!d.actual||d.actual.status==='not_started'||d.actual.status==='draft').length;
+  const over=scope.filter(d=>d.overdue).length;
+  if($('#ch-dist'))_charts.push(new Chart($('#ch-dist'),{type:'doughnut',
+    data:{labels:['Hoàn thành','Đang thực hiện','Chưa bắt đầu','Quá hạn'],
+      datasets:[{data:[done,doing,ns,over],backgroundColor:[C.green,C.blue,C.amber,C.red],borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'66%',plugins:{legend:{display:false}}}}));
+}
+/* ================== VIEW: KPI & BÁO CÁO ================== */
+async function viewKPI(main){
+  const period=await dbGet('periods',STATE.periodId);
+  const data=await gatherPeriodData(STATE.periodId);
+  const scope=can.manage()?data:data.filter(d=>d.header.empCode===STATE.user.empCode);
+  // group by employee
+  const byE={};
+  scope.forEach(d=>{const e=d.header.empCode;byE[e]=byE[e]||{name:d.header.empName,branch:d.header.branch,tw:0,acc:0,lines:0,overdue:0,returned:0};
+    const w=num(d.line.weight);byE[e].tw+=w;byE[e].acc+=d.kpi.final*w;byE[e].lines++;if(d.overdue)byE[e].overdue++;if(d.actual&&d.actual.status==='returned')byE[e].returned++;});
+  const emps=Object.keys(byE).map(e=>{const x=byE[e];const okrScore=x.tw>0?x.acc/x.tw:0;
+    const compliance=Math.max(0,100-x.overdue*10-x.returned*8);
+    const empKpi=0.7*okrScore+0.2*compliance+0.1*80; // 10% điểm quản lý mặc định 80
+    return {code:e,...x,okrScore:+okrScore.toFixed(1),compliance,empKpi:+empKpi.toFixed(1)};}).sort((a,b)=>b.empKpi-a.empKpi);
+  let rows=emps.map((e,i)=>`<tr><td>${i+1}</td><td><b>${esc(e.name)}</b></td><td class="num">${e.lines}</td>
+    <td class="num">${e.okrScore}</td><td class="num">${e.compliance}</td><td class="num"><b>${e.empKpi}</b></td>
+    <td><span class="badge ${gradeBadge(e.empKpi)}">${kpiGrade(e.empKpi)}</span></td></tr>`).join('');
+  main.innerHTML=`<div class="page-head"><div><h1>KPI & Báo cáo — ${esc(period.label)}</h1>
+    <div class="sub">KPI_NV = 70%·KPI_OKR + 20%·Tuân thủ + 10%·Điểm quản lý. Xếp loại theo thang 5 mức.</div></div>
+    <button class="btn neutral" onclick="exportKPIExcel()">⬇ Export Excel</button></div>
+    <div class="card"><div class="card-h">Bảng KPI nhân viên (${emps.length})</div><div class="card-b" style="padding:0">
+    ${emps.length?`<table class="grid"><thead><tr><th>#</th><th>Nhân viên</th><th>Số đầu việc</th><th>KPI OKR</th><th>Tuân thủ</th><th>KPI cuối</th><th>Xếp loại</th></tr></thead><tbody>${rows}</tbody></table>`
+      :'<div class="empty"><div class="e-ic">★</div>Chưa có dữ liệu KPI trong kỳ.</div>'}</div></div>`;
+  window._kpiExport=emps; window._kpiData=scope;
+}
+function exportKPIExcel(){
+  const emps=window._kpiExport||[]; const data=window._kpiData||[];
+  const wb=XLSX.utils.book_new();
+  const s1=emps.map((e,i)=>({STT:i+1,'Nhân viên':e.name,'Số đầu việc':e.lines,'KPI OKR':e.okrScore,'Điểm tuân thủ':e.compliance,'Việc quá hạn':e.overdue,'Bị trả sửa':e.returned,'KPI cuối':e.empKpi,'Xếp loại':kpiGrade(e.empKpi)}));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(s1),'KPI nhân viên');
+  const s2=data.map(d=>({'Nhân viên':d.header.empName,'Công việc':d.cat.name,'Nhóm':d.cat.group,'Trọng số %':d.line.weight,'Hạn':d.line.deadline,'Trạng thái':STATUS_LABELS[d.actual?d.actual.status:'not_started'],'A':d.kpi.A,'B':d.kpi.B,'C':d.kpi.C,'D':d.kpi.D,'E':d.kpi.E,'P':d.kpi.P,'KPI':d.kpi.final,'Xếp loại':d.kpi.grade}));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(s2),'Chi tiết đầu việc');
+  XLSX.writeFile(wb,'KPI_'+STATE.periodId+'.xlsx'); toast('Đã xuất Excel','ok');
+}
+
+/* ================== VIEW: AI ANALYTICS / DATA MART ================== */
+async function buildFactTable(periodId){
+  const data=await gatherPeriodData(periodId);
+  return data.map(d=>{
+    const f={periodId,branch:d.header.branch,empCode:d.header.empCode,empName:d.header.empName,
+      group:d.cat.group,workCode:d.cat.code,workName:d.cat.name,okrId:d.header.id,lineId:d.line.id,
+      weight:num(d.line.weight),completionPct:d.actual?num(d.actual.completionPct):0,
+      overdueFlag:d.overdue?1:0,approvalStatus:d.actual?d.actual.status:'not_started',
+      kpiFinal:d.kpi.final,grade:d.kpi.grade,riskFlags:[]};
+    f.totalFinancialValue=sumMetricByRole([d],'valactual');
+    f.blockedValue=sumMetricByRole([d],'blocked');
+    if(d.overdue)f.riskFlags.push('OVERDUE');
+    if(d.actual&&d.actual.status==='returned')f.riskFlags.push('RETURNED');
+    if(f.blockedValue>0)f.riskFlags.push('BLOCKED');
+    if(d.kpi.final<60)f.riskFlags.push('LOW_KPI');
+    // ai metrics
+    d.cat.metrics.filter(x=>x.ai).forEach(mt=>{const mv=d.metrics.find(x=>x.code===mt.code);if(mv)f['m_'+mt.code]=mv.value;});
+    return f;
+  });
+}
+async function viewAI(main){
+  const period=await dbGet('periods',STATE.periodId);
+  const fact=await buildFactTable(STATE.periodId);
+  const scope=can.manage()?fact:fact.filter(f=>f.empCode===STATE.user.empCode);
+  const totalVal=scope.reduce((s,f)=>s+(f.totalFinancialValue||0),0);
+  const blocked=scope.reduce((s,f)=>s+(f.blockedValue||0),0);
+  const risks=scope.filter(f=>f.riskFlags.length);
+  main.innerHTML=`<div class="page-head"><div><h1>AI Phân tích — Data Mart</h1>
+    <div class="sub">Fact table chuẩn (ai_fact_work_performance) · ${esc(period.label)} · ${scope.length} bản ghi</div></div></div>
+    <div class="kpi-grid">
+      <div class="kpi-tile b-blue"><div class="k-bar"></div><div class="k-label">Bản ghi fact</div><div class="k-val">${scope.length}</div></div>
+      <div class="kpi-tile b-green"><div class="k-bar"></div><div class="k-label">Tổng giá trị tài chính</div><div class="k-val" style="font-size:19px">${fmtMoney(totalVal)}</div></div>
+      <div class="kpi-tile b-amber"><div class="k-bar"></div><div class="k-label">Giá trị treo</div><div class="k-val" style="font-size:19px">${fmtMoney(blocked)}</div></div>
+      <div class="kpi-tile b-red"><div class="k-bar"></div><div class="k-label">Cờ rủi ro</div><div class="k-val">${risks.length}</div></div>
+    </div>
+    <div class="card"><div class="card-h">Sinh báo cáo AI <span style="font-weight:400;font-size:12px;color:var(--c-text2)">(dòng tiền · rủi ro · hiệu suất · vận hành)</span></div>
+    <div class="card-b">
+      <div class="toolbar">
+        <button class="btn" onclick="runAI('cashflow')">💰 Dòng tiền</button>
+        <button class="btn ghost" onclick="runAI('risk')">⚠ Rủi ro</button>
+        <button class="btn ghost" onclick="runAI('performance')">📊 Hiệu suất nhân sự</button>
+        <button class="btn ghost" onclick="runAI('ops')">⚙ Vận hành kế toán</button>
+      </div>
+      <div id="ai-out"><div class="empty" style="padding:30px"><div class="e-ic">✦</div>Chọn một loại báo cáo để AI phân tích trên dữ liệu kỳ này.</div></div>
+    </div></div>
+    <div class="card" style="margin-top:18px"><div class="card-h">Fact table (xem nhanh)
+      <button class="btn neutral sm" onclick="exportFact()">⬇ Export fact</button></div>
+    <div class="card-b" style="padding:0;max-height:340px;overflow:auto">
+      <table class="grid"><thead><tr><th>NV</th><th>Nhóm</th><th>Công việc</th><th>KPI</th><th>%HT</th><th>Quá hạn</th><th>Giá trị</th><th>Cờ rủi ro</th></tr></thead><tbody>
+      ${scope.map(f=>`<tr><td>${esc(f.empName)}</td><td>${esc(f.group)}</td><td>${esc(f.workName)}</td><td class="num">${f.kpiFinal}</td><td class="num">${f.completionPct}%</td><td>${f.overdueFlag?'<span class="badge r">Có</span>':'—'}</td><td class="num">${fmtMoney(f.totalFinancialValue)}</td><td>${f.riskFlags.map(r=>`<span class="badge a" style="margin:1px">${r}</span>`).join('')||'—'}</td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  window._fact=scope;
+}
+function exportFact(){const wb=XLSX.utils.book_new();const rows=(window._fact||[]).map(f=>({...f,riskFlags:f.riskFlags.join('|')}));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'ai_fact');XLSX.writeFile(wb,'ai_fact_'+STATE.periodId+'.xlsx');toast('Đã xuất fact table','ok');}
+
+const AI_PROMPTS={
+  cashflow:'Phân tích DÒNG TIỀN: khoản thu/chi/treo, nợ phải thu quá hạn, nợ phải trả sắp đến hạn, áp lực thanh toán và lãi vay.',
+  risk:'Phân tích RỦI RO: top công việc rủi ro, nhân viên/chi nhánh có tỷ lệ trả sửa cao, lỗi thuế/hóa đơn/giá thành/công nợ bất thường, việc ảnh hưởng BCTC.',
+  performance:'Phân tích HIỆU SUẤT NHÂN SỰ: KPI theo nhân viên/chi nhánh, tỷ lệ đúng hạn, tải công việc, chất lượng, nguyên nhân KPI thấp.',
+  ops:'Phân tích VẬN HÀNH KẾ TOÁN: phần hành nào đang nghẽn, nhóm việc tiêu tốn nguồn lực, nơi khóa sổ chậm, nơi dữ liệu nguồn kém.'
+};
+async function runAI(type){
+  const out=$('#ai-out'); out.innerHTML='<div class="ai-msg">⏳ AI đang phân tích dữ liệu kỳ…</div>';
+  const fact=window._fact||[];
+  const compact=fact.map(f=>({nv:f.empName,nhom:f.group,viec:f.workName,kpi:f.kpiFinal,ht:f.completionPct,quahan:f.overdueFlag,trangthai:f.approvalStatus,giatri:f.totalFinancialValue,treo:f.blockedValue,co:f.riskFlags}));
+  const prompt=`Bạn là chuyên gia phân tích kế toán quản trị. Dưới đây là fact table hiệu suất công việc Phòng Kế toán kỳ ${STATE.periodId} (JSON).
+${AI_PROMPTS[type]}
+Hãy viết báo cáo ngắn gọn bằng tiếng Việt: (1) 3-5 nhận định chính có số liệu, (2) cảnh báo cụ thể theo người/nhóm việc, (3) 2-3 khuyến nghị hành động. Dùng gạch đầu dòng, không markdown heading.
+DỮ LIỆU: ${JSON.stringify(compact).slice(0,9000)}`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const d=await resp.json();
+    const text=(d.content||[]).map(i=>i.type==='text'?i.text:'').join('\n').trim();
+    out.innerHTML=`<div class="ai-msg u" style="font-weight:600">${esc(AI_PROMPTS[type])}</div><div class="ai-msg">${esc(text||'(Không có phản hồi)')}</div>`;
+  }catch(err){
+    out.innerHTML=`<div class="ai-msg" style="background:var(--c-amber-bg)">⚠ Không gọi được AI trong môi trường này (${esc(err.message)}).<br>Tính năng AI hoạt động khi chạy trong Artifact của Claude. Dưới đây là phân tích quy tắc cục bộ:</div>`+localAnalysis(type,fact);
+  }
+}
+function localAnalysis(type,fact){
+  let lines=[];
+  if(type==='risk'){const r=fact.filter(f=>f.riskFlags.length).sort((a,b)=>a.kpiFinal-b.kpiFinal);
+    lines.push('Top việc rủi ro: '+(r.slice(0,5).map(f=>`${f.workName} (${f.empName}, KPI ${f.kpiFinal})`).join('; ')||'không có'));
+    const ret=fact.filter(f=>f.riskFlags.includes('RETURNED'));lines.push('Việc bị trả sửa: '+ret.length);}
+  else if(type==='cashflow'){lines.push('Tổng giá trị xử lý: '+fmtMoney(fact.reduce((s,f)=>s+(f.totalFinancialValue||0),0))+' VNĐ');
+    lines.push('Giá trị treo/tồn đọng: '+fmtMoney(fact.reduce((s,f)=>s+(f.blockedValue||0),0))+' VNĐ');}
+  else if(type==='performance'){const byE={};fact.forEach(f=>{byE[f.empName]=byE[f.empName]||{s:0,n:0};byE[f.empName].s+=f.kpiFinal;byE[f.empName].n++;});
+    Object.keys(byE).forEach(e=>lines.push(`${e}: KPI TB ${(byE[e].s/byE[e].n).toFixed(1)}`));}
+  else {const byG={};fact.forEach(f=>{byG[f.group]=(byG[f.group]||0)+(f.overdueFlag||0)+f.riskFlags.length;});
+    Object.keys(byG).sort((a,b)=>byG[b]-byG[a]).forEach(g=>lines.push(`Nhóm ${g}: ${byG[g]} điểm nghẽn/rủi ro`));}
+  return `<div class="ai-msg">${lines.map(l=>'• '+esc(l)).join('<br>')}</div>`;
+}
+
+/* ================== VIEW: MASTER DATA ================== */
+let _masterTab='catalog';
+const ROLE_OPTS=[['','— không gắn KPI —'],['vplan','Khối lượng — Kế hoạch'],['vactual','Khối lượng — Thực tế'],
+  ['valplan','Giá trị — Kế hoạch'],['valactual','Giá trị — Thực tế'],['ontime_date','Ngày hoàn thành'],
+  ['due_date','Hạn phải xong'],['late','Cờ trễ hạn (Có/Không)'],['late_pct','Tỷ lệ đúng hạn (%)'],
+  ['err','Lỗi/sai sót'],['reject','Trả lại/từ chối'],['blocked','Treo/tồn đọng'],['completion','% hoàn thành']];
+const TYPE_OPTS=[['int','Số nguyên'],['number','Số thực'],['money','Tiền (VNĐ)'],['pct','Phần trăm'],['date','Ngày'],['text','Văn bản'],['bool','Có/Không']];
+
+async function viewMaster(main){
+  main.innerHTML=`<div class="page-head"><div><h1>Danh mục &amp; Cấu hình</h1><div class="sub">Khai báo công việc, chi nhánh, nhân viên, tài khoản · template chỉ tiêu · audit log.</div></div></div>
+    <div class="tabs" id="mt">
+      <div class="tab ${_masterTab==='catalog'?'active':''}" onclick="setMTab('catalog')">📋 Khai báo công việc</div>
+      <div class="tab ${_masterTab==='branch'?'active':''}" onclick="setMTab('branch')">🏢 Chi nhánh</div>
+      <div class="tab ${_masterTab==='emp'?'active':''}" onclick="setMTab('emp')">👥 Nhân viên</div>
+      <div class="tab ${_masterTab==='acc'?'active':''}" onclick="setMTab('acc')">🔑 Tài khoản</div>
+      <div class="tab ${_masterTab==='period'?'active':''}" onclick="setMTab('period')">🗓️ Kỳ báo cáo</div>
+      <div class="tab ${_masterTab==='audit'?'active':''}" onclick="setMTab('audit')">📜 Audit Log</div>
+    </div><div id="mt-body"></div>`;
+  renderMTab();
+}
+function setMTab(t){_masterTab=t;viewMaster($('#main'));}
+
+async function renderMTab(){
+  const b=$('#mt-body'); const mgr=can.manage(); const isAdmin=can.admin();
+  const myScope=STATE.user.scope||[]; const inScope=c=>isAdmin||myScope.includes(c);
+  const myBranch=STATE.user.branch||myScope[0]||'';
+  if(_masterTab==='catalog'){const cat=await dbAll('work_catalog');const groups=await dbAll('work_groups');
+    let rows='';groups.sort((a,b)=>a.order-b.order).forEach(g=>{const ws=cat.filter(c=>c.group===g.code);
+      rows+=`<tr class="grp-band"><td colspan="5"><span class="g-chip g-${g.code}">${esc(g.name)}</span> &nbsp;<b>${ws.length}</b> công việc</td></tr>`;
+      ws.forEach(w=>{rows+=`<tr><td style="padding-left:20px"><b>${esc(w.name)}</b></td><td>${esc(w.code)}</td><td>${esc(w.nature||'')} · ${esc(w.cycle||'')}</td>
+        <td><span class="badge b">${(w.metrics||[]).length} chỉ tiêu</span> ${w.archetypeLabel?'<span class="badge n">'+esc(w.archetypeLabel)+'</span>':''} ${w.evidence?'<span class="badge a">Cần minh chứng</span>':''}</td>
+        <td class="crud-actions"><button class="btn ghost sm" onclick="showTemplate('${w.code}')">Template</button>
+        ${mgr?`<button class="btn neutral sm" onclick="openWorkForm('${w.code}')">Sửa</button>
+        <button class="btn danger sm" onclick="delWork('${w.code}')">Xóa</button>`:''}</td></tr>`;});});
+    b.innerHTML=`<div class="card"><div class="card-h">Danh mục công việc (${cat.length}) — mỗi công việc có template chỉ tiêu riêng
+      ${mgr?`<button class="btn sm" onclick="openWorkForm()">＋ Thêm công việc</button>`:''}</div>
+      <div class="card-b" style="padding:0"><table class="grid"><thead><tr><th>Công việc</th><th>Mã</th><th>Tính chất · Chu kỳ</th><th>Chỉ tiêu</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+  else if(_masterTab==='branch'){const br=(await dbAll('branches')).filter(x=>inScope(x.code));
+    b.innerHTML=`<div class="card"><div class="card-h">Chi nhánh / Văn phòng (${br.length})
+      ${isAdmin?`<button class="btn sm" onclick="openBranchForm()">＋ Thêm chi nhánh</button>`:''}</div>
+      <div class="card-b" style="padding:0"><table class="grid"><thead><tr><th>Mã</th><th>Tên chi nhánh</th><th>Khu vực</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+      ${br.map(x=>`<tr><td><b>${esc(x.code)}</b></td><td>${esc(x.name)}</td><td>${esc(x.region||'')}</td>
+        <td>${x.active!==false?'<span class="badge g">Hoạt động</span>':'<span class="badge n">Ngừng</span>'}</td>
+        <td class="crud-actions">${isAdmin?`<button class="btn neutral sm" onclick="openBranchForm('${x.code}')">Sửa</button>
+        <button class="btn danger sm" onclick="delBranch('${x.code}')">Xóa</button>`:'<span class="hint">—</span>'}</td></tr>`).join('')}</tbody></table></div>
+      ${isAdmin?'':'<div class="card-b" style="border-top:1px solid var(--c-line);font-size:12px;color:var(--c-text2)">Chỉ Quản trị hệ thống mới tạo/sửa chi nhánh. Bạn quản lý nhân viên & tài khoản trong chi nhánh của mình.</div>'}</div>`;
+  }
+  else if(_masterTab==='emp'){const allEmps=await dbAll('employees');const br=await dbAll('branches');
+    const emps=allEmps.filter(e=>inScope(e.branch));
+    const bn=c=>{const x=br.find(y=>y.code===c);return x?x.name:c;};
+    b.innerHTML=`<div class="card"><div class="card-h">Nhân viên (${emps.length})${isAdmin?'':' · '+esc(STATE.user.branchName)}
+      ${mgr?`<button class="btn sm" onclick="openEmpForm()">＋ Thêm nhân viên</button>`:''}</div>
+      <div class="card-b" style="padding:0"><table class="grid"><thead><tr><th>Mã</th><th>Họ tên</th><th>Chức danh</th><th>Chi nhánh</th><th>Quản lý</th><th></th></tr></thead><tbody>
+      ${emps.map(x=>`<tr><td><b>${esc(x.code)}</b></td><td>${esc(x.name)}</td><td>${esc(x.title||'')}</td><td>${esc(bn(x.branch))}</td><td>${esc(x.manager||'—')}</td>
+        <td class="crud-actions">${mgr?`<button class="btn neutral sm" onclick="openEmpForm('${x.code}')">Sửa</button>
+        <button class="btn danger sm" onclick="delEmp('${x.code}')">Xóa</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6"><div class="empty" style="padding:20px"><div class="e-ic">👥</div>Chưa có nhân viên trong chi nhánh. Bấm “Thêm nhân viên”.</div></td></tr>'}</tbody></table></div></div>`;
+  }
+  else if(_masterTab==='acc'){const allAccs=await dbAll('accounts');const emps=await dbAll('employees');
+    const empBranch=c=>{const x=emps.find(y=>y.code===c);return x?x.branch:null;};
+    const accs=allAccs.filter(a=>isAdmin || (a.empCode&&inScope(empBranch(a.empCode))) || (a.branch&&inScope(a.branch)) || a.user===STATE.user.user);
+    const en=c=>{const x=emps.find(y=>y.code===c);return x?x.name:c;};
+    const rp={employee:'employee',manager:'manager',admin:'admin'};
+    const rl={employee:'Nhân viên',manager:'Quản lý chi nhánh',admin:'Quản trị'};
+    const who=a=>a.empCode?en(a.empCode):(a.display||(a.type==='branch'?'(Tài khoản chi nhánh)':'(Quản trị)'));
+    const canEditAcc=a=>isAdmin || (a.type==='employee' && a.user!==STATE.user.user);
+    b.innerHTML=`<div class="card"><div class="card-h">Tài khoản đăng nhập (${accs.length})${isAdmin?'':' · '+esc(STATE.user.branchName)}
+      ${mgr?`<button class="btn sm" onclick="openAccountForm()">＋ Thêm tài khoản nhân viên</button>`:''}</div>
+      <div class="card-b" style="padding:0"><table class="grid"><thead><tr><th>Tài khoản</th><th>Mật khẩu</th><th>Người dùng</th><th>Vai trò</th><th>Phạm vi</th><th></th></tr></thead><tbody>
+      ${accs.map(x=>`<tr><td><b>${esc(x.user)}</b></td>
+        <td><span class="pw-mask" data-pw="${esc(x.pass||'')}">••••••</span> ${x.pass&&mgr?`<span class="link" style="font-size:11px" onclick="togglePw(this)">hiện</span>`:''}</td>
+        <td>${esc(who(x))}</td>
+        <td><span class="role-pill ${rp[x.role]||'employee'}">${rl[x.role]||x.role}</span></td>
+        <td>${esc((x.scope||[]).join(', ')||'—')}</td>
+        <td class="crud-actions">${canEditAcc(x)?`<button class="btn neutral sm" onclick="openAccountForm('${x.user}')">Sửa</button>
+        <button class="btn danger sm" onclick="delAccount('${x.user}')">Xóa</button>`:'<span class="hint">—</span>'}</td></tr>`).join('')}</tbody></table></div>
+      <div class="card-b" style="border-top:1px solid var(--c-line);font-size:12px;color:var(--c-text2)">${isAdmin?'Quản trị tạo tài khoản chi nhánh (mỗi chi nhánh 1 tài khoản dùng chung). ':'Bạn có thể tạo tài khoản đăng nhập cho từng nhân viên trong chi nhánh. '}Tài khoản mới đăng nhập được ngay. Mật khẩu lưu cục bộ (IndexedDB).</div></div>`;
+  }
+  else if(_masterTab==='period'){const periods=await dbAll('periods');
+    b.innerHTML=`<div class="card"><div class="card-h">Kỳ báo cáo</div><div class="card-b" style="padding:0"><table class="grid"><thead><tr><th>Mã kỳ</th><th>Tên</th><th>Loại</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+      ${periods.map(p=>`<tr><td>${esc(p.id)}</td><td>${esc(p.label)}</td><td>${esc(p.type)}</td><td>${p.locked?'<span class="badge b">🔒 Khóa</span>':'<span class="badge g">Mở</span>'}</td>
+      <td style="text-align:right">${mgr?`<button class="btn neutral sm" onclick="togglePeriod('${p.id}')">${p.locked?'Mở khóa':'Khóa kỳ'}</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`;
+  }
+  else if(_masterTab==='audit'){const logs=(await dbAll('audit_log')).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,100);
+    b.innerHTML=`<div class="card"><div class="card-h">Audit Log (100 mục gần nhất)</div><div class="card-b" style="padding:0">
+      ${logs.length?`<table class="grid"><thead><tr><th>Thời điểm</th><th>Người</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead><tbody>
+      ${logs.map(l=>`<tr><td>${new Date(l.at).toLocaleString('vi-VN')}</td><td>${esc(l.byName)}</td><td><span class="badge n">${esc(l.action)}</span></td><td>${esc(l.objectType)}</td><td>${esc(l.after||l.field||'')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Chưa có log.</div>'}</div></div>`;
+  }
+}
+async function togglePeriod(id){const p=await dbGet('periods',id);p.locked=!p.locked;await dbPut('periods',p);await audit('period',id,p.locked?'lock':'unlock');toast(p.locked?'Đã khóa kỳ':'Đã mở kỳ','ok');renderShell();}
+function togglePw(el){const span=el.previousElementSibling;const shown=span.dataset.shown==='1';span.textContent=shown?'••••••':span.dataset.pw;span.dataset.shown=shown?'0':'1';el.textContent=shown?'hiện':'ẩn';}
+
+async function showTemplate(code){const w=await dbGet('work_catalog',code);
+  const rows=(w.metrics||[]).map(mt=>`<div class="metric-row"><div class="m-name">${esc(mt.name)}<small>${esc(mt.code)} · ${mt.type}${mt.unit?' · '+mt.unit:''}${mt.role?' · vai trò KPI: '+esc(mt.role):''}</small></div>
+    <div style="font-size:11px">${mt.req?'<span class="badge r">Bắt buộc</span> ':''}${mt.plan?'<span class="badge n">KH</span> ':''}${mt.act!==false?'<span class="badge n">TH</span> ':''}${mt.kpi?'<span class="badge b">KPI</span> ':''}${mt.ai!==false?'<span class="badge a">AI</span>':''}</div></div>`).join('');
+  openModal('Template chỉ tiêu — '+esc(w.name),`<div style="font-size:12.5px;color:var(--c-text2);margin-bottom:10px">Loại chỉ tiêu: <b>${esc(w.archetypeLabel||'—')}</b> · ${(w.metrics||[]).length} chỉ tiêu riêng theo bản chất công việc. Khi chọn công việc này, form sẽ load đúng các field bên dưới (KH = kế hoạch, TH = thực hiện).</div>${rows}`,`<button class="btn neutral" onclick="closeModal()">Đóng</button>`);
+}
+
+/* ===================== CRUD: CÔNG VIỆC ===================== */
+async function openWorkForm(code){
+  const groups=await dbAll('work_groups');
+  const w=code?await dbGet('work_catalog',code):null;
+  const gopt=groups.sort((a,b)=>a.order-b.order).map(g=>`<option value="${g.code}" ${w&&w.group===g.code?'selected':''}>${esc(g.name)}</option>`).join('');
+  const body=`<div class="grid2">
+      <div class="field"><label>Mã công việc <span class="req">*</span></label><input id="wf-code" value="${w?esc(w.code):''}" ${w?'disabled':''} placeholder="VD: CTTT-09"></div>
+      <div class="field"><label>Nhóm công việc <span class="req">*</span></label><select id="wf-group">${gopt}</select></div>
+    </div>
+    <div class="field"><label>Tên công việc <span class="req">*</span></label><input id="wf-name" value="${w?esc(w.name):''}" placeholder="VD: Đối chiếu công nợ phải thu"></div>
+    <div class="grid3">
+      <div class="field"><label>Tính chất</label><input id="wf-nature" value="${w?esc(w.nature||''):'Định kỳ'}" placeholder="Định kỳ / Phát sinh"></div>
+      <div class="field"><label>Chu kỳ</label><input id="wf-cycle" value="${w?esc(w.cycle||''):'Tháng'}" placeholder="Ngày/Tuần/Tháng/Quý"></div>
+      <div class="field"><label>Minh chứng</label><select id="wf-evi"><option value="true" ${w&&w.evidence?'selected':''}>Bắt buộc</option><option value="false" ${w&&!w.evidence?'selected':''}>Không bắt buộc</option></select></div>
+    </div>
+    <div style="font-weight:700;margin:6px 0 8px;font-size:13.5px">Chỉ tiêu nghiệp vụ (template riêng của công việc này)</div>
+    <div class="mb-head"><span>Mã chỉ tiêu</span><span>Tên chỉ tiêu</span><span>Kiểu</span><span>Đơn vị</span><span>Vai trò KPI</span><span></span></div>
+    <div id="mb-list"></div>
+    <button class="btn neutral sm" onclick="addMetricRow()" style="margin-top:8px">＋ Thêm chỉ tiêu</button>`;
+  openModal((code?'Sửa':'Thêm')+' công việc',body,
+    `<button class="btn neutral" onclick="closeModal()">Hủy</button><button class="btn" onclick="saveWork(${code?`'${code}'`:'null'})">Lưu công việc</button>`);
+  const init=(w&&w.metrics&&w.metrics.length)?w.metrics:[{}];
+  init.forEach(addMetricRow);
+}
+function addMetricRow(mt){
+  mt=mt&&mt.code!==undefined?mt:{};
+  const wrap=document.createElement('div'); wrap.className='mb-row';
+  const topt=TYPE_OPTS.map(([v,l])=>`<option value="${v}" ${mt.type===v?'selected':''}>${l}</option>`).join('');
+  const ropt=ROLE_OPTS.map(([v,l])=>`<option value="${v}" ${(mt.role||'')===v?'selected':''}>${l}</option>`).join('');
+  wrap.innerHTML=`<input class="m-code" value="${mt.code?esc(mt.code):''}" placeholder="vd: actual_count">
+    <input class="m-name" value="${mt.name?esc(mt.name):''}" placeholder="Tên hiển thị">
+    <select class="m-type">${topt}</select>
+    <input class="m-unit" value="${mt.unit?esc(mt.unit):''}" placeholder="đơn vị">
+    <select class="m-role">${ropt}</select>
+    <button class="rm" onclick="this.closest('.mb-row').remove()">×</button>
+    <div class="flags">
+      <label><input type="checkbox" class="m-req" ${mt.req?'checked':''}>Bắt buộc</label>
+      <label><input type="checkbox" class="m-plan" ${mt.plan?'checked':''}>Kế hoạch</label>
+      <label><input type="checkbox" class="m-act" ${mt.act!==false?'checked':''}>Thực hiện</label>
+      <label><input type="checkbox" class="m-kpi" ${mt.kpi?'checked':''}>Tính KPI</label>
+      <label><input type="checkbox" class="m-ai" ${mt.ai!==false?'checked':''}>Gửi AI</label>
+    </div>`;
+  document.getElementById('mb-list').appendChild(wrap);
+}
+async function saveWork(code){
+  const codeV=code||$('#wf-code').value.trim();
+  const name=$('#wf-name').value.trim();
+  if(!codeV||!name)return toast('Nhập mã và tên công việc','err');
+  if(!code){const ex=await dbGet('work_catalog',codeV); if(ex)return toast('Mã công việc đã tồn tại','err');}
+  const metrics=[...document.querySelectorAll('#mb-list .mb-row')].map(r=>{
+    const g=s=>r.querySelector(s);
+    const mc=g('.m-code').value.trim(); if(!mc)return null;
+    return {code:mc,name:g('.m-name').value.trim()||mc,type:g('.m-type').value,unit:g('.m-unit').value.trim(),
+      role:g('.m-role').value||null,req:g('.m-req').checked,plan:g('.m-plan').checked,
+      act:g('.m-act').checked,kpi:g('.m-kpi').checked,ai:g('.m-ai').checked};
+  }).filter(Boolean);
+  if(!metrics.length)return toast('Cần ít nhất 1 chỉ tiêu','err');
+  const obj={id:codeV,code:codeV,group:$('#wf-group').value,name,nature:$('#wf-nature').value.trim(),
+    cycle:$('#wf-cycle').value.trim(),evidence:$('#wf-evi').value==='true',metrics};
+  await dbPut('work_catalog',obj);
+  await audit('work_catalog',codeV,code?'update':'create','',null,name);
+  closeModal();toast(code?'Đã cập nhật công việc':'Đã thêm công việc','ok');renderMTab();
+}
+async function delWork(code){
+  if(!confirm('Xóa công việc "'+code+'"? Các đầu việc OKR đã tạo từ trước không bị ảnh hưởng.'))return;
+  await dbDel('work_catalog',code);await audit('work_catalog',code,'delete');toast('Đã xóa công việc','ok');renderMTab();
+}
+
+/* ===================== CRUD: CHI NHÁNH ===================== */
+async function openBranchForm(code){
+  const x=code?await dbGet('branches',code):null;
+  openModal((code?'Sửa':'Thêm')+' chi nhánh',
+    `<div class="grid2"><div class="field"><label>Mã chi nhánh <span class="req">*</span></label><input id="bf-code" value="${x?esc(x.code):''}" ${x?'disabled':''} placeholder="VD: CN-HP"></div>
+      <div class="field"><label>Khu vực</label><input id="bf-region" value="${x?esc(x.region||''):''}" placeholder="Miền Bắc/Trung/Nam"></div></div>
+     <div class="field"><label>Tên chi nhánh <span class="req">*</span></label><input id="bf-name" value="${x?esc(x.name):''}" placeholder="VD: Chi nhánh Hải Phòng"></div>
+     <div class="field"><label>Trạng thái</label><select id="bf-active"><option value="true" ${!x||x.active!==false?'selected':''}>Hoạt động</option><option value="false" ${x&&x.active===false?'selected':''}>Ngừng</option></select></div>`,
+    `<button class="btn neutral" onclick="closeModal()">Hủy</button><button class="btn" onclick="saveBranch(${code?`'${code}'`:'null'})">Lưu</button>`);
+}
+async function saveBranch(code){
+  const codeV=code||$('#bf-code').value.trim();const name=$('#bf-name').value.trim();
+  if(!codeV||!name)return toast('Nhập mã và tên chi nhánh','err');
+  if(!code){const ex=await dbGet('branches',codeV);if(ex)return toast('Mã chi nhánh đã tồn tại','err');}
+  await dbPut('branches',{id:codeV,code:codeV,name,region:$('#bf-region').value.trim(),active:$('#bf-active').value==='true'});
+  await audit('branch',codeV,code?'update':'create','',null,name);
+  closeModal();toast(code?'Đã cập nhật chi nhánh':'Đã thêm chi nhánh','ok');renderMTab();
+}
+async function delBranch(code){
+  const emps=await dbAll('employees');if(emps.some(e=>e.branch===code))return toast('Còn nhân viên thuộc chi nhánh này, không thể xóa','err');
+  if(!confirm('Xóa chi nhánh "'+code+'"?'))return;
+  await dbDel('branches',code);await audit('branch',code,'delete');toast('Đã xóa chi nhánh','ok');renderMTab();
+}
+
+/* ===================== CRUD: NHÂN VIÊN ===================== */
+async function openEmpForm(code){
+  const x=code?await dbGet('employees',code):null;
+  const isAdmin=can.admin();const myScope=STATE.user.scope||[];const myBranch=STATE.user.branch||myScope[0]||'';
+  const allBr=await dbAll('branches');const emps=await dbAll('employees');
+  const br=isAdmin?allBr:allBr.filter(b=>myScope.includes(b.code));
+  const defBranch=x?x.branch:(isAdmin?(br[0]&&br[0].code):myBranch);
+  const bopt=br.map(b=>`<option value="${b.code}" ${defBranch===b.code?'selected':''}>${esc(b.name)}</option>`).join('');
+  const scopeEmps=emps.filter(e=>e.code!==code && (isAdmin||myScope.includes(e.branch)));
+  const mopt='<option value="">— không —</option>'+scopeEmps.map(e=>`<option value="${e.code}" ${x&&x.manager===e.code?'selected':''}>${esc(e.name)} (${e.code})</option>`).join('');
+  openModal((code?'Sửa':'Thêm')+' nhân viên',
+    `<div class="grid2"><div class="field"><label>Mã nhân viên <span class="req">*</span></label><input id="ef-code" value="${x?esc(x.code):''}" ${x?'disabled':''} placeholder="VD: 020123"></div>
+      <div class="field"><label>Chi nhánh <span class="req">*</span></label><select id="ef-branch" ${(!isAdmin&&br.length<=1)?'disabled':''}>${bopt}</select></div></div>
+     <div class="field"><label>Họ tên <span class="req">*</span></label><input id="ef-name" value="${x?esc(x.name):''}" placeholder="VD: Nguyễn Văn A"></div>
+     <div class="grid2"><div class="field"><label>Chức danh</label><input id="ef-title" value="${x?esc(x.title||''):''}" placeholder="VD: Kế toán kho"></div>
+      <div class="field"><label>Người quản lý</label><select id="ef-mgr">${mopt}</select></div></div>`,
+    `<button class="btn neutral" onclick="closeModal()">Hủy</button><button class="btn" onclick="saveEmp(${code?`'${code}'`:'null'})">Lưu</button>`);
+}
+async function saveEmp(code){
+  const codeV=code||$('#ef-code').value.trim();const name=$('#ef-name').value.trim();
+  if(!codeV||!name)return toast('Nhập mã và họ tên','err');
+  if(!code){const ex=await dbGet('employees',codeV);if(ex)return toast('Mã nhân viên đã tồn tại','err');}
+  const isAdmin=can.admin();const myScope=STATE.user.scope||[];const myBranch=STATE.user.branch||myScope[0]||'';
+  let branch=$('#ef-branch').value;
+  if(!isAdmin && !myScope.includes(branch)) branch=myBranch;
+  await dbPut('employees',{id:codeV,code:codeV,name,title:$('#ef-title').value.trim(),branch,manager:$('#ef-mgr').value,active:true});
+  await audit('employee',codeV,code?'update':'create','',null,name);
+  closeModal();toast(code?'Đã cập nhật nhân viên':'Đã thêm nhân viên','ok');renderMTab();
+}
+async function delEmp(code){
+  const accs=await dbAll('accounts');if(accs.some(a=>a.empCode===code))return toast('Còn tài khoản gắn nhân viên này, xóa tài khoản trước','err');
+  if(!confirm('Xóa nhân viên "'+code+'"?'))return;
+  await dbDel('employees',code);await audit('employee',code,'delete');toast('Đã xóa nhân viên','ok');renderMTab();
+}
+
+/* ===================== CRUD: TÀI KHOẢN ===================== */
+async function openAccountForm(user){
+  const x=user?await dbGet('accounts',user):null;
+  const isAdmin=can.admin();const myScope=STATE.user.scope||[];const myBranch=STATE.user.branch||myScope[0]||'';
+  const emps=await dbAll('employees');const allBr=await dbAll('branches');
+  const br=isAdmin?allBr:allBr.filter(b=>myScope.includes(b.code));
+  const scopeEmps=emps.filter(e=>isAdmin||myScope.includes(e.branch));
+  const eopt=scopeEmps.map(e=>`<option value="${e.code}" ${x&&x.empCode===e.code?'selected':''}>${esc(e.name)} (${e.code})</option>`).join('')||'<option value="">(chưa có nhân viên — thêm nhân viên trước)</option>';
+  const bopt=br.map(b=>`<option value="${b.code}" ${x&&x.branch===b.code?'selected':''}>${esc(b.name)}</option>`).join('');
+  const curType=x?(x.type||(x.empCode?'employee':'branch')):'employee';
+  // Admin: choose type employee|branch. Manager: employee only.
+  const typeSel=isAdmin?`<div class="field"><label>Loại tài khoản</label><select id="ac-type" onchange="acTypeToggle()">
+      <option value="employee" ${curType==='employee'?'selected':''}>Tài khoản nhân viên</option>
+      <option value="branch" ${curType==='branch'?'selected':''}>Tài khoản chi nhánh (dùng chung)</option></select></div>`:'';
+  const empBlock=`<div class="field ac-emp-wrap"><label>Gắn với nhân viên <span class="req">*</span></label><select id="ac-emp">${eopt}</select></div>`;
+  const brBlock=`<div class="field ac-br-wrap" style="display:none"><label>Chi nhánh dùng chung <span class="req">*</span></label><select id="ac-branch">${bopt}</select></div>`;
+  openModal((user?'Sửa':'Thêm')+(isAdmin?' tài khoản':' tài khoản nhân viên'),
+    `<div class="field"><label>Tên đăng nhập <span class="req">*</span></label><input id="ac-user" value="${x?esc(x.user):''}" ${x?'disabled':''} placeholder="VD: ${isAdmin?'kt020 / branchcode':'kt020'}"></div>
+     ${typeSel}
+     ${empBlock}${brBlock}
+     <div class="field"><label>Mật khẩu ${x?'<span class="hint" style="display:inline">(để trống nếu không đổi)</span>':'<span class="req">*</span>'}</label><input id="ac-pass" type="text" value="${x&&x.pass?esc(x.pass):''}" placeholder="VD: Kt@2026"></div>
+     ${isAdmin?'<div class="field"><label>Phạm vi chi nhánh (chỉ tài khoản chi nhánh/quản trị)</label><div style="padding:4px 0" id="ac-scope-box">'+br.map(b=>`<label style="display:inline-flex;align-items:center;gap:5px;margin:0 12px 6px 0;font-size:13px"><input type="checkbox" class="ac-scope" value="${b.code}" ${x&&(x.scope||[]).includes(b.code)?'checked':''}>${esc(b.name)}</label>`).join('')+'</div></div>':''}`,
+    `<button class="btn neutral" onclick="closeModal()">Hủy</button><button class="btn" onclick="saveAccount(${user?`'${user}'`:'null'})">Lưu</button>`);
+  acTypeToggle();
+}
+function acTypeToggle(){const t=$('#ac-type')?$('#ac-type').value:'employee';
+  const ew=document.querySelector('.ac-emp-wrap'),bw=document.querySelector('.ac-br-wrap');
+  if(ew)ew.style.display=t==='employee'?'':'none'; if(bw)bw.style.display=t==='branch'?'':'none';}
+async function saveAccount(user){
+  const userV=user||$('#ac-user').value.trim().toLowerCase();
+  if(!userV)return toast('Nhập tên đăng nhập','err');
+  const existing=user?await dbGet('accounts',userV):null;
+  if(!user){const ex=await dbGet('accounts',userV);if(ex)return toast('Tài khoản đã tồn tại','err');}
+  const isAdmin=can.admin();const myScope=STATE.user.scope||[];const myBranch=STATE.user.branch||myScope[0]||'';
+  const passIn=($('#ac-pass').value||'').trim();
+  if(!user && !passIn)return toast('Nhập mật khẩu cho tài khoản mới','err');
+  const pass = passIn || (existing?existing.pass:'') || '';
+  const type=isAdmin&&$('#ac-type')?$('#ac-type').value:(existing?existing.type:'employee')||'employee';
+  let rec={id:userV,user:userV,pass};
+  if(type==='branch'){
+    const branch=$('#ac-branch').value; const b=await dbGet('branches',branch);
+    rec.type='branch';rec.role='manager';rec.empCode=null;rec.branch=branch;
+    rec.display='Kế toán '+(b?b.name:branch);rec.scope=[branch];
+  } else {
+    const empCode=$('#ac-emp').value; if(!empCode)return toast('Chọn nhân viên (thêm nhân viên trước nếu chưa có)','err');
+    const e=await dbGet('employees',empCode);
+    if(!isAdmin && !myScope.includes(e.branch))return toast('Nhân viên không thuộc chi nhánh của bạn','err');
+    rec.type='employee';rec.role='employee';rec.empCode=empCode;rec.branch=e.branch;
+    rec.display=e.name;rec.scope=[e.branch];
+  }
+  await dbPut('accounts',rec);
+  await audit('account',userV,user?'update':'create','',null,rec.role+(rec.empCode?'/'+rec.empCode:'/'+(rec.branch||'')));
+  closeModal();toast(user?'Đã cập nhật tài khoản':'Đã thêm tài khoản','ok');renderMTab();
+}
+async function delAccount(user){
+  if(STATE.user&&STATE.user.user===user)return toast('Không thể xóa tài khoản đang đăng nhập','err');
+  const a=await dbGet('accounts',user); if(!a)return;
+  if(!can.admin()){ const myScope=STATE.user.scope||[];
+    if(a.type!=='employee'||!myScope.includes(a.branch))return toast('Bạn chỉ được xóa tài khoản nhân viên trong chi nhánh của mình','err');}
+  if(!confirm('Xóa tài khoản "'+user+'"?'))return;
+  await dbDel('accounts',user);await audit('account',user,'delete');toast('Đã xóa tài khoản','ok');renderMTab();
+}
+
+/* ================== BOOT ================== */
+(async function boot(){
+  try{ await openDB(); await seedIfEmpty(); await renderLogin(); }
+  catch(e){ document.getElementById('app').innerHTML='<div class="empty"><div class="e-ic">⚠</div>Không khởi tạo được CSDL: '+esc(e.message)+'</div>'; }
+})();
+</script>
+</body>
+</html>
