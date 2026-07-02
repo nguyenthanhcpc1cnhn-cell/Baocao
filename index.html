@@ -208,19 +208,8 @@ table.grid .num{text-align:right;font-variant-numeric:tabular-nums}
 .ac-row{display:flex;align-items:center;justify-content:space-between;margin:4px 0 18px;font-size:13px}
 .ac-row label{display:inline-flex;align-items:center;gap:7px;color:var(--c-text2);cursor:pointer}
 .ac-row a{font-weight:600;cursor:pointer}
-.ac-or{text-align:center;color:var(--c-text2);font-size:12.5px;margin:18px 0;position:relative}
-.ac-or::before,.ac-or::after{content:"";position:absolute;top:50%;width:38%;height:1px;background:var(--c-border)}
-.ac-or::before{left:0}.ac-or::after{right:0}
-.social{display:flex;gap:12px}
-.social button{flex:1;height:46px;border:1px solid var(--c-border);background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--c-text)}
-.social button:hover{background:var(--c-grey-bg)}
 .ac-foot{text-align:center;margin-top:20px;font-size:13px;color:var(--c-text2)}
 .ac-foot a{font-weight:600;cursor:pointer}
-.demo-pick{margin-top:16px;padding:11px 12px;background:var(--c-blue-bg);border-radius:10px;font-size:12px}
-.demo-pick .t{font-weight:700;color:var(--c-primary);margin-bottom:6px}
-.demo-pick .chips{display:flex;flex-wrap:wrap;gap:6px}
-.demo-pick .chips button{border:1px solid #b9d3ef;background:#fff;color:var(--c-primary);border-radius:14px;padding:3px 10px;font-size:11.5px;font-weight:600}
-.demo-pick .chips button:hover{background:#fff;box-shadow:0 0 0 2px rgba(10,110,209,.15)}
 
 /* ===== group color chips ===== */
 .g-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:14px;font-size:12px;font-weight:700;color:#fff}
@@ -822,6 +811,37 @@ let KPI_CFG=JSON.parse(JSON.stringify(DEFAULT_KPI_CFG));
 async function loadKpiCfg(){ try{const r=await dbGet('meta','kpi_cfg'); if(r&&r.v)KPI_CFG={...JSON.parse(JSON.stringify(DEFAULT_KPI_CFG)),...r.v};}catch(e){} }
 async function saveKpiCfg(){ await dbPut('meta',{k:'kpi_cfg',v:KPI_CFG}); }
 
+/* ================== KẾT NỐI: n8n (Viber/Email) + AI ================== */
+let INTEG={webhookUrl:'',aiKey:'',aiModel:'claude-sonnet-4-6',defaultChannels:['viber']};
+async function loadIntegrations(){ try{const r=await dbGet('meta','integrations'); if(r&&r.v)INTEG={...INTEG,...r.v};}catch(e){} }
+async function saveIntegrations(){ await dbPut('meta',{k:'integrations',v:INTEG}); }
+// Gửi thông báo giao việc qua n8n webhook (n8n tự chuyển tiếp sang Viber Bot / Email)
+async function sendNotify(payload){
+  if(!INTEG.webhookUrl){ return {ok:false,reason:'chưa cấu hình webhook n8n (Danh mục & Cấu hình → Kết nối)'}; }
+  try{
+    const res=await fetch(INTEG.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    return {ok:res.ok,reason:res.ok?'':'HTTP '+res.status};
+  }catch(e){ return {ok:false,reason:String(e.message||e)}; }
+}
+// Đẩy dữ liệu OKR/KPI đã duyệt sang Google Sheets qua Apps Script Web App
+async function pushToSheets(event, rows){
+  if(!INTEG.sheetsUrl) return {ok:false,reason:'chưa cấu hình Google Sheets (Kết nối)'};
+  try{ await fetch(INTEG.sheetsUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({event,rows,by:STATE.user?STATE.user.name:'',at:new Date().toISOString()})});
+    return {ok:true};
+  }catch(e){ return {ok:false,reason:String(e.message||e)}; }
+}
+async function sheetRowsForOKR(okrId){
+  const h=await dbGet('okr_headers',okrId); const lines=await getLines(okrId); const rows=[];
+  for(const l of lines){const cat=await dbGet('work_catalog',l.workCode); const a=await getLineActual(l.id);
+    const mArr=(await getLineMetrics(l.id)).map(x=>({code:x.code,value:x.value}));
+    const k=computeLineKPI(cat,l,a,mArr);
+    rows.push({period:h.periodId,branch:h.branch,empCode:h.empCode,empName:h.empName,workCode:l.workCode,workName:cat.name,
+      deadline:l.deadline||'',status:a?(STATUS_LABELS[a.status]||a.status):'Chưa làm',completionPct:a?num(a.completionPct):0,
+      target:k.target,actual:k.actualV,pct:k.pct,base:k.base,deduct:k.deductTotal,kpi:k.final,grade:k.grade});}
+  return rows;
+}
+
 function rangeScore(pct){ // Rule 3: tra bảng khoảng (đã sắp giảm dần theo %)
   const tbl=[...(KPI_CFG.rangeRule||[])].sort((a,b)=>b[0]-a[0]);
   for(const [minPct,score] of tbl){ if(pct>=minPct) return score; }
@@ -866,7 +886,9 @@ function computeLineKPI(catalog, line, actual, metrics){
   if(isLate){deducts.push(['Trễ hạn',num(KPI_CFG.latePenalty)]); reasons.push(`Trễ hạn → trừ ${KPI_CFG.latePenalty} điểm`);}
   let blocked=0; catalog.metrics.filter(x=>x.role==='blocked').forEach(def=>{const mv=metrics.find(x=>x.code===def.code);if(mv)blocked+=num(mv.value);});
   if(blocked>0){const dv=Math.min(300,blocked*num(KPI_CFG.blockedPenalty)); deducts.push(['Hồ sơ treo ('+blocked+')',dv]); reasons.push(`Treo/tồn đọng: ${blocked} → trừ ${dv} điểm`);}
-  if(actual&&actual.status==='returned'){deducts.push(['Bị trả sửa',num(KPI_CFG.returnedPenalty)]); reasons.push(`Báo cáo bị trả sửa → trừ ${KPI_CFG.returnedPenalty} điểm`);}
+  const penPts=actual?num(actual.penaltyPoints):0;
+  if(penPts>0){deducts.push(['Trừ điểm do trả sửa (QL quyết định)',penPts]); reasons.push(`Quản lý trả sửa & trừ ${penPts} điểm — vẫn giữ khi nộp lại`);}
+  else if(actual&&actual.status==='returned'){deducts.push(['Bị trả sửa',num(KPI_CFG.returnedPenalty)]); reasons.push(`Báo cáo bị trả sửa → trừ ${KPI_CFG.returnedPenalty} điểm`);}
   if(catalog.evidence&&!(actual&&actual.hasEvidence)&&completion>0){deducts.push(['Thiếu minh chứng',num(KPI_CFG.noEvidencePenalty)]); reasons.push(`Thiếu minh chứng bắt buộc → trừ ${KPI_CFG.noEvidencePenalty} điểm`);}
   const deductTotal=deducts.reduce((s,[,v])=>s+v,0);
   const final=Math.max(0,Math.min(1000,Math.round(base-deductTotal)));  // 0 ≤ điểm ≤ 1000
@@ -934,10 +956,6 @@ async function renderLogin(){
   const accts=await dbAll('accounts'); const emps=await dbAll('employees');
   window._loginAccts=accts; window._loginEmps=emps;
   const sky=`<svg class="sky" viewBox="0 0 600 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.10)"><rect x="20" y="60" width="34" height="60"/><rect x="60" y="40" width="26" height="80"/><rect x="92" y="72" width="30" height="48"/><rect x="128" y="30" width="22" height="90"/><rect x="156" y="55" width="34" height="65"/><rect x="196" y="20" width="20" height="100"/><rect x="222" y="64" width="30" height="56"/><rect x="258" y="44" width="26" height="76"/><rect x="290" y="70" width="34" height="50"/><rect x="330" y="34" width="22" height="86"/><rect x="358" y="58" width="32" height="62"/><rect x="396" y="24" width="20" height="96"/><rect x="422" y="66" width="30" height="54"/><rect x="458" y="46" width="26" height="74"/><rect x="490" y="72" width="34" height="48"/><rect x="530" y="38" width="22" height="82"/><rect x="558" y="60" width="30" height="60"/></g></svg>`;
-  const demoChips=['admin','hoiso','hcm'].filter(u=>accts.find(a=>a.user===u))
-    .map(u=>{const a=accts.find(x=>x.user===u);const e=a.empCode?emps.find(x=>x.code===a.empCode):null;
-      const label=a.display||(e?e.name:u);const rl={employee:'NV',manager:'Chi nhánh',admin:'Admin'}[a.role]||a.role;
-      return `<button onclick="quickFill('${u}')">${esc(label)} · ${rl}</button>`;}).join('');
   $('#app').innerHTML=`<div class="auth">
     <div class="auth-brand">${sky}
       <div class="b-logo"><div class="mk">📊</div><div>BÁO CÁO CÔNG VIỆC</div></div>
@@ -950,7 +968,7 @@ async function renderLogin(){
           <div class="f"><div class="fi">📊</div><div><b>Báo cáo trực quan</b><br><span style="opacity:.85;font-size:12.5px">Dễ phân tích &amp; đánh giá</span></div></div>
         </div>
       </div>
-      <div class="b-foot">© 2026 Báo cáo công việc · CPC1HN. Dữ liệu lưu cục bộ (IndexedDB).</div>
+      <div class="b-foot">© 2026 Hệ thống Báo cáo công việc · Phòng Kế toán CPC1HN.</div>
     </div>
     <div class="auth-form"><div class="auth-card">
       <div class="ac-h" style="text-align:center">Đăng nhập hệ thống</div>
@@ -959,19 +977,15 @@ async function renderLogin(){
         <div class="in-ic"><input type="text" id="login-user" placeholder="Nhập tên đăng nhập" autocomplete="off"><span class="ic">👤</span></div></div>
       <div class="field"><label>Mật khẩu</label>
         <div class="in-ic"><input type="password" id="login-pass" placeholder="Nhập mật khẩu" onkeydown="if(event.key==='Enter')doLogin()"><span class="ic" onclick="togglePass()">👁️</span></div></div>
-      <div class="ac-row"><label><input type="checkbox" id="login-remember" checked>Ghi nhớ đăng nhập</label><a onclick="toast('Bản demo không yêu cầu mật khẩu — nhập tên đăng nhập bất kỳ trong danh sách demo.')">Quên mật khẩu?</a></div>
+      <div class="ac-row"><label><input type="checkbox" id="login-remember" checked>Ghi nhớ đăng nhập</label><a onclick="toast('Liên hệ Quản trị hệ thống (admin) để được cấp lại mật khẩu.')">Quên mật khẩu?</a></div>
       <button class="btn ac-btn" onclick="doLogin()">Đăng nhập</button>
-      <div class="ac-or">hoặc đăng nhập với</div>
-      <div class="social"><button onclick="toast('Đăng nhập Google — tính năng demo')">🔵 Google</button><button onclick="toast('Đăng nhập Microsoft — tính năng demo')">🪟 Microsoft</button></div>
-      <div class="demo-pick"><div class="t">Tài khoản demo (bấm để điền nhanh)</div><div class="chips">${demoChips}</div></div>
       <div class="ac-foot">Chưa có tài khoản? <a onclick="toast('Liên hệ quản trị viên để được cấp tài khoản.')">Liên hệ quản trị hệ thống</a>
-        <div style="margin-top:8px;font-size:11.5px">Không đăng nhập được? <a onclick="resetData()">Khôi phục dữ liệu mẫu</a></div></div>
+        <div style="margin-top:8px;font-size:11.5px">Không đăng nhập được? <a onclick="resetData()">Khôi phục dữ liệu gốc (xóa toàn bộ dữ liệu máy này)</a></div></div>
     </div></div>
   </div>`;
 }
-function quickFill(u){$('#login-user').value=u;$('#login-pass').value='';$('#login-pass').focus();}
 function resetData(){
-  if(!confirm('Khôi phục dữ liệu mẫu sẽ XÓA toàn bộ dữ liệu trên trình duyệt này và nạp lại tài khoản + danh mục mặc định. Tiếp tục?'))return;
+  if(!confirm('CẢNH BÁO: thao tác này XÓA TOÀN BỘ dữ liệu hệ thống trên trình duyệt này (OKR, báo cáo, tài khoản đã tạo...) và nạp lại cấu hình gốc. Chỉ dùng khi được Quản trị hướng dẫn. Tiếp tục?'))return;
   try{ if(_db) _db.close(); }catch(e){}
   const req=indexedDB.deleteDatabase(DB_NAME);
   req.onsuccess=req.onerror=req.onblocked=()=>location.reload();
@@ -1018,6 +1032,7 @@ async function renderShell(){
     return `<div class="nav-item ${n.r===STATE.route?'active':''}" onclick="go('${n.r}')"><span class="ic">${n.ic}</span><span class="lbl">${esc(n.l)}</span></div>`;}).join('');
   const initials=avInitials(STATE.user.name);
   const rl={employee:'Nhân viên',manager:'Quản lý',admin:'Quản trị'}[STATE.user.role]||STATE.user.role;
+  const notifCount=(await getMyAssignNotifs()).filter(t=>t.status!=='approved'&&t.status!=='done').length;
   $('#app').innerHTML=`
   <div id="layout">
     <div id="sidebar">
@@ -1032,9 +1047,9 @@ async function renderShell(){
         <button class="ham" onclick="document.getElementById('sidebar').classList.toggle('hidden')">☰</button>
         <div class="search"><span class="si">🔍</span><input placeholder="Tìm kiếm công việc, báo cáo..."></div>
         <div class="period-box">Kỳ: <select onchange="changePeriod(this.value)">${popt}</select></div>
-        <div class="tb-ic" title="Thông báo" onclick="toast('Không có thông báo mới')">🔔<span class="badge-dot">3</span></div>
-        <div class="tb-ic" title="Trợ giúp" onclick="toast('CPC1HN · Phòng Kế toán — hệ thống demo')">❓</div>
-        <div class="tb-user" title="Đăng xuất" onclick="logout()">
+        <div class="tb-ic" title="Thông báo giao việc" onclick="go('dashboard')">🔔${notifCount>0?`<span class="badge-dot">${notifCount}</span>`:''}</div>
+        <div class="tb-ic" title="Trợ giúp" onclick="toast('Hệ thống Báo cáo công việc · Phòng Kế toán CPC1HN')">❓</div>
+        <div class="tb-user" title="Tài khoản" onclick="openUserMenu()">
           <div class="av">${esc(initials)}</div>
           <div><div class="nm">${esc(STATE.user.name)}</div><div class="rl">${esc(rl)} · ${esc(STATE.user.branchName)}</div></div>
         </div>
@@ -1046,6 +1061,41 @@ async function renderShell(){
 }
 function go(r){STATE.route=r;renderShell();}
 function changePeriod(p){STATE.periodId=p;routeRender();}
+// Thông báo giao việc của tôi (nhân viên: việc được giao; quản lý/admin: việc trong phạm vi)
+async function getMyAssignNotifs(){
+  const tasks=(await dbAll('assigned_tasks')).filter(t=>t.periodId===STATE.periodId);
+  const mine = STATE.user.role==='employee'
+    ? tasks.filter(t=>t.empCode===STATE.user.empCode)
+    : tasks.filter(t=>can.inScope(t.branch));
+  return mine.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+}
+function openUserMenu(){
+  const rl={employee:'Nhân viên',manager:'Quản lý chi nhánh',admin:'Quản trị hệ thống'}[STATE.user.role]||STATE.user.role;
+  openModal('Tài khoản của tôi',`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div class="av" style="width:46px;height:46px;border-radius:50%;background:var(--grad-brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">${esc(avInitials(STATE.user.name))}</div>
+      <div><div style="font-weight:700">${esc(STATE.user.name)}</div>
+      <div style="font-size:12.5px;color:var(--c-text2)">${esc(rl)} · ${esc(STATE.user.branchName||'')} · Tài khoản: <b>${esc(STATE.user.user)}</b></div></div></div>
+    <div style="font-weight:700;margin-bottom:8px">🔑 Đổi mật khẩu</div>
+    <div class="field"><label>Mật khẩu hiện tại <span class="req">*</span></label><input id="cp-old" type="password"></div>
+    <div class="grid2">
+      <div class="field"><label>Mật khẩu mới <span class="req">*</span></label><input id="cp-new" type="password"></div>
+      <div class="field"><label>Nhập lại mật khẩu mới <span class="req">*</span></label><input id="cp-new2" type="password"></div>
+    </div>`,
+    `<button class="btn neutral" onclick="closeModal()">Đóng</button>
+     <button class="btn danger" onclick="closeModal();logout()">Đăng xuất</button>
+     <button class="btn" onclick="changeOwnPassword()">Lưu mật khẩu mới</button>`);
+}
+async function changeOwnPassword(){
+  const oldP=$('#cp-old').value, n1=$('#cp-new').value, n2=$('#cp-new2').value;
+  const acc=await dbGet('accounts',STATE.user.user);
+  if(acc.pass && acc.pass!==oldP)return toast('Mật khẩu hiện tại không đúng','err');
+  if(!n1||n1.length<4)return toast('Mật khẩu mới tối thiểu 4 ký tự','err');
+  if(n1!==n2)return toast('Hai lần nhập mật khẩu mới không khớp','err');
+  acc.pass=n1; await dbPut('accounts',acc); STATE.user.pass=n1;
+  await audit('account',acc.user,'change_password');
+  closeModal(); toast('Đã đổi mật khẩu thành công','ok');
+}
 async function routeRender(){
   const main=$('#main'); if(!main)return; main.innerHTML='<div class="empty">Đang tải…</div>';
   try{
@@ -1217,7 +1267,7 @@ function fInput(id,label,val,type,opts={}){
   if(type==='text'&&opts.area)inp=`<textarea id="${id}" ${dis}>${esc(val||'')}</textarea>`;
   else if(type==='bool')inp=`<select id="${id}" ${dis}><option value="">--</option><option value="true" ${val==='true'||val===true?'selected':''}>Có</option><option value="false" ${val==='false'||val===false?'selected':''}>Không</option></select>`;
   else if(type==='date')inp=`<input id="${id}" type="date" value="${esc(val||'')}" ${dis}>`;
-  else if(opts.select)inp=`<select id="${id}" ${dis}>${opts.select.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  else if(opts.select)inp=`<select id="${id}" ${dis}>${opts.select.map(o=>{const [v,lb]=String(o).includes('|')?String(o).split('|'):[o,o];return `<option value="${esc(v)}" ${v===val?'selected':''}>${esc(lb)}</option>`;}).join('')}</select>`;
   else if(type==='money'||type==='number'||type==='int'||type==='pct')inp=`<input id="${id}" type="number" step="any" value="${esc(val??'')}" ${dis}>`;
   else inp=`<input id="${id}" value="${esc(val||'')}" ${dis}>`;
   return `<div class="field"><label>${esc(label)}${opts.req?' <span class="req">*</span>':''}${opts.unit?` <span style="color:var(--c-text2);font-weight:400">(${esc(opts.unit)})</span>`:''}</label>${inp}${opts.hint?`<div class="hint">${esc(opts.hint)}</div>`:''}</div>`;
@@ -1240,7 +1290,7 @@ function renderTab(t){
   }
   else if(t==='actual'){
     tb.innerHTML=`<div class="grid3">
-      ${fInput('a-status','Trạng thái',a.status||'not_started','text',{select:['not_started','in_progress','done']})}
+      ${fInput('a-status','Trạng thái',a.status||'not_started','text',{select:['not_started|Chưa bắt đầu','in_progress|Đang thực hiện','done|Hoàn thành']})}
       ${fInput('a-pct','% hoàn thành',a.completionPct,'pct',{unit:'%'})}
       ${fInput('a-start','Ngày bắt đầu',a.actualStartDate,'date')}
       </div><div class="grid3">
@@ -1358,10 +1408,10 @@ async function viewActual(main){
     <div class="toolbar"><div class="grow"></div>
       <button class="btn neutral sm" onclick="toast('Bộ lọc — demo')">⛃ Bộ lọc</button>
       <button class="btn neutral sm" onclick="toast('Sắp xếp — demo')">↕ Sắp xếp</button>
-      <button class="btn sm" onclick="addLine('${h.id}')">＋ Thêm đầu việc</button></div>
+      <button class="btn sm" onclick="go('okr')">＋ Thêm đầu việc (tại Kế hoạch OKR)</button></div>
     <div class="card soft"><div class="card-b" style="padding:0">
     ${shown.length?`<table class="grid"><thead><tr><th>STT</th><th>Tên công việc</th><th>Nhóm</th><th>Kỳ hạn</th><th>Trạng thái</th><th>Ưu tiên</th><th>Tiến độ</th><th>Người thực hiện</th><th></th></tr></thead><tbody>${body}</tbody></table>`
-      :'<div class="empty"><div class="e-ic">📝</div>'+(rows.length?'Không có công việc trong mục này.':'Chưa có đầu việc. Hãy lập kế hoạch OKR hoặc bấm “Thêm đầu việc”.')+'</div>'}
+      :'<div class="empty"><div class="e-ic">📝</div>'+(rows.length?'Không có công việc trong mục này.':'Chưa có đầu việc. Vào mục Kế hoạch OKR để thêm đầu việc.')+'</div>'}
     </div></div>`;
 }
 function setActualTab(t){window._actualTab=t;viewActual($('#main'));}
@@ -1382,25 +1432,45 @@ async function viewAssign(main){
   window._assignEmps=emps;
 }
 async function newAssign(){
-  const emps=window._assignEmps; const catalog=await dbAll('work_catalog');
-  const eopt=emps.map(e=>`<option value="${e.code}">${esc(e.name)} — ${esc(e.title)}</option>`).join('');
+  const branches=(await dbAll('branches')).filter(b=>b.active!==false&&can.inScope(b.code));
+  const emps=(await dbAll('employees')).filter(e=>e.active&&can.inScope(e.branch)&&e.code!==STATE.user.empCode);
+  window._assignEmpsAll=emps;
+  const catalog=await dbAll('work_catalog');
+  const defBranch=branches.some(b=>b.code===STATE.user.branch)?STATE.user.branch:(branches[0]?branches[0].code:'');
+  const bopt=branches.map(b=>`<option value="${b.code}" ${b.code===defBranch?'selected':''}>${esc(b.name)}</option>`).join('');
   const copt=catalog.map(c=>`<option value="${c.code}">${esc(c.name)}</option>`).join('');
   openModal('Giao việc mới',`
     <div class="grid2">
-      <div class="field"><label>Nhân viên nhận <span class="req">*</span></label><select id="as-emp">${eopt}</select></div>
-      <div class="field"><label>Loại công việc</label><select id="as-work">${copt}</select></div>
+      <div class="field"><label>1. Chi nhánh <span class="req">*</span></label><select id="as-branch" onchange="assignBranchChange()">${bopt}</select></div>
+      <div class="field"><label>2. Nhân viên nhận <span class="req">*</span></label><select id="as-emp"></select>
+        <div class="hint" id="as-emp-hint"></div></div>
     </div>
+    <div class="field"><label>Loại công việc</label><select id="as-work">${copt}</select></div>
     <div class="field"><label>Tiêu đề giao việc <span class="req">*</span></label><input id="as-title"></div>
     <div class="field"><label>Ghi chú giao việc</label><textarea id="as-note"></textarea></div>
     <div class="grid3">
       <div class="field"><label>Hạn hoàn thành</label><input id="as-deadline" type="date"></div>
       <div class="field"><label>Ưu tiên</label><select id="as-prio"><option>Cao</option><option selected>TB</option><option>Thấp</option></select></div>
       <div class="field"><label>Trọng số (%)</label><input id="as-weight" type="number" value="10"></div>
-    </div>`,
+    </div>
+    <div class="field"><label>3. Gửi thông báo ngay</label>
+      <div style="display:flex;gap:18px;padding:4px 0;font-size:13.5px">
+        <label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="as-viber" ${INTEG.defaultChannels.includes('viber')?'checked':''}> 💬 Viber (qua n8n)</label>
+        <label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="as-email" ${INTEG.defaultChannels.includes('email')?'checked':''}> ✉️ Email (qua n8n)</label>
+      </div>
+      <div class="hint">${INTEG.webhookUrl?'Webhook n8n đã cấu hình — thông báo sẽ gửi tự động.':'⚠ Chưa cấu hình webhook n8n — vào Danh mục & Cấu hình → 🔗 Kết nối để bật gửi Viber/Email.'}</div></div>`,
     `<button class="btn neutral" onclick="closeModal()">Hủy</button><button class="btn" onclick="saveAssign()">Giao việc</button>`);
+  assignBranchChange();
+}
+function assignBranchChange(){
+  const b=$('#as-branch').value;
+  const list=(window._assignEmpsAll||[]).filter(e=>e.branch===b);
+  $('#as-emp').innerHTML=list.map(e=>`<option value="${e.code}">${esc(e.name)} — ${esc(e.title||'')}</option>`).join('')||'<option value="">(chi nhánh chưa có nhân viên)</option>';
+  $('#as-emp-hint').textContent=list.length?list.length+' nhân viên thuộc chi nhánh này':'Hãy khai báo nhân viên cho chi nhánh trước.';
 }
 async function saveAssign(){
   const empCode=$('#as-emp').value; const title=$('#as-title').value.trim();
+  if(!empCode){toast('Chọn nhân viên nhận việc','err');return;}
   if(!title){toast('Nhập tiêu đề','err');return;}
   const emp=await dbGet('employees',empCode); const cat=await dbGet('work_catalog',$('#as-work').value);
   // tạo OKR draft cho nhân viên nếu chưa có, gắn line chỉ định
@@ -1416,7 +1486,16 @@ async function saveAssign(){
     weight:num($('#as-weight').value),status:'submitted',linkedLineId:line.id,createdAt:new Date().toISOString()};
   await dbPut('assigned_tasks',task);
   await audit('assigned_task',task.id,'create',null,null,`Giao "${title}" cho ${emp.name}`);
-  closeModal(); toast('Đã giao việc và gắn vào OKR của nhân viên','ok'); routeRender();
+  // Gửi thông báo Viber/Email qua n8n
+  const channels=[]; if($('#as-viber')&&$('#as-viber').checked)channels.push('viber'); if($('#as-email')&&$('#as-email').checked)channels.push('email');
+  task.channels=channels; await dbPut('assigned_tasks',task);
+  closeModal(); toast('Đã giao việc và gắn vào OKR của nhân viên','ok');
+  if(channels.length){
+    const r=await sendNotify({type:'assign_task',channels,empCode:emp.code,empName:emp.name,branch:emp.branch,
+      assigner:STATE.user.name,title,workName:cat.name,deadline:task.deadline,priority:task.priority,note:task.note,periodId:STATE.periodId,at:task.createdAt});
+    toast(r.ok?('📨 Đã gửi thông báo '+channels.map(c=>c==='viber'?'Viber':'Email').join(' + ')):('⚠ Chưa gửi được thông báo: '+r.reason),r.ok?'ok':'err');
+  }
+  routeRender();
 }
 
 /* ================== VIEW: APPROVAL ================== */
@@ -1442,22 +1521,70 @@ async function reviewOKR(okrId){
   for(const l of lines){const cat=await dbGet('work_catalog',l.workCode);const a=await getLineActual(l.id);
     const metricsArr=(await getLineMetrics(l.id)).map(x=>({code:x.code,value:x.value}));
     const k=computeLineKPI(cat,l,a,metricsArr);
-    rows+=`<tr><td>${esc(cat.name)}</td><td class="num">${l.weight}%</td><td>${a?stBadge(a.status):'—'}</td>
+    const canReview=a&&a.status!=='approved';
+    const pen=a&&num(a.penaltyPoints)>0?`<div style="font-size:10.5px;color:var(--c-red)">Đã trừ ${num(a.penaltyPoints)}đ (trả sửa)</div>`:'';
+    rows+=`<tr><td><b>${esc(cat.name)}</b><div style="font-size:11px;color:var(--c-text2)">${esc(l.workCode)}</div></td>
+      <td class="num">${fmtNum(k.target)}<div style="font-size:10.5px;color:var(--c-text2)">${esc(k.srcLabel)}</div></td>
+      <td class="num"><b>${fmtNum(k.actualV)}</b><div style="font-size:10.5px;color:${k.pct>=100?'var(--c-green)':k.pct>=70?'var(--c-primary)':'var(--c-red)'}">${k.pct}% target</div></td>
+      <td>${a?stBadge(a.status):'—'}${pen}</td>
       <td class="num"><span class="badge ${gradeBadge(k.final)}">${k.final}</span></td>
-      <td style="text-align:right">${a&&a.status==='done'?`<button class="btn ghost sm" onclick="approveActual('${okrId}','${l.id}','approve')">Duyệt</button>
-        <button class="btn danger sm" onclick="approveActual('${okrId}','${l.id}','return')">Trả sửa</button>`:'<span style="font-size:11px;color:var(--c-text2)">Chưa nộp</span>'}</td></tr>`;}
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn ghost sm" onclick="showLineBiz('${okrId}','${l.id}')">Chi tiết</button>
+        ${canReview?`<button class="btn sm" onclick="approveActual('${okrId}','${l.id}','approve')">Duyệt</button>
+        <button class="btn danger sm" onclick="openReturnPenalty('${okrId}','${l.id}')">Trả sửa −KPI</button>`:(a?'':'<span style="font-size:11px;color:var(--c-text2)">Chưa nộp</span>')}</td></tr>`;}
   const okrScore=await calcOKRScore(okrId);
   openModal('Xem xét OKR — '+esc(h.empName),`
     <div class="kpi-grid" style="margin-bottom:14px">
       <div class="kpi-tile b-blue"><div class="k-bar"></div><div class="k-label">Số đầu việc</div><div class="k-val">${lines.length}</div></div>
-      <div class="kpi-tile b-green"><div class="k-bar"></div><div class="k-label">KPI OKR (theo trọng số)</div><div class="k-val">${okrScore}</div><div class="k-sub">${kpiGrade(okrScore)}</div></div>
+      <div class="kpi-tile b-green"><div class="k-bar"></div><div class="k-label">KPI OKR (/1000)</div><div class="k-val">${okrScore}</div><div class="k-sub">${kpiGrade(okrScore)}</div></div>
     </div>
-    <table class="grid"><thead><tr><th>Công việc</th><th>Trọng số</th><th>Actual</th><th>KPI</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <table class="grid"><thead><tr><th>Công việc</th><th>Target OKR</th><th>Hoàn thành</th><th>Trạng thái</th><th>KPI</th><th></th></tr></thead><tbody>${rows}</tbody></table>
     <div class="field" style="margin-top:16px"><label>Nhận xét quản lý cho OKR</label><textarea id="mgr-comment">${esc(h.managerComment||'')}</textarea></div>`,
     `<button class="btn neutral" onclick="closeModal()">Đóng</button>
      ${h.status==='submitted'?`<button class="btn" onclick="approveOKRPlan('${okrId}')">Duyệt kế hoạch OKR</button>`:''}
      <button class="btn ghost" onclick="saveMgrComment('${okrId}')">Lưu nhận xét</button>
      ${h.locked?`<button class="btn neutral" onclick="lockPeriodOKR('${okrId}',false)">Mở khóa</button>`:`<button class="btn neutral" onclick="lockPeriodOKR('${okrId}',true)">🔒 Khóa kỳ & chốt KPI</button>`}`);
+}
+// Chi tiết chỉ tiêu nghiệp vụ của 1 đầu việc (kế hoạch vs thực hiện)
+async function showLineBiz(okrId,lineId){
+  const l=await dbGet('okr_lines',lineId); const cat=await dbGet('work_catalog',l.workCode);
+  const mMap={}; (await getLineMetrics(lineId)).forEach(x=>mMap[x.code]=x.value);
+  const a=await getLineActual(lineId);
+  const fmtV=(mt,v)=>v===undefined||v===''?'—':(mt.type==='money'?fmtNum(num(v))+' đ':(mt.type==='date'?fmtDate(v):esc(String(v))+(mt.unit?' '+esc(mt.unit):'')));
+  const planRows=cat.metrics.filter(m=>m.plan).map(mt=>`<tr><td>${esc(mt.name)}</td><td class="num">${fmtV(mt,mMap[mt.code])}</td></tr>`).join('');
+  const actRows=cat.metrics.filter(m=>m.act!==false).map(mt=>`<tr><td>${esc(mt.name)}${mt.role?` <span style="font-size:10px;color:var(--c-text2)">(${esc(mt.role)})</span>`:''}</td><td class="num">${fmtV(mt,mMap[mt.code])}</td></tr>`).join('');
+  openModal('Chi tiết nghiệp vụ — '+esc(cat.name),`
+    <div style="font-size:12.5px;color:var(--c-text2);margin-bottom:10px">Loại: <b>${esc(cat.archetypeLabel||'')}</b> · Hạn: <b>${fmtDate(l.deadline)}</b> · Trạng thái: ${a?stBadge(a.status):'—'} · %HT: <b>${a?num(a.completionPct):0}%</b></div>
+    <div class="grid2">
+      <div><div style="font-weight:700;margin-bottom:6px">🎯 Target (kế hoạch)</div><table class="grid"><tbody>${planRows||'<tr><td>—</td><td></td></tr>'}</tbody></table></div>
+      <div><div style="font-weight:700;margin-bottom:6px">✅ Hoàn thành (thực hiện)</div><table class="grid"><tbody>${actRows}</tbody></table></div>
+    </div>
+    ${a&&a.actualResult?`<div style="margin-top:10px;font-size:13px"><b>Kết quả:</b> ${esc(a.actualResult)}</div>`:''}
+    ${a&&a.riskNote?`<div style="margin-top:6px;font-size:13px;color:var(--c-red)"><b>Vướng mắc:</b> ${esc(a.riskNote)}</div>`:''}`,
+    `<button class="btn neutral" onclick="reviewOKR('${okrId}')">← Quay lại xem xét</button>`);
+}
+// Trả sửa kèm TRỪ ĐIỂM KPI — điểm trừ lưu vĩnh viễn trên đầu việc, nộp lại vẫn bị trừ
+async function openReturnPenalty(okrId,lineId){
+  const a=await getLineActual(lineId); const cur=a?num(a.penaltyPoints):0;
+  openModal('Trả sửa & trừ điểm KPI',`
+    <div class="field"><label>Số điểm KPI trừ cho lần trả sửa này <span class="req">*</span></label>
+      <input id="rp-points" type="number" value="${KPI_CFG.returnedPenalty}" min="0" max="1000">
+      <div class="hint">Điểm trừ được LƯU VĨNH VIỄN vào đầu việc — kể cả nhân viên nộp lại vẫn bị trừ. ${cur?('Hiện đã trừ tích lũy: '+cur+' điểm.'):''}</div></div>
+    <div class="field"><label>Lý do trả sửa</label><textarea id="rp-note" placeholder="VD: sai số liệu đối chiếu, thiếu minh chứng..."></textarea></div>`,
+    `<button class="btn neutral" onclick="reviewOKR('${okrId}')">Hủy</button>
+     <button class="btn danger" onclick="confirmReturnPenalty('${okrId}','${lineId}')">Trả sửa & trừ điểm</button>`);
+}
+async function confirmReturnPenalty(okrId,lineId){
+  const pts=num($('#rp-points').value); const note=$('#rp-note').value.trim();
+  const a=await getLineActual(lineId); if(!a){toast('Chưa có báo cáo để trả sửa','err');return;}
+  a.status='returned'; a.penaltyPoints=num(a.penaltyPoints)+pts;
+  a.penaltyNote=((a.penaltyNote||'')+(note?(' | '+note):'')).replace(/^ \| /,'');
+  await dbPut('okr_line_actuals',a);
+  await dbPut('approvals',{id:uid('apr'),objectType:'actual',objectId:lineId,status:'returned',penalty:pts,note,
+    approver:STATE.user.empCode,approvedAt:new Date().toISOString()});
+  await audit('actual',lineId,'return','penalty',null,'-'+pts+' điểm KPI'+(note?' · '+note:''));
+  toast('Đã trả sửa và trừ '+pts+' điểm KPI (giữ vĩnh viễn)','ok');
+  reviewOKR(okrId);
 }
 async function calcOKRScore(okrId){
   const lines=await getLines(okrId); let tw=0,acc=0;
@@ -1472,9 +1599,22 @@ async function approveActual(okrId,lineId,act){
   await dbPut('approvals',{id:uid('apr'),objectType:'actual',objectId:lineId,status:a.status,
     approver:STATE.user.empCode,approvedAt:new Date().toISOString()});
   await audit('actual',lineId,act==='approve'?'approve':'return');
-  toast(act==='approve'?'Đã duyệt actual':'Đã trả sửa','ok'); reviewOKR(okrId);
+  let sheetMsg='';
+  if(act==='approve'){ // đồng bộ Google Sheets khi duyệt báo cáo
+    const l=await dbGet('okr_lines',lineId); const cat=await dbGet('work_catalog',l.workCode);
+    const h=await dbGet('okr_headers',okrId);
+    const mArr=(await getLineMetrics(lineId)).map(x=>({code:x.code,value:x.value}));
+    const k=computeLineKPI(cat,l,a,mArr);
+    const r=await pushToSheets('actual_approved',[{period:h.periodId,branch:h.branch,empCode:h.empCode,empName:h.empName,
+      workCode:l.workCode,workName:cat.name,deadline:l.deadline||'',status:'Đã duyệt',completionPct:num(a.completionPct),
+      target:k.target,actual:k.actualV,pct:k.pct,kpi:k.final,grade:k.grade}]);
+    sheetMsg=r.ok?' · 📄 Đã ghi Google Sheets':(INTEG.sheetsUrl?' · ⚠ Sheets lỗi':'');
+  }
+  toast((act==='approve'?'Đã duyệt báo cáo':'Đã trả sửa')+sheetMsg,'ok'); reviewOKR(okrId);
 }
-async function approveOKRPlan(okrId){const h=await dbGet('okr_headers',okrId);h.status='approved';h.approveDate=new Date().toISOString();h.approver=STATE.user.empCode;await dbPut('okr_headers',h);await audit('okr',okrId,'approve_plan');toast('Đã duyệt kế hoạch OKR','ok');closeModal();routeRender();}
+async function approveOKRPlan(okrId){const h=await dbGet('okr_headers',okrId);h.status='approved';h.approveDate=new Date().toISOString();h.approver=STATE.user.empCode;await dbPut('okr_headers',h);await audit('okr',okrId,'approve_plan');
+  const r=await pushToSheets('okr_plan_approved', await sheetRowsForOKR(okrId));
+  toast('Đã duyệt kế hoạch OKR'+(r.ok?' · 📄 Đã đồng bộ Google Sheets':(INTEG.sheetsUrl?' · ⚠ Sheets lỗi':'')),'ok');closeModal();routeRender();}
 async function saveMgrComment(okrId){const h=await dbGet('okr_headers',okrId);h.managerComment=$('#mgr-comment').value;await dbPut('okr_headers',h);await audit('okr',okrId,'comment');toast('Đã lưu nhận xét','ok');}
 async function lockPeriodOKR(okrId,lock){
   const h=await dbGet('okr_headers',okrId); h.locked=lock; h.status=lock?'locked':'approved';
@@ -1482,7 +1622,10 @@ async function lockPeriodOKR(okrId,lock){
     await dbPut('kpi_results',{id:uid('kpi'),empCode:h.empCode,branch:h.branch,periodId:h.periodId,okrId,
       finalScore:score,grade:kpiGrade(score),calcAt:new Date().toISOString()});}
   await dbPut('okr_headers',h); await audit('okr',okrId,lock?'lock':'unlock');
-  toast(lock?'Đã khóa kỳ & chốt KPI':'Đã mở khóa','ok'); closeModal(); routeRender();
+  if(lock){const r=await pushToSheets('okr_locked_final', await sheetRowsForOKR(okrId));
+    toast('Đã khóa kỳ & chốt KPI'+(r.ok?' · 📄 Đã đồng bộ Google Sheets':(INTEG.sheetsUrl?' · ⚠ Sheets lỗi':'')),'ok');}
+  else toast('Đã mở khóa','ok');
+  closeModal(); routeRender();
 }
 
 /* ================== AGGREGATION FOR DASHBOARD/KPI ================== */
@@ -1548,14 +1691,30 @@ async function viewDashboard(main){
           </div></div></div></div>
     </div>
     <div class="dash-2b">
+      <div class="card soft"><div class="card-h">📣 Thông báo giao việc <span class="link" onclick="${can.manage()?"go('assign')":"go('actual')"}">Xem tất cả</span></div>
+        <div class="card-b" id="dash-notifs">Đang tải…</div></div>
       <div class="card soft"><div class="card-h">Công việc cần xử lý <span class="link" onclick="go('actual')">Xem tất cả</span></div>
         <div class="card-b">${renderNeedList(scope)}</div></div>
-      <div class="card soft"><div class="card-h">Hoạt động gần đây <span class="link" onclick="go('master')">Xem tất cả</span></div>
-        <div class="card-b" id="dash-activity">Đang tải…</div></div>
     </div>
-    <div class="card soft"><div class="card-h">⚠️ Cảnh báo tài chính – rủi ro</div><div class="card-b" style="padding:0">${renderRiskTable(scope)}</div></div>`;
+    <div class="dash-2b">
+      <div class="card soft"><div class="card-h">Hoạt động gần đây</div>
+        <div class="card-b" id="dash-activity">Đang tải…</div></div>
+      <div class="card soft"><div class="card-h">⚠️ Cảnh báo tài chính – rủi ro</div><div class="card-b" style="padding:0;max-height:340px;overflow:auto">${renderRiskTable(scope)}</div></div>
+    </div>`;
   drawDashCharts(scope);
   renderActivity();
+  renderDashNotifs();
+}
+async function renderDashNotifs(){
+  const box=$('#dash-notifs'); if(!box)return;
+  const notifs=(await getMyAssignNotifs()).slice(0,6);
+  if(!notifs.length){box.innerHTML='<div class="empty" style="padding:24px"><div class="e-ic">📣</div>Chưa có thông báo giao việc trong kỳ.</div>';return;}
+  const isEmp=STATE.user.role==='employee';
+  box.innerHTML=notifs.map(t=>`<div class="activity"><div class="a-av" style="background:var(--c-blue-bg);color:var(--c-primary)">📋</div>
+    <div style="flex:1"><div class="a-tx"><b>${esc(t.assignerName)}</b> giao việc ${isEmp?'cho bạn':'cho <b>'+esc(t.empName)+'</b>'}: "${esc(t.title)}"
+      <div style="font-size:11.5px;color:var(--c-text2)">${esc(t.workName||'')} · Hạn <b>${fmtDate(t.deadline)}</b> · Ưu tiên ${esc(t.priority)}${(t.channels||[]).length?' · 📨 '+(t.channels||[]).map(c=>c==='viber'?'Viber':'Email').join('+'):''}</div></div>
+    <div class="a-tm">${timeAgo(t.createdAt)}</div></div>
+    ${isEmp?`<button class="btn ghost sm" onclick="go('actual')" style="align-self:center">Mở</button>`:''}</div>`).join('');
 }
 function legendRow(color,label,v,total){const p=total?Math.round(v/total*100):0;
   return `<div class="legend-row"><div class="lg-l"><span class="lg-dot" style="background:${color}"></span>${label}</div><div><span class="lg-v">${v}</span><span class="lg-pct">${p}%</span></div></div>`;}
@@ -1740,8 +1899,10 @@ ${AI_PROMPTS[type]}
 Hãy viết báo cáo ngắn gọn bằng tiếng Việt: (1) 3-5 nhận định chính có số liệu, (2) cảnh báo cụ thể theo người/nhóm việc, (3) 2-3 khuyến nghị hành động. Dùng gạch đầu dòng, không markdown heading.
 DỮ LIỆU: ${JSON.stringify(compact).slice(0,9000)}`;
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const aiHeaders={'Content-Type':'application/json'};
+    if(INTEG.aiKey){aiHeaders['x-api-key']=INTEG.aiKey;aiHeaders['anthropic-version']='2023-06-01';aiHeaders['anthropic-dangerous-direct-browser-access']='true';}
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:aiHeaders,
+      body:JSON.stringify({model:INTEG.aiModel||'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const d=await resp.json();
     const text=(d.content||[]).map(i=>i.type==='text'?i.text:'').join('\n').trim();
     out.innerHTML=`<div class="ai-msg u" style="font-weight:600">${esc(AI_PROMPTS[type])}</div><div class="ai-msg">${esc(text||'(Không có phản hồi)')}</div>`;
@@ -1780,7 +1941,7 @@ async function viewMaster(main){
       <div class="tab ${_masterTab==='acc'?'active':''}" onclick="setMTab('acc')">🔑 Tài khoản</div>
       <div class="tab ${_masterTab==='period'?'active':''}" onclick="setMTab('period')">🗓️ Kỳ báo cáo</div>
       <div class="tab ${_masterTab==='kpirule'?'active':''}" onclick="setMTab('kpirule')">⚖️ KPI Rule</div>
-      <div class="tab ${_masterTab==='audit'?'active':''}" onclick="setMTab('audit')">📜 Audit Log</div>
+      <div class="tab ${_masterTab==='connect'?'active':''}" onclick="setMTab('connect')">🔗 Kết nối</div>
     </div><div id="mt-body"></div>`;
   renderMTab();
 }
@@ -1885,10 +2046,64 @@ async function renderMTab(){
         <div style="margin-top:12px;font-size:12px;color:var(--c-text2)">Ví dụ Rule 1: Target 100, Actual 95 → 950 điểm; Actual 120 → vẫn 1000 (không vượt trần). Rule 2 mặc định: 1 lỗi→980, 2→950, 5→800, 10→500, ≥20→0. Xếp loại mặc định: ≥950 Xuất sắc · ≥900 Tốt · ≥800 Khá · ≥700 Đạt · ≥600 Cần cải thiện · <600 Không đạt.</div>
       </div></div>`;
   }
-  else if(_masterTab==='audit'){const logs=(await dbAll('audit_log')).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,100);
-    b.innerHTML=`<div class="card"><div class="card-h">Audit Log (100 mục gần nhất)</div><div class="card-b" style="padding:0">
-      ${logs.length?`<table class="grid"><thead><tr><th>Thời điểm</th><th>Người</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead><tbody>
-      ${logs.map(l=>`<tr><td>${new Date(l.at).toLocaleString('vi-VN')}</td><td>${esc(l.byName)}</td><td><span class="badge n">${esc(l.action)}</span></td><td>${esc(l.objectType)}</td><td>${esc(l.after||l.field||'')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Chưa có log.</div>'}</div></div>`;
+  else if(_masterTab==='connect'){
+    const adm=can.admin();
+    b.innerHTML=`
+    <div class="card"><div class="card-h">💬 n8n — Gửi thông báo Viber / Email khi giao việc</div><div class="card-b">
+      <div class="field"><label>Webhook URL của n8n <span class="req">*</span></label>
+        <input id="cn-webhook" value="${esc(INTEG.webhookUrl||'')}" placeholder="https://n8n.cua-ban.com/webhook/giao-viec" ${adm?'':'disabled'}>
+        <div class="hint">Khi bấm Giao việc, hệ thống POST JSON tới URL này; n8n chuyển tiếp sang Viber Bot và/hoặc Email.</div></div>
+      <div class="field"><label>Kênh gửi mặc định</label>
+        <div style="display:flex;gap:18px;font-size:13.5px;padding:4px 0">
+          <label><input type="checkbox" id="cn-ch-viber" ${INTEG.defaultChannels.includes('viber')?'checked':''} ${adm?'':'disabled'}> 💬 Viber</label>
+          <label><input type="checkbox" id="cn-ch-email" ${INTEG.defaultChannels.includes('email')?'checked':''} ${adm?'':'disabled'}> ✉️ Email</label>
+        </div></div>
+      ${adm?`<div style="display:flex;gap:8px"><button class="btn neutral sm" onclick="testWebhook()">🧪 Gửi thử</button></div>`:''}
+      <details style="margin-top:12px;font-size:12.5px"><summary style="cursor:pointer;font-weight:700;color:var(--c-primary)">📖 Hướng dẫn tạo workflow n8n (Viber + Email)</summary>
+        <ol style="margin:10px 0 0 18px;line-height:1.9">
+          <li>Trong n8n, tạo workflow mới → thêm node <b>Webhook</b> (Method: POST, Respond: Immediately). Copy <b>Production URL</b> dán vào ô trên.</li>
+          <li>Payload hệ thống gửi: <code>{type:'assign_task', channels:['viber','email'], empCode, empName, branch, assigner, title, workName, deadline, priority, note, periodId}</code></li>
+          <li>Thêm node <b>IF</b>: kiểm tra <code>{{$json.channels}}</code> chứa 'viber' → nhánh Viber; chứa 'email' → nhánh Email.</li>
+          <li><b>Nhánh Viber</b>: node <b>HTTP Request</b> → POST <code>https://chatapi.viber.com/pa/send_message</code>, Header <code>X-Viber-Auth-Token: &lt;token bot của bạn&gt;</code>, Body JSON: <code>{"receiver":"&lt;viber_user_id&gt;","type":"text","text":"📋 {{$json.assigner}} giao việc: {{$json.title}} ({{$json.workName}}) — hạn {{$json.deadline}}"}</code>. Có thể tra viber_user_id theo empCode bằng node Google Sheets/Code.</li>
+          <li><b>Nhánh Email</b>: node <b>Send Email</b> (SMTP) hoặc <b>Gmail</b> → To: email nhân viên (tra theo empCode), Subject: <code>Giao việc: {{$json.title}}</code>, nội dung gồm workName, hạn, ưu tiên, ghi chú.</li>
+          <li>Bấm <b>Active</b> workflow. Quay lại đây bấm "Gửi thử" để kiểm tra.</li>
+        </ol></details>
+    </div></div>
+    <div class="card" style="margin-top:16px"><div class="card-h">📄 Google Sheets — Lưu dữ liệu khi duyệt OKR/báo cáo</div><div class="card-b">
+      <div class="field"><label>Apps Script Web App URL</label>
+        <input id="cn-sheets" value="${esc(INTEG.sheetsUrl||'')}" placeholder="https://script.google.com/macros/s/XXXX/exec" ${adm?'':'disabled'}>
+        <div class="hint">Tự động ghi 1 dòng/đầu việc vào Google Sheets khi: duyệt kế hoạch OKR, duyệt báo cáo, khóa kỳ chốt KPI.</div></div>
+      ${adm?`<button class="btn neutral sm" onclick="testSheets()">🧪 Ghi thử 1 dòng</button>`:''}
+      <details style="margin-top:12px;font-size:12.5px"><summary style="cursor:pointer;font-weight:700;color:var(--c-primary)">📖 Hướng dẫn tạo Apps Script nhận dữ liệu</summary>
+        <ol style="margin:10px 0 0 18px;line-height:1.9">
+          <li>Mở Google Sheets → Tiện ích mở rộng → <b>Apps Script</b>, dán code:</li>
+        </ol>
+        <pre style="background:#f4f6f9;border:1px solid var(--c-border);border-radius:8px;padding:10px;overflow:auto;font-size:11px">function doPost(e){
+  var d=JSON.parse(e.postData.contents);
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var sh=ss.getSheetByName('KPI')||ss.insertSheet('KPI');
+  if(sh.getLastRow()==0) sh.appendRow(['Thời điểm','Sự kiện','Người duyệt','Kỳ','Chi nhánh','Mã NV','Nhân viên','Mã việc','Công việc','Hạn','Trạng thái','%HT','Target','Actual','% đạt','KPI','Xếp loại']);
+  (d.rows||[]).forEach(function(r){
+    sh.appendRow([d.at,d.event,d.by,r.period,r.branch,r.empCode,r.empName,r.workCode,r.workName,r.deadline,r.status,r.completionPct,r.target,r.actual,r.pct,r.kpi,r.grade]);
+  });
+  return ContentService.createTextOutput('OK');
+}</pre>
+        <ol start="2" style="margin:6px 0 0 18px;line-height:1.9">
+          <li>Triển khai → <b>Tệp thực thi web</b>: Execute as <b>Me</b>, Who has access <b>Anyone</b> → Deploy → copy URL <code>/exec</code> dán vào ô trên.</li>
+        </ol></details>
+    </div></div>
+    <div class="card" style="margin-top:16px"><div class="card-h">✨ Kết nối AI (Anthropic Claude)</div><div class="card-b">
+      <div class="grid2">
+        <div class="field"><label>API Key (sk-ant-...)</label><input id="cn-aikey" type="password" value="${esc(INTEG.aiKey||'')}" placeholder="sk-ant-api03-..." ${adm?'':'disabled'}>
+          <div class="hint">Lấy key tại console.anthropic.com → API Keys. Key lưu cục bộ trên máy này.</div></div>
+        <div class="field"><label>Model</label><select id="cn-aimodel" ${adm?'':'disabled'}>
+          ${['claude-sonnet-4-6','claude-haiku-4-5','claude-opus-4-8'].map(m=>`<option ${INTEG.aiModel===m?'selected':''}>${m}</option>`).join('')}</select></div>
+      </div>
+      ${adm?`<button class="btn neutral sm" onclick="testAI()">🧪 Kiểm tra AI</button>`:''}
+      <div class="hint" style="margin-top:8px">Sau khi kết nối, mục ✨ AI Phân tích sẽ gọi Claude trực tiếp. Không có key, hệ thống dùng phân tích quy tắc nội bộ.</div>
+    </div></div>
+    ${adm?`<div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn" onclick="saveConnect()">💾 Lưu toàn bộ kết nối</button></div>`
+      :'<div class="hint" style="margin-top:10px">Chỉ Quản trị hệ thống (admin) chỉnh được kết nối.</div>'}`;
   }
 }
 async function togglePeriod(id){const p=await dbGet('periods',id);p.locked=!p.locked;await dbPut('periods',p);await audit('period',id,p.locked?'lock':'unlock');toast(p.locked?'Đã khóa kỳ':'Đã mở kỳ','ok');renderShell();}
@@ -1907,6 +2122,38 @@ async function saveKpiRule(){
 }
 async function resetKpiCfg(){ if(!can.admin())return; if(!confirm('Khôi phục toàn bộ Rule KPI về mặc định?'))return;
   KPI_CFG=JSON.parse(JSON.stringify(DEFAULT_KPI_CFG)); await saveKpiCfg(); toast('Đã khôi phục Rule mặc định','ok'); renderMTab(); }
+
+async function saveConnect(){
+  if(!can.admin())return toast('Chỉ admin chỉnh được kết nối','err');
+  const ch=[]; if($('#cn-ch-viber').checked)ch.push('viber'); if($('#cn-ch-email').checked)ch.push('email');
+  INTEG={...INTEG,webhookUrl:$('#cn-webhook').value.trim(),sheetsUrl:$('#cn-sheets').value.trim(),
+    aiKey:$('#cn-aikey').value.trim(),aiModel:$('#cn-aimodel').value,defaultChannels:ch};
+  await saveIntegrations(); await audit('integrations','global','update');
+  toast('Đã lưu cấu hình kết nối','ok');
+}
+async function testWebhook(){
+  await saveConnect();
+  const r=await sendNotify({type:'test',channels:INTEG.defaultChannels,empName:'(Gửi thử)',assigner:STATE.user.name,
+    title:'Kiểm tra kết nối n8n',workName:'Test',deadline:new Date().toISOString().slice(0,10),at:new Date().toISOString()});
+  toast(r.ok?'✅ n8n nhận thành công — kiểm tra Viber/Email':'❌ Lỗi: '+r.reason, r.ok?'ok':'err');
+}
+async function testSheets(){
+  await saveConnect();
+  const r=await pushToSheets('test',[{period:STATE.periodId,branch:'TEST',empCode:'000',empName:'(Ghi thử)',workCode:'T-01',
+    workName:'Kiểm tra kết nối Sheets',deadline:'',status:'Test',completionPct:100,target:1,actual:1,pct:100,kpi:1000,grade:'Xuất sắc'}]);
+  toast(r.ok?'✅ Đã gửi — mở Google Sheets kiểm tra dòng mới':'❌ '+r.reason, r.ok?'ok':'err');
+}
+async function testAI(){
+  await saveConnect();
+  if(!INTEG.aiKey)return toast('Nhập API key trước','err');
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':INTEG.aiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:INTEG.aiModel,max_tokens:30,messages:[{role:'user',content:'Trả lời đúng 2 từ: "Kết nối OK"'}]})});
+    if(resp.ok){toast('✅ AI đã kết nối thành công','ok');}
+    else{const t=await resp.text();toast('❌ AI lỗi HTTP '+resp.status+': '+t.slice(0,80),'err');}
+  }catch(e){toast('❌ '+String(e.message||e),'err');}
+}
 
 async function showTemplate(code){const w=await dbGet('work_catalog',code);
   const rows=(w.metrics||[]).map(mt=>`<div class="metric-row"><div class="m-name">${esc(mt.name)}<small>${esc(mt.code)} · ${mt.type}${mt.unit?' · '+mt.unit:''}${mt.role?' · vai trò KPI: '+esc(mt.role):''}</small></div>
@@ -2106,7 +2353,7 @@ async function delAccount(user){
 
 /* ================== BOOT ================== */
 (async function boot(){
-  try{ await openDB(); await seedIfEmpty(); await loadKpiCfg(); await renderLogin(); }
+  try{ await openDB(); await seedIfEmpty(); await loadKpiCfg(); await loadIntegrations(); await renderLogin(); }
   catch(e){ document.getElementById('app').innerHTML='<div class="empty"><div class="e-ic">⚠</div>Không khởi tạo được CSDL: '+esc(e.message)+'</div>'; }
 })();
 </script>
