@@ -717,7 +717,7 @@ const SEED_ACCOUNTS = [
 
 /* ================== INDEXEDDB LAYER ================== */
 const DB_NAME='ketoan_okr_kpi', DB_VER=2;
-const SEED_VERSION=4; // tăng số này mỗi khi đổi dữ liệu/mô hình để tự nạp lại
+const SEED_VERSION=6; // tăng số này mỗi khi đổi dữ liệu/mô hình để tự nạp lại
 const STORES=['branches','employees','accounts','work_groups','work_catalog',
   'okr_headers','okr_lines','okr_line_actuals','okr_metrics','assigned_tasks',
   'approvals','kpi_results','attachments','audit_log','periods','meta'];
@@ -755,91 +755,40 @@ const uid=p=>(p||'id')+'_'+Date.now().toString(36)+Math.random().toString(36).sl
 
 async function seedIfEmpty(){
   const sv=await dbGet('meta','seedVersion');
-  if(sv && sv.v===SEED_VERSION) return;            // dữ liệu đã đúng phiên bản
-  // Phiên bản cũ hoặc CSDL trống → nạp lại dữ liệu chuẩn
-  for(const s of STORES){ if(s!=='meta') await dbClear(s); }
-  for(const b of SEED_BRANCHES) await dbPut('branches',{id:b.code,...b});
-  for(const e of SEED_EMPLOYEES) await dbPut('employees',{id:e.code,...e});
-  for(const a of SEED_ACCOUNTS) await dbPut('accounts',{id:a.user,...a});
-  for(const g of WORK_GROUPS) await dbPut('work_groups',{id:g.code,...g});
-  for(const w of WORK_CATALOG) await dbPut('work_catalog',{id:w.code,...w});
-  // periods: tạo các kỳ tháng gần đây
-  const now=new Date(); 
-  for(let i=2;i>=-1;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    const id='M'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    await dbPut('periods',{id,type:'month',label:'Tháng '+(d.getMonth()+1)+'/'+d.getFullYear(),
-      year:d.getFullYear(),month:d.getMonth()+1,locked:false});
+  const prev=sv?sv.v:0;
+  if(prev===SEED_VERSION){ await ensurePeriods(); return; }   // vẫn đảm bảo kỳ realtime mỗi lần mở
+  // Chỉ THÊM bản ghi còn thiếu — KHÔNG xóa/ghi đè dữ liệu người dùng đã tạo (tài khoản, nhân viên...)
+  const addIfMissing=async(store,key,val)=>{ let ex=null; try{ex=await dbGet(store,key);}catch(e){} if(!ex) await dbPut(store,val); };
+  for(const b of SEED_BRANCHES) await addIfMissing('branches',b.code,{id:b.code,...b});
+  for(const e of SEED_EMPLOYEES) await addIfMissing('employees',e.code,{id:e.code,...e});
+  for(const a of SEED_ACCOUNTS) await addIfMissing('accounts',a.user,{id:a.user,...a});
+  for(const g of WORK_GROUPS) await dbPut('work_groups',{id:g.code,...g});  // nhóm: dữ liệu tham chiếu, cập nhật an toàn
+  // Danh mục công việc: cập nhật mẫu chỉ tiêu mới, nhưng GIỮ NGUYÊN việc đã được người dùng chỉnh/thêm
+  for(const w of WORK_CATALOG){ let ex=null; try{ex=await dbGet('work_catalog',w.code);}catch(e){}
+    if(!ex || !ex.userEdited) await dbPut('work_catalog',{id:w.code,...w}); }
+  // v6: XÓA TOÀN BỘ dữ liệu KPI/OKR demo (một lần) — hệ thống bắt đầu sạch, không seed demo nữa
+  if(prev<6){
+    for(const s of ['okr_headers','okr_lines','okr_line_actuals','okr_metrics','kpi_results','assigned_tasks','approvals']) await dbClear(s);
+    const logs=await dbAll('audit_log');
+    for(const lg of logs){ if(lg.objectId==='demo'||['okr','actual','okr_line','kpi'].includes(lg.objectType)) await dbDel('audit_log',lg.id); }
   }
-  await seedDemoData();
+  await ensurePeriods();
   await dbPut('meta',{k:'seeded',v:true});
   await dbPut('meta',{k:'seedVersion',v:SEED_VERSION});
   await dbPut('meta',{k:'catalog_ver',v:1});
 }
-
-async function seedDemoData(){
-  const periods=(await dbAll('periods')).sort((a,b)=>a.id.localeCompare(b.id));
-  if(periods.length<2)return;
-  const pCur=periods[periods.length-1], pPrev=periods[periods.length-2];
-  const cat=await dbAll('work_catalog');
-  const byGroup={}; cat.forEach(c=>{(byGroup[c.group]=byGroup[c.group]||[]).push(c);});
-  const plan=[
-    {emp:'011474',name:'Nguyễn Văn Thành',branch:'HS',groups:['KTTH','BCTC','CTTT']},
-    {emp:'011891',name:'Hà Thị Mai',branch:'HS',groups:['KTTH','BCTC']},
-    {emp:'010753',name:'Hoàng Diệu Linh',branch:'HS',groups:['CTTT']},
-    {emp:'017489',name:'Nguyễn Thị Khánh Ly',branch:'HS',groups:['HDCN']},
-    {emp:'010023',name:'Nguyễn Thị Hoài',branch:'HS',groups:['THUE','HDCN']},
-    {emp:'010581',name:'Dương Thị Thanh Xuân',branch:'HS',groups:['BCTC','KTTH','LAIVAY']},
-  ];
-  let s=987654321; const rnd=()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;};
-  const pick=arr=>arr[Math.floor(rnd()*arr.length)];
-  const dayOff=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
-  async function genFor(period, emp, isCur){
-    const chosen=[]; const seen=new Set();
-    emp.groups.forEach(g=>{(byGroup[g]||[]).forEach(c=>{if(!seen.has(c.code)&&chosen.length<8){seen.add(c.code);chosen.push(c);}});});
-    const header={id:uid('okr'),empCode:emp.emp,empName:emp.name,branch:emp.branch,periodId:period.id,
-      title:'OKR '+period.label+' — '+emp.name,objective:'Hoàn thành công việc kế toán kỳ '+period.label,
-      status:isCur?'submitted':'approved',totalScore:null,locked:!isCur,managerComment:'',createdAt:new Date().toISOString()};
-    await dbPut('okr_headers',header);
-    const n=chosen.length; const wEach=Math.floor(100/n);
-    for(let i=0;i<n;i++){
-      const c=chosen[i]; const lineId=uid('ln');
-      const roll=(i+emp.emp.charCodeAt(4))%7;
-      let stkey = !isCur ? (roll<5?'approved':'done')
-        : roll<3?'approved': roll===3?'in_progress': roll===4?'submitted': roll===5?'not_started':'overdue';
-      const prio = (i%3===0)?'Cao':(i%3===1)?'TB':'Thấp';
-      let deadline;
-      if(!isCur) deadline=dayOff(-32-i*2);
-      else deadline = stkey==='overdue'?dayOff(-(2+i*2)) : stkey==='not_started'?dayOff(7+i*2) : dayOff((i%2?2:6)+i);
-      const weight = i===n-1 ? 100-wEach*(n-1) : wEach;
-      await dbPut('okr_lines',{id:lineId,okrId:header.id,workCode:c.code,order:i,weight,deadline,priority:prio,
-        planNote:'Kế hoạch: '+c.name,createdAt:new Date().toISOString()});
-      const setM=async(role,val)=>{const def=c.metrics.find(m=>m.role===role); if(def&&val!=null) await dbPut('okr_metrics',{id:uid('mt'),lineId,code:def.code,value:val});};
-      const vplan=pick([20,30,40,60,90,120]);
-      let pct,statusReal,endDate=null,hasEv=true,vact=vplan,err=0,blocked=0;
-      if(stkey==='approved'||stkey==='done'){pct=100;vact=vplan;endDate=dayOff(-(1+i));statusReal=stkey;}
-      else if(stkey==='in_progress'){pct=pick([40,55,60,70]);vact=Math.round(vplan*pct/100);statusReal='in_progress';}
-      else if(stkey==='submitted'){pct=pick([80,90,95]);vact=Math.round(vplan*pct/100);statusReal='submitted';}
-      else if(stkey==='not_started'){pct=0;vact=0;hasEv=false;statusReal='not_started';}
-      else{pct=pick([20,35,50]);vact=Math.round(vplan*pct/100);err=pick([1,2]);blocked=pick([1,2]);statusReal='in_progress';}
-      if(isCur && i===1){statusReal='returned';pct=60;hasEv=true;}
-      await setM('vplan',vplan); await setM('vactual',vact);
-      await setM('valplan',vplan*1000000); await setM('valactual',vact*1000000);
-      if(err){await setM('err',err);} if(blocked){await setM('blocked',blocked);}
-      await dbPut('okr_line_actuals',{id:uid('act'),lineId,status:statusReal,completionPct:pct,
-        actualStartDate:dayOff(-16),actualEndDate:endDate,actualResult:'',riskNote:blocked?'Có hồ sơ treo cần xử lý':'',
-        hasEvidence:hasEv,evidenceLink:hasEv?'(đã đính kèm)':'',submittedBy:emp.emp,submittedAt:new Date().toISOString()});
-    }
+// Kỳ báo cáo REALTIME: mỗi lần mở app tự tạo đủ 12 tháng gần nhất đến ĐÚNG tháng hiện tại (không tạo kỳ tương lai)
+async function ensurePeriods(){
+  const now=new Date();
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const id='M'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    let ex=null; try{ex=await dbGet('periods',id);}catch(e){}
+    if(!ex) await dbPut('periods',{id,type:'month',label:'Tháng '+(d.getMonth()+1)+'/'+d.getFullYear(),
+      year:d.getFullYear(),month:d.getMonth()+1,locked:false});
   }
-  for(const e of plan){ await genFor(pPrev,e,false); await genFor(pCur,e,true); }
-  const acts=[
-    {by:'017489',byName:'Nguyễn Thị Khánh Ly',objectType:'actual',action:'submit',after:'BC tình trạng công nợ phải thu',min:8},
-    {by:'010023',byName:'Nguyễn Thị Hoài',objectType:'okr',action:'update',after:'Kê khai thuế GTGT',min:26},
-    {by:'010581',byName:'Dương Thị Thanh Xuân',objectType:'actual',action:'approve',after:'Tính giá thành',min:63},
-    {by:'010753',byName:'Hoàng Diệu Linh',objectType:'actual',action:'submit',after:'Xử lý chứng từ chi',min:95},
-    {by:'010581',byName:'Dương Thị Thanh Xuân',objectType:'period',action:'lock',after:pPrev.label,min:210},
-  ];
-  for(const a of acts) await dbPut('audit_log',{id:uid('aud'),objectType:a.objectType,objectId:'demo',action:a.action,field:'',before:'',after:a.after,by:a.by,byName:a.byName,at:new Date(Date.now()-a.min*60000).toISOString()});
 }
+function currentPeriodId(){const n=new Date();return 'M'+n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');}
+
 
 async function audit(objType,objId,action,field,before,after){
   await dbPut('audit_log',{id:uid('aud'),objectType:objType,objectId:objId,action,field:field||'',
@@ -852,49 +801,81 @@ async function audit(objType,objId,action,field,before,after){
 function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
 function getMetric(catalog,metrics,role){
   const def=catalog.metrics.find(x=>x.role===role); if(!def)return null;
-  const found=metrics.find(x=>x.code===def.code); return found?found.value:null;
+  const found=metrics.find(x=>x.code===def.code);
+  return (found&&found.value!==''&&found.value!=null)?found.value:null;
 }
+/* ================== KPI ENGINE — THANG 1000 ĐIỂM, TỰ ĐỘNG (Rule 1-7) ================== */
+const DEFAULT_KPI_CFG={
+  scaleMax:1000,
+  formulaMode:'linear',            // 'linear' (Rule 1) | 'range' (Rule 3)
+  rangeRule:[[100,1000],[99,990],[98,980],[97,970],[96,960],[95,950],[90,900],[85,850],[80,800],[75,750],[70,700],[60,600],[50,500],[40,400],[30,300],[20,200],[10,100],[0,0]],
+  errorMode:'table',               // Rule 2: 'table' | 'per_error'
+  pointsPerError:20,
+  errorTable:[[1,980],[2,950],[5,800],[10,500],[20,0]],   // [số lỗi, điểm trần]
+  blockedPenalty:20,               // Rule 7: mỗi hồ sơ/case treo
+  latePenalty:100,                 // trễ hạn
+  returnedPenalty:80,              // báo cáo bị trả sửa
+  noEvidencePenalty:50,            // thiếu minh chứng bắt buộc
+  grades:[[950,'Xuất sắc'],[900,'Tốt'],[800,'Khá'],[700,'Đạt'],[600,'Cần cải thiện'],[0,'Không đạt']],
+};
+let KPI_CFG=JSON.parse(JSON.stringify(DEFAULT_KPI_CFG));
+async function loadKpiCfg(){ try{const r=await dbGet('meta','kpi_cfg'); if(r&&r.v)KPI_CFG={...JSON.parse(JSON.stringify(DEFAULT_KPI_CFG)),...r.v};}catch(e){} }
+async function saveKpiCfg(){ await dbPut('meta',{k:'kpi_cfg',v:KPI_CFG}); }
+
+function rangeScore(pct){ // Rule 3: tra bảng khoảng (đã sắp giảm dần theo %)
+  const tbl=[...(KPI_CFG.rangeRule||[])].sort((a,b)=>b[0]-a[0]);
+  for(const [minPct,score] of tbl){ if(pct>=minPct) return score; }
+  return 0;
+}
+function errorDeduct(errCount){ // Rule 2: trả về số điểm bị TRỪ do lỗi
+  if(errCount<=0)return 0;
+  if(KPI_CFG.errorMode==='per_error') return errCount*num(KPI_CFG.pointsPerError);
+  const tbl=[...(KPI_CFG.errorTable||[])].sort((a,b)=>a[0]-b[0]);
+  let cap=0; for(const [cnt,score] of tbl){ if(errCount>=cnt) cap=1000-score; }
+  return cap;
+}
+// Tự động chấm KPI 1 đầu việc — KHÔNG nhập tay. Target/Actual lấy từ chỉ tiêu nghiệp vụ.
 function computeLineKPI(catalog, line, actual, metrics){
-  const reasons=[];
+  const reasons=[]; const deducts=[];
   const completion = actual ? num(actual.completionPct) : 0;
-  // A — khối lượng (0-25)
-  let A=0; const vplan=getMetric(catalog,metrics,'vplan'), vact=getMetric(catalog,metrics,'vactual');
-  if(vplan!=null && num(vplan)>0 && vact!=null){A=Math.min(25,(num(vact)/num(vplan))*25); reasons.push(`Khối lượng: ${num(vact)}/${num(vplan)} → ${A.toFixed(1)}/25`);}
-  else {A=completion/100*25; reasons.push(`Khối lượng (theo %HT ${completion}%): ${A.toFixed(1)}/25`);}
-  // B — giá trị/quy mô (0-20)
-  let B=0; const valplan=getMetric(catalog,metrics,'valplan'), valact=getMetric(catalog,metrics,'valactual');
-  if(valplan!=null && num(valplan)>0 && valact!=null){B=Math.min(20,(num(valact)/num(valplan))*20); reasons.push(`Giá trị: đạt ${(num(valact)/num(valplan)*100).toFixed(0)}% → ${B.toFixed(1)}/20`);}
-  else {B=completion/100*20; reasons.push(`Giá trị (theo %HT ${completion}%): ${B.toFixed(1)}/20`);}
-  // C — đúng hạn (0-25)
-  let C=25; const lateFlag=getMetric(catalog,metrics,'late'); 
-  const ontimeDate=getMetric(catalog,metrics,'ontime_date'), dueDate=line.deadline||getMetric(catalog,metrics,'due_date');
-  const latePct=getMetric(catalog,metrics,'late_pct');
-  if(lateFlag==='true'||lateFlag===true||num(lateFlag)===1){C=8; reasons.push('Đúng hạn: nộp chậm → 8/25');}
-  else if(ontimeDate&&dueDate){ C=(new Date(ontimeDate)<=new Date(dueDate))?25:10; reasons.push(`Đúng hạn: HT ${ontimeDate} vs hạn ${dueDate} → ${C}/25`);}
-  else if(latePct!=null){C=Math.min(25,num(latePct)/100*25); reasons.push(`Đúng hạn (tỷ lệ ${latePct}%): ${C.toFixed(1)}/25`);}
-  else if(actual&&actual.actualEndDate&&line.deadline){C=(new Date(actual.actualEndDate)<=new Date(line.deadline))?25:10; reasons.push(`Đúng hạn: ${actual.actualEndDate} vs ${line.deadline} → ${C}/25`);}
-  else {C=completion>=100?25:(completion>=80?18:10); reasons.push(`Đúng hạn (ước theo %HT): ${C}/25`);}
-  // D — chất lượng/sai sót (0-20)
-  let D=20; let errTotal=0;
+  // --- Target & Actual (Rule 1: càng lớn càng tốt) ---
+  let target=null, actualV=null, srcLabel='';
+  const vplan=getMetric(catalog,metrics,'vplan'), vact=getMetric(catalog,metrics,'vactual');
+  const valplan=getMetric(catalog,metrics,'valplan'), valact=getMetric(catalog,metrics,'valactual');
+  if(vplan!=null&&num(vplan)>0&&vact!=null){target=num(vplan);actualV=num(vact);srcLabel='khối lượng';}
+  else if(valplan!=null&&num(valplan)>0&&valact!=null){target=num(valplan);actualV=num(valact);srcLabel='giá trị';}
+  else {target=100;actualV=completion;srcLabel='% hoàn thành';}
+  const pct = target>0 ? (actualV/target)*100 : 0;
+  // --- Điểm gốc: Rule 1 (tuyến tính, trần 1000) hoặc Rule 3 (bảng khoảng) ---
+  let base;
+  if(KPI_CFG.formulaMode==='range'){ base=rangeScore(pct); reasons.push(`Đạt ${pct.toFixed(1)}% target (${srcLabel}: ${fmtNum(actualV)}/${fmtNum(target)}) → tra bảng khoảng: ${base} điểm`); }
+  else { base=Math.min(Math.round(pct/100*1000),1000); reasons.push(`Đạt ${pct.toFixed(1)}% target (${srcLabel}: ${fmtNum(actualV)}/${fmtNum(target)}) → MIN(${pct.toFixed(0)}%×1000, 1000) = ${base} điểm`); }
+  // --- Rule 2: lỗi/sai sót/trả lại (càng nhỏ càng tốt, target = 0) ---
+  let errTotal=0;
   catalog.metrics.filter(x=>x.role==='err'||x.role==='reject').forEach(def=>{
     const mv=metrics.find(x=>x.code===def.code); if(mv)errTotal+=num(mv.value);});
-  if(errTotal>0){D=Math.max(0,20-errTotal*3); reasons.push(`Chất lượng: ${errTotal} lỗi/trả sửa → trừ → ${D}/20`);}
-  else reasons.push('Chất lượng: không lỗi → 20/20');
-  // E — minh chứng/tuân thủ (0-10)
-  let E= (actual&&actual.hasEvidence)?10:(catalog.evidence?0:7);
-  reasons.push(catalog.evidence?(actual&&actual.hasEvidence?'Minh chứng: đầy đủ → 10/10':'Minh chứng: thiếu (bắt buộc) → 0/10'):'Minh chứng: không bắt buộc → 7/10');
-  // P — phạt
-  let P=0;
-  if(lateFlag==='true'||lateFlag===true)P+=5;
+  if(errTotal>0){const dv=errorDeduct(errTotal); deducts.push(['Lỗi/sai sót ('+errTotal+')',dv]); reasons.push(`Rule lỗi: ${errTotal} lỗi → trừ ${dv} điểm`);}
+  else reasons.push('Không có lỗi/sai sót → không trừ');
+  // --- Rule 7: các khoản phạt (điểm không âm) ---
+  const lateFlag=getMetric(catalog,metrics,'late');
+  const ontimeDate=getMetric(catalog,metrics,'ontime_date'), dueDate=line.deadline||getMetric(catalog,metrics,'due_date');
+  let isLate=false;
+  if(lateFlag==='true'||lateFlag===true||num(lateFlag)===1)isLate=true;
+  else if(ontimeDate&&dueDate&&new Date(ontimeDate)>new Date(dueDate))isLate=true;
+  else if(actual&&actual.actualEndDate&&line.deadline&&new Date(actual.actualEndDate)>new Date(line.deadline))isLate=true;
+  if(isLate){deducts.push(['Trễ hạn',num(KPI_CFG.latePenalty)]); reasons.push(`Trễ hạn → trừ ${KPI_CFG.latePenalty} điểm`);}
   let blocked=0; catalog.metrics.filter(x=>x.role==='blocked').forEach(def=>{const mv=metrics.find(x=>x.code===def.code);if(mv)blocked+=num(mv.value);});
-  if(blocked>0){P+=Math.min(10,blocked); reasons.push(`Phạt: ${blocked} hồ sơ/case treo → -${Math.min(10,blocked)}`);}
-  if(actual&&actual.status==='returned'){P+=8; reasons.push('Phạt: actual bị trả sửa → -8');}
-  const final=Math.max(0,Math.min(100, A+B+C+D+E-P));
-  return {A:+A.toFixed(1),B:+B.toFixed(1),C:+C.toFixed(1),D:+D.toFixed(1),E:+E.toFixed(1),P:+P.toFixed(1),
-    final:+final.toFixed(1), grade:kpiGrade(final), reasons};
+  if(blocked>0){const dv=Math.min(300,blocked*num(KPI_CFG.blockedPenalty)); deducts.push(['Hồ sơ treo ('+blocked+')',dv]); reasons.push(`Treo/tồn đọng: ${blocked} → trừ ${dv} điểm`);}
+  if(actual&&actual.status==='returned'){deducts.push(['Bị trả sửa',num(KPI_CFG.returnedPenalty)]); reasons.push(`Báo cáo bị trả sửa → trừ ${KPI_CFG.returnedPenalty} điểm`);}
+  if(catalog.evidence&&!(actual&&actual.hasEvidence)&&completion>0){deducts.push(['Thiếu minh chứng',num(KPI_CFG.noEvidencePenalty)]); reasons.push(`Thiếu minh chứng bắt buộc → trừ ${KPI_CFG.noEvidencePenalty} điểm`);}
+  const deductTotal=deducts.reduce((s,[,v])=>s+v,0);
+  const final=Math.max(0,Math.min(1000,Math.round(base-deductTotal)));  // 0 ≤ điểm ≤ 1000
+  return {final, grade:kpiGrade(final), pct:+pct.toFixed(1), target, actualV, srcLabel,
+    base, deducts, deductTotal, reasons};
 }
-function kpiGrade(s){ if(s>=90)return'Xuất sắc'; if(s>=80)return'Tốt'; if(s>=70)return'Đạt'; if(s>=60)return'Cần cải thiện'; return'Không đạt';}
-function gradeBadge(s){ if(s>=90)return'g'; if(s>=80)return'g'; if(s>=70)return'b'; if(s>=60)return'a'; return'r';}
+function kpiGrade(s){ const g=[...(KPI_CFG.grades||DEFAULT_KPI_CFG.grades)].sort((a,b)=>b[0]-a[0]);
+  for(const [min,label] of g){ if(s>=min) return label; } return g[g.length-1][1]; }
+function gradeBadge(s){ if(s>=900)return'g'; if(s>=800)return'g'; if(s>=700)return'b'; if(s>=600)return'a'; return'r';}
 
 /* ================== APP STATE & HELPERS ================== */
 const STATE={ user:null, periodId:null, route:'dashboard', cache:{} };
@@ -1010,7 +991,9 @@ async function doLogin(){
     name=a.display||('Kế toán '+(b?b.name:a.branch)); title='Tài khoản chi nhánh'; branch=a.branch; branchName=b?b.name:a.branch;}
   else {name=a.display||a.user; title='Quản trị hệ thống'; branch=null; branchName='Toàn hệ thống';}
   STATE.user={...a,name,title,branch,branchName};
-  const periods=await dbAll('periods'); STATE.periodId=periods[periods.length-1].id;
+  const periods=(await dbAll('periods')).sort((a,b)=>a.id.localeCompare(b.id));
+  const cur=currentPeriodId();
+  STATE.periodId=periods.some(p=>p.id===cur)?cur:periods[periods.length-1].id;
   await audit('account',u,'login'); renderShell();
 }
 function logout(){STATE.user=null;renderLogin();}
@@ -1028,7 +1011,7 @@ const NAV=[
   {r:'master',ic:'⚙️',l:'Danh mục & Cấu hình',mgr:true},
 ];
 async function renderShell(){
-  const periods=await dbAll('periods');
+  const periods=(await dbAll('periods')).sort((a,b)=>b.id.localeCompare(a.id)); // mới nhất lên đầu
   const popt=periods.map(p=>`<option value="${p.id}" ${p.id===STATE.periodId?'selected':''}>${esc(p.label)}${p.locked?' 🔒':''}</option>`).join('');
   const nav=NAV.map(n=>{ if(n.r==='sep')return '<div class="nav-sep"></div>';
     if(n.mgr&&!can.manage())return'';
@@ -1215,7 +1198,19 @@ async function editLine(okrId,lineId){
   window._line=line; window._actual=actual||{}; window._mMap=mMap;
   renderTab('plan');
 }
-function switchTab(t){_editCtx.tab=t;document.querySelectorAll('#line-tabs .tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));renderTab(t);}
+function captureEditorDom(){ // thu hoạch mọi giá trị đang nhập trước khi tab bị render lại
+  const l=window._line, cat=_editCtx&&_editCtx.cat, a=window._actual||{};
+  if(!l||!cat)return;
+  const rd=id=>{const e=document.getElementById(id);return e?e.value:undefined;};
+  if(rd('l-obj')!==undefined){l.objective=rd('l-obj');l.expectedResult=rd('l-exp');l.deadline=rd('l-deadline');
+    l.priority=rd('l-priority');l.weight=num(rd('l-weight'));l.planNote=rd('l-note');}
+  cat.metrics.forEach(mt=>{const e=document.getElementById('m-'+mt.code);if(e)window._mMap[mt.code]=e.value;});
+  if(rd('a-status')!==undefined){a.status=rd('a-status');a.completionPct=rd('a-pct');a.actualStartDate=rd('a-start');
+    a.actualEndDate=rd('a-end');a.actualQty=rd('a-qty');a.actualValue=rd('a-value');a.actualResult=rd('a-result');a.riskNote=rd('a-risk');}
+  if(rd('a-evlink')!==undefined){a.evidenceLink=rd('a-evlink');a.hasEvidence=rd('a-hasev')==='true';}
+  window._actual=a;
+}
+function switchTab(t){captureEditorDom();_editCtx.tab=t;document.querySelectorAll('#line-tabs .tab').forEach(x=>x.classList.toggle('active',x.dataset.t===t));renderTab(t);}
 function fInput(id,label,val,type,opts={}){
   const dis=_editCtx.locked?'disabled':'';
   let inp;
@@ -1272,53 +1267,56 @@ function renderTab(t){
   else if(t==='kpi'){
     const metricsArr=cat.metrics.map(mt=>({code:mt.code,value:mMap[mt.code]}));
     const k=computeLineKPI(cat,l,window._actual,metricsArr);
-    const color=k.final>=80?'#107e3e':k.final>=70?'#0a6ed1':k.final>=60?'#e9730c':'#bb0000';
+    const color=k.final>=900?'#107e3e':k.final>=700?'#0a6ed1':k.final>=600?'#e9730c':'#bb0000';
+    const w=num(l.weight); const converted=Math.round(k.final*w/100);
+    const dedRows=k.deducts.length?k.deducts.map(([lb,v])=>`<tr><td style="color:var(--c-red)">− ${esc(lb)}</td><td class="num" style="color:var(--c-red)">−${v}</td></tr>`).join(''):'<tr><td style="color:var(--c-green)">Không có khoản trừ</td><td class="num">0</td></tr>';
     tb.innerHTML=`<div class="row-flex" style="align-items:center">
       <div style="flex:0 0 auto;text-align:center">
-        <div class="kpi-ring" style="background:${color}"><div class="r-num">${k.final}</div><div class="r-lbl">/100</div></div>
+        <div class="kpi-ring" style="background:${color}"><div class="r-num">${k.final}</div><div class="r-lbl">/1000</div></div>
         <div style="margin-top:8px"><span class="badge ${gradeBadge(k.final)}">${k.grade}</span></div>
       </div>
       <div style="flex:1">
         <table class="grid"><tbody>
-          <tr><td>A · Khối lượng</td><td class="num">${k.A}/25</td></tr>
-          <tr><td>B · Giá trị / quy mô</td><td class="num">${k.B}/20</td></tr>
-          <tr><td>C · Đúng hạn</td><td class="num">${k.C}/25</td></tr>
-          <tr><td>D · Chất lượng</td><td class="num">${k.D}/20</td></tr>
-          <tr><td>E · Minh chứng / tuân thủ</td><td class="num">${k.E}/10</td></tr>
-          <tr><td>P · Điểm phạt</td><td class="num" style="color:var(--c-red)">−${k.P}</td></tr>
+          <tr><td>Target (${esc(k.srcLabel)})</td><td class="num">${fmtNum(k.target)}</td></tr>
+          <tr><td>Actual (${esc(k.srcLabel)})</td><td class="num">${fmtNum(k.actualV)}</td></tr>
+          <tr><td>% đạt target</td><td class="num"><b>${k.pct}%</b></td></tr>
+          <tr><td>Điểm gốc (${KPI_CFG.formulaMode==='range'?'Rule bảng khoảng':'MIN(Actual/Target×1000, 1000)'})</td><td class="num"><b>${k.base}</b></td></tr>
+          ${dedRows}
+          <tr><td><b>Điểm KPI (0–1000)</b></td><td class="num"><b>${k.final}</b></td></tr>
+          <tr><td>Trọng số đầu việc</td><td class="num">${w}%</td></tr>
+          <tr><td><b>Điểm quy đổi (KPI × Weight)</b></td><td class="num"><b>${converted}</b></td></tr>
         </tbody></table>
       </div></div>
       <div style="margin-top:14px;background:var(--c-grey-bg);padding:12px 14px;border-radius:8px;font-size:12.5px">
-        <b>Giải thích KPI:</b><ul style="margin:8px 0 0 18px;line-height:1.7">${k.reasons.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
+        <b>Giải thích KPI (chấm tự động):</b><ul style="margin:8px 0 0 18px;line-height:1.7">${k.reasons.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
       </div>
-      <div style="margin-top:12px;font-size:12px;color:var(--c-text2)">KPI tự tính theo công thức A+B+C+D+E−P. Điểm chính thức được chốt khi quản lý phê duyệt actual.</div>`;
+      <div style="margin-top:12px;font-size:12px;color:var(--c-text2)">⚙ KPI Engine chấm hoàn toàn tự động theo Target/Actual/Weight/Rule — không nhập điểm tay. Điểm cập nhật ngay mỗi lần lưu báo cáo.</div>`;
   }
 }
 async function saveLine(){
+  captureEditorDom();  // thu hoạch giá trị của MỌI tab đã nhập (kế hoạch/thực hiện/chỉ tiêu/minh chứng)
   const l=window._line; const cat=_editCtx.cat; const a=window._actual||{};
-  // collect plan (only if rendered) — read current DOM values where present
-  const rd=id=>{const e=document.getElementById(id);return e?e.value:undefined;};
-  if(rd('l-obj')!==undefined){l.objective=rd('l-obj');l.expectedResult=rd('l-exp');l.deadline=rd('l-deadline');
-    l.priority=rd('l-priority');l.weight=num(rd('l-weight'));l.planNote=rd('l-note');}
   await dbPut('okr_lines',l);
-  // metrics: gather any m-* fields present across tabs we've visited — read from a fresh full pass
-  // To be robust, persist whatever metric inputs currently exist in DOM
   const mMap=window._mMap;
-  cat.metrics.forEach(mt=>{const e=document.getElementById('m-'+mt.code);if(e)mMap[mt.code]=e.value;});
   for(const mt of cat.metrics){ if(mMap[mt.code]!==undefined && mMap[mt.code]!==''){
     const existing=(await getLineMetrics(l.id)).find(x=>x.code===mt.code);
     await dbPut('okr_metrics',{id:existing?existing.id:uid('mt'),lineId:l.id,code:mt.code,value:mMap[mt.code]});
   }}
-  // actual
-  if(rd('a-status')!==undefined){a.status=rd('a-status');a.completionPct=rd('a-pct');a.actualStartDate=rd('a-start');
-    a.actualEndDate=rd('a-end');a.actualQty=rd('a-qty');a.actualValue=rd('a-value');a.actualResult=rd('a-result');a.riskNote=rd('a-risk');}
-  if(rd('a-evlink')!==undefined){a.evidenceLink=rd('a-evlink');a.hasEvidence=rd('a-hasev')==='true';}
   const exA=await getLineActual(l.id);
   if(a.status||a.completionPct||a.actualResult||a.evidenceLink){
     a.id=exA?exA.id:uid('act'); a.lineId=l.id; a.submittedBy=STATE.user.empCode; a.submittedAt=new Date().toISOString();
     await dbPut('okr_line_actuals',a); window._actual=a;
   }
-  await audit('okr_line',l.id,'save'); toast('Đã lưu đầu việc','ok');
+  // ⚙ KPI ENGINE TỰ ĐỘNG: Lưu → chấm điểm → lưu DB → cập nhật Dashboard/AI → báo quản lý (không nhập tay)
+  const mArrAuto=cat.metrics.map(mt=>({code:mt.code,value:mMap[mt.code]}));
+  const kAuto=computeLineKPI(cat,l,window._actual,mArrAuto);
+  await dbPut('kpi_results',{id:'kpil_'+l.id,lineId:l.id,okrId:l.okrId,empCode:STATE.user.empCode,
+    branch:STATE.user.branch,periodId:STATE.periodId,scope:'line',target:kAuto.target,actual:kAuto.actualV,
+    pct:kAuto.pct,base:kAuto.base,deduct:kAuto.deductTotal,weight:num(l.weight),
+    finalScore:kAuto.final,converted:Math.round(kAuto.final*num(l.weight)/100),grade:kAuto.grade,calcAt:new Date().toISOString()});
+  await audit('kpi',l.id,'auto_score','',null,kAuto.final+' điểm ('+kAuto.grade+')');
+  await audit('okr_line',l.id,'save');
+  toast(`Đã lưu · KPI tự động: ${kAuto.final}/1000 (${kAuto.grade})`,'ok');
   closeModal(); routeRender();
 }
 
@@ -1534,7 +1532,7 @@ async function viewDashboard(main){
       <div class="stat"><div class="s-top"><span class="s-label">Đã hoàn thành</span><span class="s-ic ic-green">✓</span></div><div class="s-val">${done}</div>${trend(pct(done,pDone))}</div>
       <div class="stat"><div class="s-top"><span class="s-label">Đang thực hiện</span><span class="s-ic ic-amber">⏳</span></div><div class="s-val">${doing}</div>${trend(pct(doing,pDoing))}</div>
       <div class="stat"><div class="s-top"><span class="s-label">Quá hạn</span><span class="s-ic ic-red">⚠️</span></div><div class="s-val">${overdue}</div>${trend(pct(overdue,pOver),true)}</div>
-      <div class="stat"><div class="s-top"><span class="s-label">Hiệu suất ${can.manage()?'trung bình':'cá nhân'}</span><span class="s-ic ic-violet">📈</span></div><div class="s-val">${avgKpi}%</div>${trend(pAvg?Math.round((avgKpi-pAvg)/pAvg*100):null)}</div>
+      <div class="stat"><div class="s-top"><span class="s-label">KPI ${can.manage()?'trung bình':'cá nhân'} (/1000)</span><span class="s-ic ic-violet">📈</span></div><div class="s-val">${avgKpi}</div>${trend(pAvg?Math.round((avgKpi-pAvg)/pAvg*100):null)}</div>
     </div>
     <div class="dash-2">
       <div class="card soft"><div class="card-h">Tiến độ công việc trong kỳ <span class="link" onclick="go('kpi')">Chi tiết</span></div>
@@ -1590,7 +1588,7 @@ function renderRiskTable(scope){
     if(d.actual&&d.actual.status==='returned')risks.push({t:'Trả sửa',w:d.cat.name,e:d.header.empName,sev:'wait',note:'Báo cáo bị trả lại'});
     const blocked=sumMetricByRole([d],'blocked');
     if(blocked>0)risks.push({t:'Treo/tồn đọng',w:d.cat.name,e:d.header.empName,sev:'wait',note:fmtNum(blocked)+' case/giá trị treo'});
-    if(d.kpi.final<60)risks.push({t:'KPI thấp',w:d.cat.name,e:d.header.empName,sev:'over',note:'KPI '+d.kpi.final+' ('+d.kpi.grade+')'});
+    if(d.kpi.final<600)risks.push({t:'KPI thấp',w:d.cat.name,e:d.header.empName,sev:'over',note:'KPI '+d.kpi.final+' ('+d.kpi.grade+')'});
   });
   if(!risks.length)return '<div class="empty"><div class="e-ic">✓</div>Không có cảnh báo rủi ro trong kỳ.</div>';
   return `<table class="grid"><thead><tr><th>Loại rủi ro</th><th>Công việc</th><th>Nhân viên</th><th>Chi tiết</th></tr></thead><tbody>
@@ -1631,32 +1629,42 @@ function drawDashCharts(scope){
 async function viewKPI(main){
   const period=await dbGet('periods',STATE.periodId);
   const data=await gatherPeriodData(STATE.periodId);
-  const scope=can.manage()?data:data.filter(d=>d.header.empCode===STATE.user.empCode);
+  let scope=can.manage()?data:data.filter(d=>d.header.empCode===STATE.user.empCode);
+  // Lọc theo chi nhánh (dành cho admin/quản lý nhiều chi nhánh)
+  const allBranches=(await dbAll('branches')).filter(b=>can.inScope(b.code));
+  const bSel=window._kpiBranch||'all';
+  if(bSel!=='all') scope=scope.filter(d=>d.header.branch===bSel);
+  const bName=c=>{const x=allBranches.find(y=>y.code===c);return x?x.name:c;};
+  const bOpt=`<option value="all" ${bSel==='all'?'selected':''}>Tất cả chi nhánh (${allBranches.length})</option>`+
+    allBranches.map(b=>`<option value="${b.code}" ${bSel===b.code?'selected':''}>${esc(b.name)}</option>`).join('');
   // group by employee
   const byE={};
   scope.forEach(d=>{const e=d.header.empCode;byE[e]=byE[e]||{name:d.header.empName,branch:d.header.branch,tw:0,acc:0,lines:0,overdue:0,returned:0};
     const w=num(d.line.weight);byE[e].tw+=w;byE[e].acc+=d.kpi.final*w;byE[e].lines++;if(d.overdue)byE[e].overdue++;if(d.actual&&d.actual.status==='returned')byE[e].returned++;});
   const emps=Object.keys(byE).map(e=>{const x=byE[e];const okrScore=x.tw>0?x.acc/x.tw:0;
-    const compliance=Math.max(0,100-x.overdue*10-x.returned*8);
-    const empKpi=0.7*okrScore+0.2*compliance+0.1*80; // 10% điểm quản lý mặc định 80
-    return {code:e,...x,okrScore:+okrScore.toFixed(1),compliance,empKpi:+empKpi.toFixed(1)};}).sort((a,b)=>b.empKpi-a.empKpi);
-  let rows=emps.map((e,i)=>`<tr><td>${i+1}</td><td><b>${esc(e.name)}</b></td><td class="num">${e.lines}</td>
+    const compliance=Math.max(0,1000-x.overdue*100-x.returned*80);
+    const empKpi=Math.round(0.7*okrScore+0.2*compliance+0.1*800); // 10% điểm quản lý mặc định 800/1000
+    return {code:e,...x,okrScore:Math.round(okrScore),compliance,empKpi};}).sort((a,b)=>b.empKpi-a.empKpi);
+  let rows=emps.map((e,i)=>`<tr><td>${i+1}</td><td><b>${esc(e.name)}</b></td><td>${esc(bName(e.branch))}</td><td class="num">${e.lines}</td>
     <td class="num">${e.okrScore}</td><td class="num">${e.compliance}</td><td class="num"><b>${e.empKpi}</b></td>
     <td><span class="badge ${gradeBadge(e.empKpi)}">${kpiGrade(e.empKpi)}</span></td></tr>`).join('');
   main.innerHTML=`<div class="page-head"><div><h1>KPI & Báo cáo — ${esc(period.label)}</h1>
-    <div class="sub">KPI_NV = 70%·KPI_OKR + 20%·Tuân thủ + 10%·Điểm quản lý. Xếp loại theo thang 5 mức.</div></div>
-    <button class="btn neutral" onclick="exportKPIExcel()">⬇ Export Excel</button></div>
-    <div class="card"><div class="card-h">Bảng KPI nhân viên (${emps.length})</div><div class="card-b" style="padding:0">
-    ${emps.length?`<table class="grid"><thead><tr><th>#</th><th>Nhân viên</th><th>Số đầu việc</th><th>KPI OKR</th><th>Tuân thủ</th><th>KPI cuối</th><th>Xếp loại</th></tr></thead><tbody>${rows}</tbody></table>`
-      :'<div class="empty"><div class="e-ic">★</div>Chưa có dữ liệu KPI trong kỳ.</div>'}</div></div>`;
+    <div class="sub">Thang 1000 điểm · chấm hoàn toàn tự động theo Target/Actual/Weight/Rule. KPI_NV = 70%·KPI_OKR + 20%·Tuân thủ + 10%·Điểm quản lý.</div></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      ${can.manage()&&allBranches.length>1?`<select onchange="setKpiBranch(this.value)" style="padding:8px 10px;border:1px solid var(--c-border);border-radius:8px;font-size:13px">${bOpt}</select>`:''}
+      <button class="btn neutral" onclick="exportKPIExcel()">⬇ Export Excel</button></div></div>
+    <div class="card"><div class="card-h">Bảng KPI nhân viên (${emps.length})${bSel!=='all'?' — '+esc(bName(bSel)):''} — /1000 điểm</div><div class="card-b" style="padding:0">
+    ${emps.length?`<table class="grid"><thead><tr><th>#</th><th>Nhân viên</th><th>Chi nhánh</th><th>Số đầu việc</th><th>KPI OKR</th><th>Tuân thủ</th><th>KPI cuối</th><th>Xếp loại</th></tr></thead><tbody>${rows}</tbody></table>`
+      :'<div class="empty"><div class="e-ic">★</div>Chưa có dữ liệu KPI trong kỳ'+(bSel!=='all'?' cho chi nhánh này':'')+'.</div>'}</div></div>`;
   window._kpiExport=emps; window._kpiData=scope;
 }
+function setKpiBranch(v){window._kpiBranch=v;viewKPI($('#main'));}
 function exportKPIExcel(){
   const emps=window._kpiExport||[]; const data=window._kpiData||[];
   const wb=XLSX.utils.book_new();
-  const s1=emps.map((e,i)=>({STT:i+1,'Nhân viên':e.name,'Số đầu việc':e.lines,'KPI OKR':e.okrScore,'Điểm tuân thủ':e.compliance,'Việc quá hạn':e.overdue,'Bị trả sửa':e.returned,'KPI cuối':e.empKpi,'Xếp loại':kpiGrade(e.empKpi)}));
+  const s1=emps.map((e,i)=>({STT:i+1,'Nhân viên':e.name,'Chi nhánh':e.branch,'Số đầu việc':e.lines,'KPI OKR':e.okrScore,'Điểm tuân thủ':e.compliance,'Việc quá hạn':e.overdue,'Bị trả sửa':e.returned,'KPI cuối':e.empKpi,'Xếp loại':kpiGrade(e.empKpi)}));
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(s1),'KPI nhân viên');
-  const s2=data.map(d=>({'Nhân viên':d.header.empName,'Công việc':d.cat.name,'Nhóm':d.cat.group,'Trọng số %':d.line.weight,'Hạn':d.line.deadline,'Trạng thái':STATUS_LABELS[d.actual?d.actual.status:'not_started'],'A':d.kpi.A,'B':d.kpi.B,'C':d.kpi.C,'D':d.kpi.D,'E':d.kpi.E,'P':d.kpi.P,'KPI':d.kpi.final,'Xếp loại':d.kpi.grade}));
+  const s2=data.map(d=>({'Nhân viên':d.header.empName,'Công việc':d.cat.name,'Nhóm':d.cat.group,'Trọng số %':d.line.weight,'Hạn':d.line.deadline,'Trạng thái':STATUS_LABELS[d.actual?d.actual.status:'not_started'],'Target':d.kpi.target,'Actual':d.kpi.actualV,'% đạt':d.kpi.pct,'Điểm gốc':d.kpi.base,'Điểm trừ':d.kpi.deductTotal,'KPI (/1000)':d.kpi.final,'Điểm quy đổi':Math.round(d.kpi.final*num(d.line.weight)/100),'Xếp loại':d.kpi.grade}));
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(s2),'Chi tiết đầu việc');
   XLSX.writeFile(wb,'KPI_'+STATE.periodId+'.xlsx'); toast('Đã xuất Excel','ok');
 }
@@ -1675,7 +1683,7 @@ async function buildFactTable(periodId){
     if(d.overdue)f.riskFlags.push('OVERDUE');
     if(d.actual&&d.actual.status==='returned')f.riskFlags.push('RETURNED');
     if(f.blockedValue>0)f.riskFlags.push('BLOCKED');
-    if(d.kpi.final<60)f.riskFlags.push('LOW_KPI');
+    if(d.kpi.final<600)f.riskFlags.push('LOW_KPI');
     // ai metrics
     d.cat.metrics.filter(x=>x.ai).forEach(mt=>{const mv=d.metrics.find(x=>x.code===mt.code);if(mv)f['m_'+mt.code]=mv.value;});
     return f;
@@ -1771,6 +1779,7 @@ async function viewMaster(main){
       <div class="tab ${_masterTab==='emp'?'active':''}" onclick="setMTab('emp')">👥 Nhân viên</div>
       <div class="tab ${_masterTab==='acc'?'active':''}" onclick="setMTab('acc')">🔑 Tài khoản</div>
       <div class="tab ${_masterTab==='period'?'active':''}" onclick="setMTab('period')">🗓️ Kỳ báo cáo</div>
+      <div class="tab ${_masterTab==='kpirule'?'active':''}" onclick="setMTab('kpirule')">⚖️ KPI Rule</div>
       <div class="tab ${_masterTab==='audit'?'active':''}" onclick="setMTab('audit')">📜 Audit Log</div>
     </div><div id="mt-body"></div>`;
   renderMTab();
@@ -1838,6 +1847,44 @@ async function renderMTab(){
       ${periods.map(p=>`<tr><td>${esc(p.id)}</td><td>${esc(p.label)}</td><td>${esc(p.type)}</td><td>${p.locked?'<span class="badge b">🔒 Khóa</span>':'<span class="badge g">Mở</span>'}</td>
       <td style="text-align:right">${mgr?`<button class="btn neutral sm" onclick="togglePeriod('${p.id}')">${p.locked?'Mở khóa':'Khóa kỳ'}</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`;
   }
+  else if(_masterTab==='kpirule'){
+    const adm=can.admin();
+    const rrTxt=(KPI_CFG.rangeRule||[]).map(([p,s])=>p+':'+s).join('\n');
+    const etTxt=(KPI_CFG.errorTable||[]).map(([c,s])=>c+':'+s).join('\n');
+    const grTxt=(KPI_CFG.grades||[]).map(([m,l])=>m+':'+l).join('\n');
+    b.innerHTML=`<div class="card"><div class="card-h">⚖️ Cấu hình KPI Engine (thang 1000 điểm — chấm tự động, không nhập tay)</div>
+      <div class="card-b">
+        <div class="grid2">
+          <div class="field"><label>Công thức điểm gốc (Rule 1 / Rule 3)</label>
+            <select id="kr-mode" ${adm?'':'disabled'}>
+              <option value="linear" ${KPI_CFG.formulaMode!=='range'?'selected':''}>Tuyến tính: MIN(Actual/Target × 1000, 1000)</option>
+              <option value="range" ${KPI_CFG.formulaMode==='range'?'selected':''}>Bảng khoảng (% đạt → điểm)</option>
+            </select></div>
+          <div class="field"><label>Rule lỗi (Rule 2 — càng nhỏ càng tốt, target = 0)</label>
+            <select id="kr-emode" ${adm?'':'disabled'}>
+              <option value="table" ${KPI_CFG.errorMode!=='per_error'?'selected':''}>Theo bảng số lỗi → điểm trần</option>
+              <option value="per_error" ${KPI_CFG.errorMode==='per_error'?'selected':''}>Trừ cố định mỗi lỗi</option>
+            </select></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label>Điểm trừ mỗi lỗi (chế độ "mỗi lỗi")</label><input id="kr-ppe" type="number" value="${KPI_CFG.pointsPerError}" ${adm?'':'disabled'}></div>
+          <div class="field"><label>Trừ mỗi hồ sơ treo (Rule 7)</label><input id="kr-blk" type="number" value="${KPI_CFG.blockedPenalty}" ${adm?'':'disabled'}></div>
+          <div class="field"><label>Phạt trễ hạn</label><input id="kr-late" type="number" value="${KPI_CFG.latePenalty}" ${adm?'':'disabled'}></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Phạt bị trả sửa</label><input id="kr-ret" type="number" value="${KPI_CFG.returnedPenalty}" ${adm?'':'disabled'}></div>
+          <div class="field"><label>Phạt thiếu minh chứng bắt buộc</label><input id="kr-ev" type="number" value="${KPI_CFG.noEvidencePenalty}" ${adm?'':'disabled'}></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label>Bảng khoảng Rule 3 (mỗi dòng "%:điểm")</label><textarea id="kr-range" rows="8" ${adm?'':'disabled'}>${esc(rrTxt)}</textarea></div>
+          <div class="field"><label>Bảng lỗi Rule 2 (mỗi dòng "số lỗi:điểm trần")</label><textarea id="kr-etable" rows="8" ${adm?'':'disabled'}>${esc(etTxt)}</textarea></div>
+          <div class="field"><label>Mốc xếp loại (mỗi dòng "điểm tối thiểu:tên loại")</label><textarea id="kr-grades" rows="8" ${adm?'':'disabled'}>${esc(grTxt)}</textarea></div>
+        </div>
+        ${adm?`<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn neutral" onclick="resetKpiCfg()">Khôi phục mặc định</button><button class="btn" onclick="saveKpiRule()">💾 Lưu cấu hình KPI</button></div>`
+          :'<div class="hint">Chỉ Quản trị hệ thống (admin) được chỉnh Rule KPI.</div>'}
+        <div style="margin-top:12px;font-size:12px;color:var(--c-text2)">Ví dụ Rule 1: Target 100, Actual 95 → 950 điểm; Actual 120 → vẫn 1000 (không vượt trần). Rule 2 mặc định: 1 lỗi→980, 2→950, 5→800, 10→500, ≥20→0. Xếp loại mặc định: ≥950 Xuất sắc · ≥900 Tốt · ≥800 Khá · ≥700 Đạt · ≥600 Cần cải thiện · <600 Không đạt.</div>
+      </div></div>`;
+  }
   else if(_masterTab==='audit'){const logs=(await dbAll('audit_log')).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,100);
     b.innerHTML=`<div class="card"><div class="card-h">Audit Log (100 mục gần nhất)</div><div class="card-b" style="padding:0">
       ${logs.length?`<table class="grid"><thead><tr><th>Thời điểm</th><th>Người</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead><tbody>
@@ -1846,6 +1893,20 @@ async function renderMTab(){
 }
 async function togglePeriod(id){const p=await dbGet('periods',id);p.locked=!p.locked;await dbPut('periods',p);await audit('period',id,p.locked?'lock':'unlock');toast(p.locked?'Đã khóa kỳ':'Đã mở kỳ','ok');renderShell();}
 function togglePw(el){const span=el.previousElementSibling;const shown=span.dataset.shown==='1';span.textContent=shown?'••••••':span.dataset.pw;span.dataset.shown=shown?'0':'1';el.textContent=shown?'hiện':'ẩn';}
+function parsePairs(txt,numLabel){return String(txt||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.indexOf(':');const a=parseFloat(l.slice(0,i));const b=l.slice(i+1).trim();return [a, numLabel?parseFloat(b):b];}).filter(([a,b])=>!isNaN(a)&&(numLabel?!isNaN(b):b!==''));}
+async function saveKpiRule(){
+  if(!can.admin())return toast('Chỉ admin được chỉnh Rule KPI','err');
+  const range=parsePairs($('#kr-range').value,true), etable=parsePairs($('#kr-etable').value,true), grades=parsePairs($('#kr-grades').value,false);
+  if(!range.length||!etable.length||!grades.length)return toast('Bảng khoảng / bảng lỗi / mốc xếp loại không hợp lệ','err');
+  KPI_CFG={...KPI_CFG,formulaMode:$('#kr-mode').value,errorMode:$('#kr-emode').value,
+    pointsPerError:num($('#kr-ppe').value),blockedPenalty:num($('#kr-blk').value),latePenalty:num($('#kr-late').value),
+    returnedPenalty:num($('#kr-ret').value),noEvidencePenalty:num($('#kr-ev').value),
+    rangeRule:range,errorTable:etable,grades};
+  await saveKpiCfg(); await audit('kpi_cfg','global','update','',null,'Cập nhật Rule KPI');
+  toast('Đã lưu cấu hình KPI — điểm sẽ tự tính lại theo Rule mới','ok'); renderMTab();
+}
+async function resetKpiCfg(){ if(!can.admin())return; if(!confirm('Khôi phục toàn bộ Rule KPI về mặc định?'))return;
+  KPI_CFG=JSON.parse(JSON.stringify(DEFAULT_KPI_CFG)); await saveKpiCfg(); toast('Đã khôi phục Rule mặc định','ok'); renderMTab(); }
 
 async function showTemplate(code){const w=await dbGet('work_catalog',code);
   const rows=(w.metrics||[]).map(mt=>`<div class="metric-row"><div class="m-name">${esc(mt.name)}<small>${esc(mt.code)} · ${mt.type}${mt.unit?' · '+mt.unit:''}${mt.role?' · vai trò KPI: '+esc(mt.role):''}</small></div>
@@ -1911,7 +1972,7 @@ async function saveWork(code){
   }).filter(Boolean);
   if(!metrics.length)return toast('Cần ít nhất 1 chỉ tiêu','err');
   const obj={id:codeV,code:codeV,group:$('#wf-group').value,name,nature:$('#wf-nature').value.trim(),
-    cycle:$('#wf-cycle').value.trim(),evidence:$('#wf-evi').value==='true',metrics};
+    cycle:$('#wf-cycle').value.trim(),evidence:$('#wf-evi').value==='true',metrics,userEdited:true};
   await dbPut('work_catalog',obj);
   await audit('work_catalog',codeV,code?'update':'create','',null,name);
   closeModal();toast(code?'Đã cập nhật công việc':'Đã thêm công việc','ok');renderMTab();
@@ -2045,7 +2106,7 @@ async function delAccount(user){
 
 /* ================== BOOT ================== */
 (async function boot(){
-  try{ await openDB(); await seedIfEmpty(); await renderLogin(); }
+  try{ await openDB(); await seedIfEmpty(); await loadKpiCfg(); await renderLogin(); }
   catch(e){ document.getElementById('app').innerHTML='<div class="empty"><div class="e-ic">⚠</div>Không khởi tạo được CSDL: '+esc(e.message)+'</div>'; }
 })();
 </script>
